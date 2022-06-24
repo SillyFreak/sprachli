@@ -1,0 +1,26 @@
+// built in:
+// struct True;
+// struct False;
+// struct Unit;
+
+// The name of a Unit struct is at the same time the name of a value,
+// e.g. `None::foo()` and `None.foo()` can both be valid method calls.
+
+
+struct Some(value);
+struct None;
+
+fn get_even(x) {
+	if x % 2 == 0 {
+		Some(x)
+	} else {
+		None
+	}
+}
+
+fn main() {
+	print(match get_even(2) {
+		Some(x) => f"even: {x}",
+		None => "odd...",
+	});
+}

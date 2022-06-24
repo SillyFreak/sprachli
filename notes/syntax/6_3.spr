@@ -1,0 +1,41 @@
+/// Approach 3: Inheritance
+/// Some and None inherit methods of the Option mixin, allowing for a Rust/ML style implementation,
+/// while keeping the types separate. Approach 2 could be a syntactic sugar for this pattern,
+/// except for namespacing (Option::Some) and the "sealedness" of enum variants.
+/// 
+/// Mixin methods would be dynamically dispatched, as there is no static dispatch without static
+/// typing. Also, mixins could be used to check for types: `a is Some` and `a is Option` could both
+/// be supported syntax, operator overloading could not just look for a magic method but additionally
+/// check if the type purposefully implements the associated mixin.
+
+mixin Option {
+	fn map(self, f) {
+		match self {
+			Some(value) => Some(f(value)),
+			None => None,
+		}
+	}
+
+	fn unwrap(self) {
+		match self {
+			Some(value) => value,
+			None => panic("None.unwrap()"),
+		}
+	}
+}
+
+struct Some(value);
+impl Some: Option {}
+
+struct None;
+impl None: Option {}
+
+fn main() {
+	let mut opt = Some(1);
+	opt = opt.map((value) -> value + 1);
+	print(opt);  // Some(2)
+
+	let mut opt = None;
+	opt = opt.map(opt, (value) -> value + 1);
+	print(opt);  // None
+}

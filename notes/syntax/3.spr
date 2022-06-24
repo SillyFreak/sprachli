@@ -1,0 +1,21 @@
+fn add(a, b) {
+	(a.0 + b.0, a.1 + b.1)
+}
+
+fn sqare_abs(x) {
+	x.0 * x.0 + x.1 * x.1
+}
+
+fn main() {
+	let dirs = [
+		"N" -> (0, -1),
+		"E" -> (1, 0),
+		"S" -> (0, 1),
+		"W" -> (-1, 0),
+	];
+	
+	let mut point = (2, 4);
+	point = add(point, dirs["E"]);
+	print(point);	 // (3, 4)
+	print(square_abs(point));  // 25
+}

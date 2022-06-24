@@ -1,0 +1,34 @@
+/// Approach 2: explicit enums
+/// Some and None are not types but variants of a separate kind of type, enums.
+/// This is how Rust looks.
+
+enum Option {
+	Some(value),
+	None,
+}
+
+impl Option {
+	fn map(self, f) {
+		match self {
+			Some(value) => Some(f(value)),
+			None => None,
+		}
+	}
+
+	fn unwrap(self) {
+		match self {
+			Some(value) => value,
+			None => panic("None.unwrap()"),
+		}
+	}
+}
+
+fn main() {
+	let mut opt = Some(1);
+	opt = opt.map((value) -> value + 1);
+	print(opt);  // Some(2)
+
+	let mut opt = None;
+	opt = opt.map(opt, (value) -> value + 1);
+	print(opt);  // None
+}

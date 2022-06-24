@@ -1,0 +1,34 @@
+struct Point { x, y }
+
+impl Point {
+	fn new(x, y) {
+		Point { x, y }
+	}
+
+	fn move(self, vector) {
+		Point {
+			x: self.x + vector.dx,
+			y: self.y + vector.dy,
+		}
+	}
+
+	fn square_abs(self) {
+		self.x * self.x + self.y * self.y
+	}
+}
+
+struct Vector { dx, dy }
+
+fn main() {
+	let dirs = [
+		"N" -> Vector { dx: 0, dy: -1 },
+		"E" -> Vector { dx: 1, dy: 0 },
+		"S" -> Vector { dx: 0, dy: 1 },
+		"W" -> Vector { dx: -1, dy: 0 },
+	];
+	
+	let mut point = Point::new(2, 4);
+	point = point.move(dirs["E"]);
+	print(point);	 // Point { x: 3, y: 4 }
+	print(point.square_abs());  // 25
+}
