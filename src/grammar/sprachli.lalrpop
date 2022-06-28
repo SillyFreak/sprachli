@@ -1,0 +1,66 @@
+use std::str::FromStr;
+
+use crate::ast;
+
+grammar;
+
+pub Program: ast::Program = {
+	<declarations:Declaration*> => ast::Program { <> },
+}
+
+pub Declaration: ast::Declaration = {
+	// Use
+	<Fn> => ast::Declaration::Fn(<>),
+	// Struct
+	// Mixin
+	// Impl
+}
+
+pub Fn: ast::Fn = {
+	"fn" <name:Identifier>
+	"(" <formal_parameters:FormalParameters> ")"
+	<body:Block> => ast::Fn { <> },
+}
+
+pub FormalParameters = CommaSeparated<Identifier>;
+
+pub Block: ast::Block = {
+	"{" <stmts:Stmt*> <expr:Expr?> "}" => ast::Block { <> },
+}
+
+pub Stmt: ast::Stmt = {
+	Declaration => ast::Stmt::Declaration(<>),
+	<Expr> ";" => ast::Stmt::Expr(<>),
+}
+
+pub Expr: ast::Expr = {
+	Integer => ast::Expr::Integer(<>),
+	Identifier => ast::Expr::Identifier(<>),
+	Block => ast::Expr::Block(Box::new(<>)),
+	"(" <Expr> ")",
+}
+
+CommaSeparated<T>: Vec<T> = { // (1)
+	<mut v:(<T> ",")*> <e:T?> => match e { // (2)
+			None => v,
+			Some(e) => {
+					v.push(e);
+					v
+			}
+	}
+}
+
+pub Identifier: String = {
+	r"[_a-zA-Z][_a-zA-Z0-9]*" => <>.to_string(),
+}
+
+pub Integer: i32 = {
+	r"[0-9]+" => i32::from_str(<>).unwrap(),
+}
+
+match {
+	r"\s*" => { }, // The default whitespace skipping is disabled an `ignore pattern` is specified
+	r"//[^\n\r]*[\n\r]*" => { }, // Skip `// comments`
+	r"/\*[^*]*\*+(?:[^/*][^*]*\*+)*/" => { },  // Skip `/* comments */`
+	_
+}
