@@ -13,12 +13,10 @@ pub struct Interpreter;
 impl Interpreter {
     pub fn visit_program(&self, node: &ast::Program) -> Result<i32, Error> {
         let main = node.declarations.iter().find_map(|decl| {
-            if let ast::Declaration::Fn(node) = decl {
-                if node.name == "main" {
-                    return Some(node)
-                }
+            match decl {
+                ast::Declaration::Fn(node) if node.name == "main" => Some(node),
+                _ => None,
             }
-            None
         });
         let main = main.ok_or(Error::UnknownSymbol("main".to_string()))?;
         self.visit_fn(main)
@@ -30,10 +28,9 @@ impl Interpreter {
     }
 
     pub fn visit_expr(&self, node: &ast::Expr) -> Result<i32, Error> {
-        let result = if let ast::Expr::Integer(value) = node {
-            Some(value)
-        } else {
-            None
+        let result = match node {
+            ast::Expr::Integer(value) => Some(value),
+            _ => None,
         };
         let result = *result.ok_or(Error::Unsupported("expression that is not an integer literal"))?;
         Ok(result)
