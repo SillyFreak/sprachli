@@ -4,25 +4,47 @@ use crate::ast;
 
 grammar;
 
-pub Program: ast::Program = {
-	<declarations:Declaration*> => ast::Program { <> },
+pub SourceFile: ast::SourceFile = {
+	<declarations:Declaration*> => ast::SourceFile { <> },
 }
+
+//////
+// declarations
 
 pub Declaration: ast::Declaration = {
 	// Use
 	<Fn> => ast::Declaration::Fn(<>),
-	// Struct
+	<Struct> => ast::Declaration::Struct(<>),
 	// Mixin
 	// Impl
 }
 
+pub Visibility: ast::Visibility = {
+	=> ast::Visibility::Private,
+	"pub" => ast::Visibility::Public,
+}
+
 pub Fn: ast::Fn = {
+	<visibility:Visibility>
 	"fn" <name:Identifier>
-	"(" <formal_parameters:FormalParameters> ")"
+	"(" <formal_parameters:CommaSeparated<Identifier>> ")"
 	<body:Block> => ast::Fn { <> },
 }
 
-pub FormalParameters = CommaSeparated<Identifier>;
+pub Struct: ast::Struct = {
+	<visibility:Visibility>
+	"struct" <name:Identifier>
+	<members:StructMembers> => ast::Struct { <> },
+}
+
+pub StructMembers: ast::StructMembers = {
+	";" => ast::StructMembers::Empty,
+	"(" <members:CommaSeparated<Identifier>> ")" ";" => ast::StructMembers::Positional(<>),
+	"{" <members:CommaSeparated<Identifier>> "}" => ast::StructMembers::Named(<>),
+};
+
+//////
+// stmts & exprs
 
 pub Block: ast::Block = {
 	"{" <stmts:Stmt*> <expr:Expr?> "}" => ast::Block { <> },
@@ -39,6 +61,9 @@ pub Expr: ast::Expr = {
 	Block => ast::Expr::Block(Box::new(<>)),
 	"(" <Expr> ")",
 }
+
+//////
+// misc
 
 CommaSeparated<T>: Vec<T> = { // (1)
 	<mut v:(<T> ",")*> <e:T?> => match e { // (2)

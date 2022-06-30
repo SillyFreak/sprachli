@@ -11,7 +11,7 @@ fn main(a, b) {
     22
 }
 ";
-    let program = grammar::ProgramParser::new().parse(program)?;
+    let program = grammar::SourceFileParser::new().parse(program)?;
     println!("{:?}", program);
     println!("{:?}", interpreter::Interpreter.visit_program(&program)?);
 

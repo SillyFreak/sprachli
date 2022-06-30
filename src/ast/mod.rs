@@ -1,18 +1,12 @@
+mod declarations;
+
+pub use declarations::*;
+
+/// The contents of a sprachli file. The top-level constructs that can be found
+/// in a sprachli file are [Declaration]s.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Program {
+pub struct SourceFile {
     pub declarations: Vec<Declaration>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Declaration {
-    Fn(Fn),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Fn {
-    pub name: String,
-    pub formal_parameters: Vec<String>,
-    pub body: Block,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

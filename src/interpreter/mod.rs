@@ -11,7 +11,7 @@ pub enum Error {
 pub struct Interpreter;
 
 impl Interpreter {
-    pub fn visit_program(&self, node: &ast::Program) -> Result<i32, Error> {
+    pub fn visit_program(&self, node: &ast::SourceFile) -> Result<i32, Error> {
         let main = node.declarations.iter().find_map(|decl| {
             match decl {
                 ast::Declaration::Fn(node) if node.name == "main" => Some(node),
