@@ -58,11 +58,27 @@ pub Expression: ast::Expression = {
 	Integer => ast::Expression::Integer(<>),
 	Identifier => ast::Expression::Identifier(<>),
 	Block => ast::Expression::Block(Box::new(<>)),
+	If => ast::Expression::If(<>),
 	"(" <Expression> ")",
 }
 
 pub Block: ast::Block = {
 	"{" <statements:Statement*> <expression:Expression?> "}" => ast::Block { <> },
+}
+
+pub If: ast::If = {
+	<mut then_branches:(<ThenBranch> "else")*>
+	<last_then_branch:ThenBranch>
+	<else_branch:("else" <Block>)?>
+	=> {
+		then_branches.push(last_then_branch);
+		let else_branch = else_branch.map(Box::new);
+		ast::If { then_branches, else_branch }
+	},
+}
+
+ThenBranch: (ast::Expression, ast::Block) = {
+	"if" <Expression> <Block>
 }
 
 //////
