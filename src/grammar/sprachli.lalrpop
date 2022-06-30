@@ -69,12 +69,11 @@ pub Block: ast::Block = {
 // misc
 
 CommaSeparated<T>: Vec<T> = { // (1)
-	<mut v:(<T> ",")*> <e:T?> => match e { // (2)
-			None => v,
-			Some(e) => {
-					v.push(e);
-					v
-			}
+	<mut v:(<T> ",")*> <e:T?> => { // (2)
+		if let Some(e) = e {
+			v.push(e);
+		}
+		v
 	}
 }
 
