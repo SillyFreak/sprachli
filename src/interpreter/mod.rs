@@ -23,13 +23,13 @@ impl Interpreter {
     }
 
     pub fn visit_fn(&self, node: &ast::Fn) -> Result<i32, Error> {
-        let node = node.body.expr.as_ref().ok_or(Error::Unsupported("function without a final expression"))?;
+        let node = node.body.expression.as_ref().ok_or(Error::Unsupported("function without a final expression"))?;
         self.visit_expr(node)
     }
 
-    pub fn visit_expr(&self, node: &ast::Expr) -> Result<i32, Error> {
+    pub fn visit_expr(&self, node: &ast::Expression) -> Result<i32, Error> {
         let result = match node {
-            ast::Expr::Integer(value) => Some(value),
+            ast::Expression::Integer(value) => Some(value),
             _ => None,
         };
         let result = *result.ok_or(Error::Unsupported("expression that is not an integer literal"))?;

@@ -44,22 +44,25 @@ pub StructMembers: ast::StructMembers = {
 };
 
 //////
-// stmts & exprs
+// statements
+
+pub Statement: ast::Statement = {
+	Declaration => ast::Statement::Declaration(<>),
+	<Expression> ";" => ast::Statement::Expression(<>),
+}
+
+//////
+// expressions
+
+pub Expression: ast::Expression = {
+	Integer => ast::Expression::Integer(<>),
+	Identifier => ast::Expression::Identifier(<>),
+	Block => ast::Expression::Block(Box::new(<>)),
+	"(" <Expression> ")",
+}
 
 pub Block: ast::Block = {
-	"{" <stmts:Stmt*> <expr:Expr?> "}" => ast::Block { <> },
-}
-
-pub Stmt: ast::Stmt = {
-	Declaration => ast::Stmt::Declaration(<>),
-	<Expr> ";" => ast::Stmt::Expr(<>),
-}
-
-pub Expr: ast::Expr = {
-	Integer => ast::Expr::Integer(<>),
-	Identifier => ast::Expr::Identifier(<>),
-	Block => ast::Expr::Block(Box::new(<>)),
-	"(" <Expr> ")",
+	"{" <statements:Statement*> <expression:Expression?> "}" => ast::Block { <> },
 }
 
 //////

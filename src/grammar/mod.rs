@@ -108,37 +108,42 @@ mod tests {
 
     #[test]
     fn test_expr_parser() {
-        fn parse(s: &str) -> Result<ast::Expr> {
-            ExprParser::new().parse(s)
+        use ast::Expression as Ex;
+
+        fn parse(s: &str) -> Result<Ex> {
+            ExpressionParser::new().parse(s)
         }
 
-        assert!(matches!(parse("22"), Ok(ast::Expr::Integer(22))));
+        assert!(matches!(parse("22"), Ok(Ex::Integer(22))));
 
-        assert!(matches!(parse("a"), Ok(ast::Expr::Identifier(id)) if id == "a"));
-        assert!(matches!(parse("b2"), Ok(ast::Expr::Identifier(id)) if id == "b2"));
+        assert!(matches!(parse("a"), Ok(Ex::Identifier(id)) if id == "a"));
+        assert!(matches!(parse("b2"), Ok(Ex::Identifier(id)) if id == "b2"));
 
-        assert!(matches!(parse("(22)"), Ok(ast::Expr::Integer(22))));
-        assert!(matches!(parse("((22))"), Ok(ast::Expr::Integer(22))));
+        assert!(matches!(parse("(22)"), Ok(Ex::Integer(22))));
+        assert!(matches!(parse("((22))"), Ok(Ex::Integer(22))));
         assert!(matches!(parse("((22)"), Err(_)));
 
-        assert!(matches!(parse("{ 22 }"), Ok(ast::Expr::Block(_))));
+        assert!(matches!(parse("{ 22 }"), Ok(Ex::Block(_))));
     }
 
     #[test]
     fn test_stmt_parser() {
-        fn parse(s: &str) -> Result<ast::Stmt> {
-            StmtParser::new().parse(s)
+        use ast::Expression as Ex;
+        use ast::Statement as St;
+
+        fn parse(s: &str) -> Result<St> {
+            StatementParser::new().parse(s)
         }
 
-        assert!(matches!(parse("22;"), Ok(ast::Stmt::Expr(ast::Expr::Integer(22)))));
+        assert!(matches!(parse("22;"), Ok(St::Expression(Ex::Integer(22)))));
 
-        assert!(matches!(parse("a;"), Ok(ast::Stmt::Expr(ast::Expr::Identifier(id))) if id == "a"));
-        assert!(matches!(parse("b2;"), Ok(ast::Stmt::Expr(ast::Expr::Identifier(id))) if id == "b2"));
+        assert!(matches!(parse("a;"), Ok(St::Expression(Ex::Identifier(id))) if id == "a"));
+        assert!(matches!(parse("b2;"), Ok(St::Expression(Ex::Identifier(id))) if id == "b2"));
 
-        assert!(matches!(parse("(22);"), Ok(ast::Stmt::Expr(ast::Expr::Integer(22)))));
-        assert!(matches!(parse("((22));"), Ok(ast::Stmt::Expr(ast::Expr::Integer(22)))));
+        assert!(matches!(parse("(22);"), Ok(St::Expression(Ex::Integer(22)))));
+        assert!(matches!(parse("((22));"), Ok(St::Expression(Ex::Integer(22)))));
 
-        assert!(matches!(parse("fn foo() {}"), Ok(ast::Stmt::Declaration(ast::Declaration::Fn(_)))));
+        assert!(matches!(parse("fn foo() {}"), Ok(St::Declaration(ast::Declaration::Fn(_)))));
 
         assert!(matches!(parse("22"), Err(_)));
     }
