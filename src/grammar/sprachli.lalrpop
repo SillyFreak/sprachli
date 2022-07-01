@@ -101,7 +101,7 @@ MultiplicativeOp: ast::BinaryOperator = {
 }
 
 pub Unary: ast::Expression = {
-	<operator:UnaryOp> <right:Call> => ast::Expression::Unary(Box::new(ast::Unary { <> })),
+	<operator:UnaryOp> <right:Unary> => ast::Expression::Unary(Box::new(ast::Unary { <> })),
 	Call,
 }
 

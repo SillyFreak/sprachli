@@ -117,8 +117,19 @@ mod tests {
         test.parse("foo(1, 2)", "(call foo 1 2)");
         test.parse("foo(1, 2,)", "(call foo 1 2)");
 
+        test.parse_eq("-f()", "-(f())");
+        test.parse_eq("--a", "-(-a)");
+        test.parse_eq("-a * b", "(-a) * b");
+        test.parse_eq("a * b * c", "(a * b) * c");
         test.parse_eq("a + b * c", "a + (b * c)");
         test.parse_eq("a * b + c", "(a * b) + c");
+        test.parse_eq("a + b + c", "(a + b) + c");
+        test.parse_eq("a >= b + c", "a >= (b + c)");
+        test.parse_eq("a + b >= c", "(a + b) >= c");
+        // test.parse_eq("a >= b >= c", "???");
+        test.parse_eq("a == b >= c", "a == (b >= c)");
+        test.parse_eq("a >= b == c", "(a >= b) == c");
+        // test.parse_eq("a == b == c", "???");
     }
 
     #[test]
