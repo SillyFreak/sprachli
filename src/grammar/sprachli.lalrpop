@@ -101,13 +101,21 @@ MultiplicativeOp: ast::BinaryOperator = {
 }
 
 pub Unary: ast::Expression = {
-	<operator:UnaryOp> <right:Atomic> => ast::Expression::Unary(Box::new(ast::Unary { <> })),
-	Atomic,
+	<operator:UnaryOp> <right:Call> => ast::Expression::Unary(Box::new(ast::Unary { <> })),
+	Call,
 }
 
 UnaryOp: ast::UnaryOperator = {
 	"-" => ast::UnaryOperator::Negate,
 	"!" => ast::UnaryOperator::Invert,
+}
+
+pub Call: ast::Expression = {
+	<function:Atomic> "(" <actual_parameters:CommaSeparated<Expression>> ")" => {
+		let function = Box::new(function);
+		ast::Expression::Call(ast::Call { <> })
+	},
+	Atomic,
 }
 
 pub Atomic: ast::Expression = {

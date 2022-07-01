@@ -145,6 +145,12 @@ mod tests {
 
         assert!(matches!(parse("1 == 1"), Ok(Ex::Binary(_))));
         assert!(matches!(parse("1 != 1"), Ok(Ex::Binary(_))));
+
+        assert!(matches!(parse("foo()"), Ok(Ex::Call(_))));
+        assert!(matches!(parse("foo(1)"), Ok(Ex::Call(_))));
+        assert!(matches!(parse("foo(1,)"), Ok(Ex::Call(_))));
+        assert!(matches!(parse("foo(1, 2)"), Ok(Ex::Call(_))));
+        assert!(matches!(parse("foo(1, 2,)"), Ok(Ex::Call(_))));
     }
 
     #[test]

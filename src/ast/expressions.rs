@@ -6,6 +6,7 @@ pub enum Expression {
     Identifier(String),
     Binary(Box<Binary>),
     Unary(Box<Unary>),
+    Call(Call),
     Block(Box<Block>),
     If(If),
 }
@@ -47,6 +48,12 @@ pub enum UnaryOperator {
 pub struct Unary {
     pub operator: UnaryOperator,
     pub right: Expression,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Call {
+    pub function: Box<Expression>,
+    pub actual_parameters: Vec<Expression>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
