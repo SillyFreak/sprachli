@@ -87,6 +87,7 @@ mod tests {
         test.parse_err("((22)");
         test.parse("{ 22 }", "(block 22)");
         test.parse("if a { b } else { c }", "(if a (block b) else (block c))");
+        test.parse("if a { b } else if c { d }", "(if a (block b) if c (block d))");
 
         test.parse("-1", "(- 1)");
         test.parse("!true", "(! true)");
