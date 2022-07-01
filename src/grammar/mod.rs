@@ -10,168 +10,121 @@ pub type Result<'a, T> = std::result::Result<T, Error<'a>>;
 
 #[cfg(test)]
 mod tests {
+    use std::fmt;
+
     use super::*;
 
     use crate::ast;
 
-    #[test]
-    fn test_declaration_parser() {
-        use ast::Declaration as Decl;
+    struct TestParser<F> {
+        parser: F,
+    }
 
-        fn parse(s: &str) -> Result<Decl> {
-            DeclarationParser::new().parse(s)
+    impl<F, T> TestParser<F>
+    where
+        F: Fn(&str) -> Result<T>,
+        T: fmt::Debug,
+    {
+        pub fn new(parser: F) -> Self {
+            Self { parser }
         }
 
-        assert!(matches!(parse("fn foo() {}"), Ok(Decl::Fn(_))));
-        assert!(matches!(parse("struct Foo();"), Ok(Decl::Struct(_))));
+        pub fn parse(&self, s: &str, expected: &str) {
+            let actual = (self.parser)(s).unwrap();
+            assert_eq!(format!("{actual:?}"), expected);
+        }
+    
+        pub fn parse_err(&self, s: &str) {
+            (self.parser)(s).unwrap_err();
+        }
+    }
+
+    #[test]
+    fn test_declaration_parser() {
+        let test = TestParser::new(|s|  DeclarationParser::new().parse(s));
+
+        test.parse("fn foo() {}", "(fn foo (block ()))");
+        test.parse("struct Foo;", "(struct Foo)");
     }
 
     #[test]
     fn test_fn_parser() {
-        use ast::Fn;
-        use ast::Visibility as Vis;
+        let test = TestParser::new(|s|  FnParser::new().parse(s));
 
-        fn parse(s: &str) -> Result<Fn> {
-            FnParser::new().parse(s)
-        }
-
-        assert!(matches!(
-            parse("fn foo() {}"),
-            Ok(Fn { 
-                visibility: Vis::Private,
-                name,
-                formal_parameters,
-                ..
-            })
-            if name == "foo" && formal_parameters.is_empty()
-        ));
-        assert!(matches!(
-            parse("pub fn foo() {}"),
-            Ok(Fn { 
-                visibility: Vis::Public,
-                ..
-            })
-        ));
-        assert!(matches!(
-            parse("fn foo(a) {}"),
-            Ok(ast::Fn { 
-                formal_parameters,
-                ..
-            })
-            if formal_parameters == &["a"]
-        ));
-        assert!(matches!(parse("fn foo(a,) {}"), Ok(Fn { .. })));
-        assert!(matches!(parse("fn foo(a, b) {}"), Ok(Fn { .. })));
-        assert!(matches!(parse("fn foo(a, b,) {}"), Ok(Fn { .. })));
-        assert!(matches!(parse("fn foo(a, 1) {}"), Err(_)));
+        test.parse("fn foo() {}", "(fn foo (block ()))");
+        test.parse("pub fn foo() {}", "(fn pub foo (block ()))");
+        test.parse("fn foo(a) {}", "(fn foo a (block ()))");
+        test.parse("fn foo(a,) {}", "(fn foo a (block ()))");
+        test.parse("fn foo(a, b) {}", "(fn foo a b (block ()))");
+        test.parse("fn foo(a, b,) {}", "(fn foo a b (block ()))");
+        test.parse_err("fn foo(a, 1) {}");
     }
 
     #[test]
     fn test_struct_parser() {
-        use ast::Struct;
-        use ast::StructMembers as Members;
-        use ast::Visibility as Vis;
+        let test = TestParser::new(|s|  StructParser::new().parse(s));
 
-        fn parse(s: &str) -> Result<ast::Struct> {
-            StructParser::new().parse(s)
-        }
-
-        assert!(matches!(
-            parse("struct Foo;"),
-            Ok(Struct { 
-                visibility: Vis::Private,
-                name,
-                members: Members::Empty,
-            })
-            if name == "Foo"
-        ));
-
-        assert!(matches!(
-            parse("pub struct Foo(a);"),
-            Ok(Struct { 
-                visibility: Vis::Public,
-                members: Members::Positional(members),
-                ..
-            })
-            if members == &["a"]
-        ));
-        assert!(matches!(parse("struct Foo(a,);"), Ok(Struct { .. })));
-        assert!(matches!(parse("struct Foo(a, b);"), Ok(Struct { .. })));
-        assert!(matches!(parse("struct Foo(a, b,);"), Ok(Struct { .. })));
-        assert!(matches!(parse("struct Foo(a, 1,);"), Err(_)));
-
-        assert!(matches!(
-            parse("pub struct Foo { a }"),
-            Ok(Struct { 
-                visibility: Vis::Public,
-                members: Members::Named(members),
-                ..
-            })
-            if members == &["a"]
-        ));
-        assert!(matches!(parse("struct Foo { a, }"), Ok(Struct { .. })));
-        assert!(matches!(parse("struct Foo { a, b }"), Ok(Struct { .. })));
-        assert!(matches!(parse("struct Foo { a, b, }"), Ok(Struct { .. })));
-        assert!(matches!(parse("struct Foo { a, 1 }"), Err(_)));
+        test.parse("struct Foo;", "(struct Foo)");
+        test.parse("pub struct Foo(a);", "(struct pub Foo a)");
+        test.parse("struct Foo(a,);", "(struct Foo a)");
+        test.parse("struct Foo(a, b);", "(struct Foo a b)");
+        test.parse("struct Foo(a, b,);", "(struct Foo a b)");
+        test.parse_err("struct Foo(a, 1,);");
+        test.parse("struct Foo{ a }", "(struct Foo { a })");
+        test.parse("struct Foo{ a, }", "(struct Foo { a })");
+        test.parse("struct Foo{ a, b }", "(struct Foo { a b })");
+        test.parse("struct Foo{ a, b, }", "(struct Foo { a b })");
+        test.parse_err("struct Foo{ a, 1 }");
     }
 
     #[test]
     fn test_expr_parser() {
-        use ast::Expression as Ex;
+        let test = TestParser::new(|s|  ExpressionParser::new().parse(s));
 
-        fn parse(s: &str) -> Result<Ex> {
-            ExpressionParser::new().parse(s)
-        }
+        test.parse("22", "22");
+        test.parse("a", "a");
+        test.parse("(22)", "22");
+        test.parse_err("((22)");
+        test.parse("{ 22 }", "(block 22)");
+        test.parse("if a { b } else { c }", "(if a (block b) else (block c))");
 
-        assert!(matches!(parse("22"), Ok(Ex::Integer(22))));
-        assert!(matches!(parse("a"), Ok(Ex::Identifier(id)) if id == "a"));
-        assert!(matches!(parse("(22)"), Ok(Ex::Integer(22))));
-        assert!(matches!(parse("((22)"), Err(_)));
-        assert!(matches!(parse("{ 22 }"), Ok(Ex::Block(_))));
-        assert!(matches!(parse("if a { b } else { c }"), Ok(Ex::If(_))));
+        test.parse("-1", "(- 1)");
+        test.parse("!true", "(! true)");
 
-        assert!(matches!(parse("-1"), Ok(Ex::Unary(_))));
-        assert!(matches!(parse("!true"), Ok(Ex::Unary(_))));
+        test.parse("1 + 1", "(+ 1 1)");
+        test.parse("1 - 1", "(- 1 1)");
+        test.parse("1 * 1", "(* 1 1)");
+        test.parse("1 / 1", "(/ 1 1)");
 
-        assert!(matches!(parse("1 + 1"), Ok(Ex::Binary(_))));
-        assert!(matches!(parse("1 - 1"), Ok(Ex::Binary(_))));
-        assert!(matches!(parse("1 * 1"), Ok(Ex::Binary(_))));
-        assert!(matches!(parse("1 / 1"), Ok(Ex::Binary(_))));
+        test.parse("1 > 1", "(> 1 1)");
+        test.parse("1 >= 1", "(>= 1 1)");
+        test.parse("1 < 1", "(< 1 1)");
+        test.parse("1 <= 1", "(<= 1 1)");
 
-        assert!(matches!(parse("1 > 1"), Ok(Ex::Binary(_))));
-        assert!(matches!(parse("1 >= 1"), Ok(Ex::Binary(_))));
-        assert!(matches!(parse("1 < 1"), Ok(Ex::Binary(_))));
-        assert!(matches!(parse("1 <= 1"), Ok(Ex::Binary(_))));
+        test.parse("1 == 1", "(== 1 1)");
+        test.parse("1 != 1", "(!= 1 1)");
 
-        assert!(matches!(parse("1 == 1"), Ok(Ex::Binary(_))));
-        assert!(matches!(parse("1 != 1"), Ok(Ex::Binary(_))));
-
-        assert!(matches!(parse("foo()"), Ok(Ex::Call(_))));
-        assert!(matches!(parse("foo(1)"), Ok(Ex::Call(_))));
-        assert!(matches!(parse("foo(1,)"), Ok(Ex::Call(_))));
-        assert!(matches!(parse("foo(1, 2)"), Ok(Ex::Call(_))));
-        assert!(matches!(parse("foo(1, 2,)"), Ok(Ex::Call(_))));
+        test.parse("foo()", "(call foo)");
+        test.parse("foo(1)", "(call foo 1)");
+        test.parse("foo(1,)", "(call foo 1)");
+        test.parse("foo(1, 2)", "(call foo 1 2)");
+        test.parse("foo(1, 2,)", "(call foo 1 2)");
     }
 
     #[test]
     fn test_stmt_parser() {
-        use ast::Expression as Ex;
-        use ast::Statement as St;
+        let test = TestParser::new(|s|  StatementParser::new().parse(s));
 
-        fn parse(s: &str) -> Result<St> {
-            StatementParser::new().parse(s)
-        }
+        test.parse("22;", "22");
 
-        assert!(matches!(parse("22;"), Ok(St::Expression(Ex::Integer(22)))));
+        test.parse("a;", "a");
+        test.parse("b2;", "b2");
 
-        assert!(matches!(parse("a;"), Ok(St::Expression(Ex::Identifier(id))) if id == "a"));
-        assert!(matches!(parse("b2;"), Ok(St::Expression(Ex::Identifier(id))) if id == "b2"));
+        test.parse("(22);", "22");
+        test.parse("((22));", "22");
 
-        assert!(matches!(parse("(22);"), Ok(St::Expression(Ex::Integer(22)))));
-        assert!(matches!(parse("((22));"), Ok(St::Expression(Ex::Integer(22)))));
+        test.parse("fn foo() {}", "(fn foo (block ()))");
 
-        assert!(matches!(parse("fn foo() {}"), Ok(St::Declaration(ast::Declaration::Fn(_)))));
-
-        assert!(matches!(parse("22"), Err(_)));
+        test.parse_err("22");
     }
 }
