@@ -98,8 +98,7 @@ impl fmt::Debug for Struct {
         let mut f = f.debug_prefixed();
         f.name("struct");
         self.visibility.fmt(&mut f);
-        f.name(&self.name);
-        self.members.fmt(&mut f);
+        self.members.fmt(&mut f, &self.name);
         f.finish()
     }
 }
@@ -112,11 +111,17 @@ pub enum StructMembers {
 }
 
 impl StructMembers {
-    fn fmt(&self, f: &mut DebugPrefixed<'_, '_>) {
+    fn fmt(&self, f: &mut DebugPrefixed<'_, '_>, name: &str) {
+        f.name(match self {
+            Self::Empty => "empty",
+            Self::Positional(_) => "positional",
+            Self::Named(_) => "named",
+        });
+        f.name(name);
         match self {
             Self::Empty => {},
             Self::Positional(members) => { f.names(members); },
-            Self::Named(members) => { f.name("{").names(members).name("}"); },
+            Self::Named(members) => { f.names(members); },
         }
     }
 }

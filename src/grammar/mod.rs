@@ -44,7 +44,7 @@ mod tests {
         let test = TestParser::new(|s|  DeclarationParser::new().parse(s));
 
         test.parse("fn foo() {}", "(fn foo (block ()))");
-        test.parse("struct Foo;", "(struct Foo)");
+        test.parse("struct Foo;", "(struct empty Foo)");
     }
 
     #[test]
@@ -64,17 +64,17 @@ mod tests {
     fn test_struct_parser() {
         let test = TestParser::new(|s|  StructParser::new().parse(s));
 
-        test.parse("struct Foo;", "(struct Foo)");
-        test.parse("pub struct Foo(a);", "(struct pub Foo a)");
-        test.parse("struct Foo(a,);", "(struct Foo a)");
-        test.parse("struct Foo(a, b);", "(struct Foo a b)");
-        test.parse("struct Foo(a, b,);", "(struct Foo a b)");
+        test.parse("struct Foo;", "(struct empty Foo)");
+        test.parse("pub struct Foo(a);", "(struct pub positional Foo a)");
+        test.parse("struct Foo(a,);", "(struct positional Foo a)");
+        test.parse("struct Foo(a, b);", "(struct positional Foo a b)");
+        test.parse("struct Foo(a, b,);", "(struct positional Foo a b)");
         test.parse_err("struct Foo(a, 1,);");
-        test.parse("struct Foo{ a }", "(struct Foo { a })");
-        test.parse("struct Foo{ a, }", "(struct Foo { a })");
-        test.parse("struct Foo{ a, b }", "(struct Foo { a b })");
-        test.parse("struct Foo{ a, b, }", "(struct Foo { a b })");
-        test.parse_err("struct Foo{ a, 1 }");
+        test.parse("struct Foo { a }", "(struct named Foo a)");
+        test.parse("struct Foo { a, }", "(struct named Foo a)");
+        test.parse("struct Foo { a, b }", "(struct named Foo a b)");
+        test.parse("struct Foo { a, b, }", "(struct named Foo a b)");
+        test.parse_err("struct Foo { a, 1 }");
     }
 
     #[test]
