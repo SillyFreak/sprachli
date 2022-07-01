@@ -129,6 +129,22 @@ mod tests {
         assert!(matches!(parse("((22)"), Err(_)));
         assert!(matches!(parse("{ 22 }"), Ok(Ex::Block(_))));
         assert!(matches!(parse("if a { b } else { c }"), Ok(Ex::If(_))));
+
+        assert!(matches!(parse("-1"), Ok(Ex::Unary(_))));
+        assert!(matches!(parse("!true"), Ok(Ex::Unary(_))));
+
+        assert!(matches!(parse("1 + 1"), Ok(Ex::Binary(_))));
+        assert!(matches!(parse("1 - 1"), Ok(Ex::Binary(_))));
+        assert!(matches!(parse("1 * 1"), Ok(Ex::Binary(_))));
+        assert!(matches!(parse("1 / 1"), Ok(Ex::Binary(_))));
+
+        assert!(matches!(parse("1 > 1"), Ok(Ex::Binary(_))));
+        assert!(matches!(parse("1 >= 1"), Ok(Ex::Binary(_))));
+        assert!(matches!(parse("1 < 1"), Ok(Ex::Binary(_))));
+        assert!(matches!(parse("1 <= 1"), Ok(Ex::Binary(_))));
+
+        assert!(matches!(parse("1 == 1"), Ok(Ex::Binary(_))));
+        assert!(matches!(parse("1 != 1"), Ok(Ex::Binary(_))));
     }
 
     #[test]

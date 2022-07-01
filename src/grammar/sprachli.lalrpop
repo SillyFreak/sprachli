@@ -55,6 +55,62 @@ pub Statement: ast::Statement = {
 // expressions
 
 pub Expression: ast::Expression = {
+	Equality,
+}
+
+pub Equality: ast::Expression = {
+	<left:Equality> <operator:EqualityOp> <right:Comparison> => ast::Expression::Binary(Box::new(ast::Binary { <> })),
+	Comparison,
+}
+
+EqualityOp: ast::BinaryOperator = {
+	"==" => ast::BinaryOperator::Equals,
+	"!=" => ast::BinaryOperator::NotEquals,
+}
+
+pub Comparison: ast::Expression = {
+	<left:Comparison> <operator:ComparisonOp> <right:Additive> => ast::Expression::Binary(Box::new(ast::Binary { <> })),
+	Additive,
+}
+
+ComparisonOp: ast::BinaryOperator = {
+	">" => ast::BinaryOperator::Greater,
+	">=" => ast::BinaryOperator::GreaterEquals,
+	"<" => ast::BinaryOperator::Less,
+	"<=" => ast::BinaryOperator::LessEquals,
+}
+
+pub Additive: ast::Expression = {
+	<left:Additive> <operator:AdditiveOp> <right:Multiplicative> => ast::Expression::Binary(Box::new(ast::Binary { <> })),
+	Multiplicative,
+}
+
+AdditiveOp: ast::BinaryOperator = {
+	"+" => ast::BinaryOperator::Add,
+	"-" => ast::BinaryOperator::Subtract,
+}
+
+pub Multiplicative: ast::Expression = {
+	<left:Multiplicative> <operator:MultiplicativeOp> <right:Unary> => ast::Expression::Binary(Box::new(ast::Binary { <> })),
+	Unary,
+}
+
+MultiplicativeOp: ast::BinaryOperator = {
+	"*" => ast::BinaryOperator::Multiply,
+	"/" => ast::BinaryOperator::Divide,
+}
+
+pub Unary: ast::Expression = {
+	<operator:UnaryOp> <right:Atomic> => ast::Expression::Unary(Box::new(ast::Unary { <> })),
+	Atomic,
+}
+
+UnaryOp: ast::UnaryOperator = {
+	"-" => ast::UnaryOperator::Negate,
+	"!" => ast::UnaryOperator::Invert,
+}
+
+pub Atomic: ast::Expression = {
 	Integer => ast::Expression::Integer(<>),
 	Identifier => ast::Expression::Identifier(<>),
 	Block => ast::Expression::Block(Box::new(<>)),
