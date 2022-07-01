@@ -33,6 +33,12 @@ mod tests {
             let actual = (self.parser)(s).unwrap();
             assert_eq!(format!("{actual:?}"), expected);
         }
+
+        pub fn parse_eq(&self, a: &str, b: &str) {
+            let a = (self.parser)(a).unwrap();
+            let b = (self.parser)(b).unwrap();
+            assert_eq!(format!("{a:?}"), format!("{b:?}"));
+        }
     
         pub fn parse_err(&self, s: &str) {
             (self.parser)(s).unwrap_err();
@@ -110,6 +116,9 @@ mod tests {
         test.parse("foo(1,)", "(call foo 1)");
         test.parse("foo(1, 2)", "(call foo 1 2)");
         test.parse("foo(1, 2,)", "(call foo 1 2)");
+
+        test.parse_eq("a + b * c", "a + (b * c)");
+        test.parse_eq("a * b + c", "(a * b) + c");
     }
 
     #[test]
