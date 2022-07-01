@@ -124,15 +124,11 @@ mod tests {
         }
 
         assert!(matches!(parse("22"), Ok(Ex::Integer(22))));
-
         assert!(matches!(parse("a"), Ok(Ex::Identifier(id)) if id == "a"));
-        assert!(matches!(parse("b2"), Ok(Ex::Identifier(id)) if id == "b2"));
-
         assert!(matches!(parse("(22)"), Ok(Ex::Integer(22))));
-        assert!(matches!(parse("((22))"), Ok(Ex::Integer(22))));
         assert!(matches!(parse("((22)"), Err(_)));
-
         assert!(matches!(parse("{ 22 }"), Ok(Ex::Block(_))));
+        assert!(matches!(parse("if a { b } else { c }"), Ok(Ex::If(_))));
     }
 
     #[test]
