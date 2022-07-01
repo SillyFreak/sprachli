@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::fmt::FormatterExt;
 use super::Statement;
 
 #[derive(Clone, PartialEq, Eq)]
@@ -71,7 +72,7 @@ pub struct Binary {
 
 impl fmt::Debug for Binary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("binary").field(&self.operator).field(&self.left).field(&self.right).finish()
+        f.debug_prefixed().item(&self.operator).item(&self.left).item(&self.right).finish()
     }
 }
 
@@ -100,7 +101,7 @@ pub struct Unary {
 
 impl fmt::Debug for Unary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("unary").field(&self.operator).field(&self.right).finish()
+        f.debug_prefixed().item(&self.operator).item(&self.right).finish()
     }
 }
 
@@ -112,12 +113,8 @@ pub struct Call {
 
 impl fmt::Debug for Call {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_tuple("call");
-        f.field(&self.function);
-        for actual_parameter in &self.actual_parameters {
-            f.field(actual_parameter);
-        }
-        f.finish()
+        let mut f = f.debug_prefixed();
+        f.name("call").item(&self.function).items(&self.actual_parameters).finish()
     }
 }
 
@@ -129,14 +126,12 @@ pub struct Block {
 
 impl fmt::Debug for Block {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_tuple("block");
-        for statement in &self.statements {
-            f.field(statement);
-        }
+        let mut f = f.debug_prefixed();
+        f.name("block").items(&self.statements);
         if let Some(expression) = &self.expression {
-            f.field(&expression);
+            f.item(&expression);
         } else {
-            f.field(&());
+            f.item(&());
         }
         f.finish()
     }
@@ -150,14 +145,15 @@ pub struct If {
 
 impl fmt::Debug for If {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_tuple("if");
+        let mut f = f.debug_prefixed();
+        f.name("if");
         for (condition, block) in &self.then_branches {
-            f.field(condition).field(block);
+            f.item(condition).item(block);
         }
         if let Some(else_branch) = &self.else_branch {
-            f.field(&else_branch);
+            f.item(&else_branch);
         } else {
-            f.field(&());
+            f.item(&());
         }
         f.finish()
     }
