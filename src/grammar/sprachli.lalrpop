@@ -86,9 +86,7 @@ ThenBranch: (ast::Expression, ast::Block) = {
 
 CommaSeparated<T>: Vec<T> = { // (1)
 	<mut v:(<T> ",")*> <e:T?> => { // (2)
-		if let Some(e) = e {
-			v.push(e);
-		}
+		v.extend(e);
 		v
 	}
 }
