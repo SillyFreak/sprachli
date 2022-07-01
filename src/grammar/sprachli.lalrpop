@@ -19,7 +19,7 @@ pub Declaration: ast::Declaration = {
 	// Impl
 }
 
-pub Visibility: ast::Visibility = {
+Visibility: ast::Visibility = {
 	=> ast::Visibility::Private,
 	"pub" => ast::Visibility::Public,
 }
@@ -37,7 +37,7 @@ pub Struct: ast::Struct = {
 	<members:StructMembers> => ast::Struct { <> },
 }
 
-pub StructMembers: ast::StructMembers = {
+StructMembers: ast::StructMembers = {
 	";" => ast::StructMembers::Empty,
 	"(" <members:CommaSeparated<Identifier>> ")" ";" => ast::StructMembers::Positional(<>),
 	"{" <members:CommaSeparated<Identifier>> "}" => ast::StructMembers::Named(<>),
