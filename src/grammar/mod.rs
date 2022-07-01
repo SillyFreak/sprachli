@@ -16,24 +16,29 @@ mod tests {
 
     #[test]
     fn test_declaration_parser() {
-        fn parse(s: &str) -> Result<ast::Declaration> {
+        use ast::Declaration as Decl;
+
+        fn parse(s: &str) -> Result<Decl> {
             DeclarationParser::new().parse(s)
         }
 
-        assert!(matches!(parse("fn foo() {}"), Ok(ast::Declaration::Fn(_))));
-        assert!(matches!(parse("struct Foo();"), Ok(ast::Declaration::Struct(_))));
+        assert!(matches!(parse("fn foo() {}"), Ok(Decl::Fn(_))));
+        assert!(matches!(parse("struct Foo();"), Ok(Decl::Struct(_))));
     }
 
     #[test]
     fn test_fn_parser() {
-        fn parse(s: &str) -> Result<ast::Fn> {
+        use ast::Fn;
+        use ast::Visibility as Vis;
+
+        fn parse(s: &str) -> Result<Fn> {
             FnParser::new().parse(s)
         }
 
         assert!(matches!(
             parse("fn foo() {}"),
-            Ok(ast::Fn { 
-                visibility: ast::Visibility::Private,
+            Ok(Fn { 
+                visibility: Vis::Private,
                 name,
                 formal_parameters,
                 ..
@@ -42,8 +47,8 @@ mod tests {
         ));
         assert!(matches!(
             parse("pub fn foo() {}"),
-            Ok(ast::Fn { 
-                visibility: ast::Visibility::Public,
+            Ok(Fn { 
+                visibility: Vis::Public,
                 ..
             })
         ));
@@ -55,54 +60,58 @@ mod tests {
             })
             if formal_parameters == &["a"]
         ));
-        assert!(matches!(parse("fn foo(a,) {}"), Ok(ast::Fn { .. })));
-        assert!(matches!(parse("fn foo(a, b) {}"), Ok(ast::Fn { .. })));
-        assert!(matches!(parse("fn foo(a, b,) {}"), Ok(ast::Fn { .. })));
+        assert!(matches!(parse("fn foo(a,) {}"), Ok(Fn { .. })));
+        assert!(matches!(parse("fn foo(a, b) {}"), Ok(Fn { .. })));
+        assert!(matches!(parse("fn foo(a, b,) {}"), Ok(Fn { .. })));
         assert!(matches!(parse("fn foo(a, 1) {}"), Err(_)));
     }
 
     #[test]
     fn test_struct_parser() {
+        use ast::Struct;
+        use ast::StructMembers as Members;
+        use ast::Visibility as Vis;
+
         fn parse(s: &str) -> Result<ast::Struct> {
             StructParser::new().parse(s)
         }
 
         assert!(matches!(
             parse("struct Foo;"),
-            Ok(ast::Struct { 
-                visibility: ast::Visibility::Private,
+            Ok(Struct { 
+                visibility: Vis::Private,
                 name,
-                members: ast::StructMembers::Empty,
+                members: Members::Empty,
             })
             if name == "Foo"
         ));
 
         assert!(matches!(
             parse("pub struct Foo(a);"),
-            Ok(ast::Struct { 
-                visibility: ast::Visibility::Public,
-                members: ast::StructMembers::Positional(members),
+            Ok(Struct { 
+                visibility: Vis::Public,
+                members: Members::Positional(members),
                 ..
             })
             if members == &["a"]
         ));
-        assert!(matches!(parse("struct Foo(a,);"), Ok(ast::Struct { .. })));
-        assert!(matches!(parse("struct Foo(a, b);"), Ok(ast::Struct { .. })));
-        assert!(matches!(parse("struct Foo(a, b,);"), Ok(ast::Struct { .. })));
+        assert!(matches!(parse("struct Foo(a,);"), Ok(Struct { .. })));
+        assert!(matches!(parse("struct Foo(a, b);"), Ok(Struct { .. })));
+        assert!(matches!(parse("struct Foo(a, b,);"), Ok(Struct { .. })));
         assert!(matches!(parse("struct Foo(a, 1,);"), Err(_)));
 
         assert!(matches!(
             parse("pub struct Foo { a }"),
-            Ok(ast::Struct { 
-                visibility: ast::Visibility::Public,
-                members: ast::StructMembers::Named(members),
+            Ok(Struct { 
+                visibility: Vis::Public,
+                members: Members::Named(members),
                 ..
             })
             if members == &["a"]
         ));
-        assert!(matches!(parse("struct Foo { a, }"), Ok(ast::Struct { .. })));
-        assert!(matches!(parse("struct Foo { a, b }"), Ok(ast::Struct { .. })));
-        assert!(matches!(parse("struct Foo { a, b, }"), Ok(ast::Struct { .. })));
+        assert!(matches!(parse("struct Foo { a, }"), Ok(Struct { .. })));
+        assert!(matches!(parse("struct Foo { a, b }"), Ok(Struct { .. })));
+        assert!(matches!(parse("struct Foo { a, b, }"), Ok(Struct { .. })));
         assert!(matches!(parse("struct Foo { a, 1 }"), Err(_)));
     }
 
