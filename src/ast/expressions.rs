@@ -146,14 +146,11 @@ pub struct If {
 impl fmt::Debug for If {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut f = f.debug_prefixed();
-        f.name("if");
         for (condition, block) in &self.then_branches {
-            f.item(condition).item(block);
+            f.name("if").item(condition).item(block);
         }
         if let Some(else_branch) = &self.else_branch {
-            f.item(&else_branch);
-        } else {
-            f.item(&());
+            f.name("else").item(&else_branch);
         }
         f.finish()
     }

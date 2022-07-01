@@ -35,6 +35,17 @@ impl<'a, 'b: 'a> DebugPrefixed<'a, 'b> {
         self
     }
 
+    pub fn names<I>(&mut self, values: I) -> &mut Self
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        for value in values.into_iter() {
+            self.name(value.as_ref());
+        }
+        self
+    }
+
     pub fn item(&mut self, value: &dyn fmt::Debug) -> &mut Self {
         self.result = self.result.and_then(|_| {
             if !self.first {
