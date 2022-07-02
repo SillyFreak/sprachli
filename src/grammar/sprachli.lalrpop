@@ -30,13 +30,13 @@ pub Fn: ast::Fn = {
 	<visibility:Visibility>
 	"fn" <name:Identifier>
 	"(" <formal_parameters:CommaSeparated<Identifier>> ")"
-	<body:Block> => ast::Fn { <> },
+	<body:Block> => ast::Fn::new(<>),
 }
 
 pub Struct: ast::Struct = {
 	<visibility:Visibility>
 	"struct" <name:Identifier>
-	<members:StructMembers> => ast::Struct { <> },
+	<members:StructMembers> => ast::Struct::new(<>),
 }
 
 StructMembers: ast::StructMembers = {
@@ -61,7 +61,7 @@ pub Expression: ast::Expression = {
 }
 
 pub Equality: ast::Expression = {
-	<left:Equality> <operator:EqualityOp> <right:Comparison> => ast::Expression::Binary(Box::new(ast::Binary { <> })),
+	<left:Equality> <operator:EqualityOp> <right:Comparison> => ast::Binary::new_expression(<>),
 	Comparison,
 }
 
@@ -71,7 +71,7 @@ EqualityOp: ast::BinaryOperator = {
 }
 
 pub Comparison: ast::Expression = {
-	<left:Comparison> <operator:ComparisonOp> <right:Additive> => ast::Expression::Binary(Box::new(ast::Binary { <> })),
+	<left:Comparison> <operator:ComparisonOp> <right:Additive> => ast::Binary::new_expression(<>),
 	Additive,
 }
 
@@ -83,7 +83,7 @@ ComparisonOp: ast::BinaryOperator = {
 }
 
 pub Additive: ast::Expression = {
-	<left:Additive> <operator:AdditiveOp> <right:Multiplicative> => ast::Expression::Binary(Box::new(ast::Binary { <> })),
+	<left:Additive> <operator:AdditiveOp> <right:Multiplicative> => ast::Binary::new_expression(<>),
 	Multiplicative,
 }
 
@@ -93,7 +93,7 @@ AdditiveOp: ast::BinaryOperator = {
 }
 
 pub Multiplicative: ast::Expression = {
-	<left:Multiplicative> <operator:MultiplicativeOp> <right:Unary> => ast::Expression::Binary(Box::new(ast::Binary { <> })),
+	<left:Multiplicative> <operator:MultiplicativeOp> <right:Unary> => ast::Binary::new_expression(<>),
 	Unary,
 }
 
@@ -103,7 +103,7 @@ MultiplicativeOp: ast::BinaryOperator = {
 }
 
 pub Unary: ast::Expression = {
-	<operator:UnaryOp> <right:Unary> => ast::Expression::Unary(Box::new(ast::Unary { <> })),
+	<operator:UnaryOp> <right:Unary> => ast::Unary::new_expression(<>),
 	Call,
 }
 
@@ -113,23 +113,20 @@ UnaryOp: ast::UnaryOperator = {
 }
 
 pub Call: ast::Expression = {
-	<function:Atomic> "(" <actual_parameters:CommaSeparated<Expression>> ")" => {
-		let function = Box::new(function);
-		ast::Expression::Call(ast::Call { <> })
-	},
+	<function:Atomic> "(" <actual_parameters:CommaSeparated<Expression>> ")" => ast::Call::new_expression(<>),
 	Atomic,
 }
 
 pub Atomic: ast::Expression = {
 	Number => ast::Expression::Number(<>),
 	Identifier => ast::Expression::Identifier(<>),
-	Block => ast::Expression::Block(Box::new(<>)),
+	Block => ast::Expression::Block(<>),
 	If => ast::Expression::If(<>),
 	"(" <Expression> ")",
 }
 
 pub Block: ast::Block = {
-	"{" <statements:Statement*> <expression:Expression?> "}" => ast::Block { <> },
+	"{" <statements:Statement*> <expression:Expression?> "}" => ast::Block::new(<>),
 }
 
 pub If: ast::If = {
@@ -138,8 +135,7 @@ pub If: ast::If = {
 	<else_branch:("else" <Block>)?>
 	=> {
 		then_branches.push(last_then_branch);
-		let else_branch = else_branch.map(Box::new);
-		ast::If { then_branches, else_branch }
+		ast::If::new(then_branches, else_branch)
 	},
 }
 

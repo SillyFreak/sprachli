@@ -86,6 +86,26 @@ impl fmt::Debug for Fn {
     }
 }
 
+impl Fn {
+    pub fn new(
+        visibility: Visibility,
+        name: String,
+        formal_parameters: Vec<String>,
+        body: Block,
+    ) -> Self {
+        Self { visibility, name, formal_parameters, body }
+    }
+
+    pub fn new_declaration(
+        visibility: Visibility,
+        name: String,
+        formal_parameters: Vec<String>,
+        body: Block,
+    ) -> Declaration {
+        Declaration::Fn(Self::new(visibility, name, formal_parameters, body))
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct Struct {
     pub visibility: Visibility,
@@ -100,6 +120,24 @@ impl fmt::Debug for Struct {
         self.visibility.fmt(&mut f);
         self.members.fmt(&mut f, &self.name);
         f.finish()
+    }
+}
+
+impl Struct {
+    pub fn new(
+        visibility: Visibility,
+        name: String,
+        members: StructMembers,
+    ) -> Self {
+        Self { visibility, name, members }
+    }
+
+    pub fn new_declaration(
+        visibility: Visibility,
+        name: String,
+        members: StructMembers,
+    ) -> Declaration {
+        Declaration::Struct(Self::new(visibility, name, members))
     }
 }
 
