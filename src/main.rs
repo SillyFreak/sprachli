@@ -5,16 +5,32 @@ mod fmt;
 mod grammar;
 mod interpreter;
 
-fn main() -> anyhow::Result<()> {
-    let source = "\
-// a
-fn main() {
-    22 + 20
+use std::env;
+use std::fs;
+
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("Usage error: {0}")]
+    Usage(String),
 }
-";
-    let source = grammar::SourceFileParser::new().parse(source)?;
-    println!("{:?}", source);
-    println!("{:?}", interpreter::Interpreter::new().visit_source_file(&source)?);
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    let filename = match &args[..] {
+        [_, filename] => filename,
+        _ => Err(Error::Usage("unexpected number of command line arguments (expected one)".to_string())).unwrap(),
+    };
+
+    let source = fs::read_to_string(filename).unwrap();
+
+    let parser = grammar::SourceFileParser::new();
+    let ast = parser.parse(&source).unwrap();
+
+    let interpreter = interpreter::Interpreter::new();
+    let result = interpreter.visit_source_file(&ast).unwrap();
+
+    println!("{result:?}");
 
     // let exprs = [
     //     "-1 * f(2)",
@@ -38,6 +54,4 @@ fn main() {
     //     println!("{:?}", source);
     //     println!("{:#?}", source);
     // }
-
-    Ok(())
 }

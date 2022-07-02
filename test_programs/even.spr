@@ -1,0 +1,11 @@
+fn is_even(x) {
+	if x >= 2 {
+		is_even(x - 2)
+	} else {
+		x == 0
+	}
+}
+
+fn main() {
+	is_even(42)
+}

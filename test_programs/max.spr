@@ -1,0 +1,7 @@
+fn max(a, b) {
+	if a > b { a } else { b }
+}
+
+fn main() {
+	max(2, 42)
+}
