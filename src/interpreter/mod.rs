@@ -67,7 +67,7 @@ impl Interpreter {
         }
     }
 
-    fn visit_number(&self, env: &Environment, value: &value::Number) -> Result<Value> {
+    fn visit_number(&self, _env: &Environment, value: &value::Number) -> Result<Value> {
         Ok(Value::Number(value.clone()))
     }
 
@@ -154,7 +154,7 @@ impl Interpreter {
     fn visit_invoke(&self, env: &Environment, function: &value::Function, actual_parameters: &[Value]) -> Result<Value> {
         function.check_arity(actual_parameters.len())?;
 
-        let mut env = Environment::new();
+        let mut env = Environment::with_parent(env);
         for (name, value) in function.formal_parameters().iter().zip(actual_parameters) {
             env.set(name.clone(), value.clone());
         }
@@ -193,5 +193,7 @@ mod tests {
         assert_eq!(run("fn main() { 22 >= 20 }").unwrap(), Value::Bool(true));
         assert_eq!(run("fn main() { -22 < 20 }").unwrap(), Value::Bool(true));
         assert_eq!(run("fn main() { 5 == 10 }").unwrap(), Value::Bool(false));
+        assert_eq!(run("fn foo() { 42 } fn main() { foo() }").unwrap(), Value::Number(42.into()));
+        assert_eq!(run("fn foo(a) { -a } fn main() { foo(-42) }").unwrap(), Value::Number(42.into()));
     }
 }

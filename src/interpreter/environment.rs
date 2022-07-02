@@ -4,13 +4,21 @@ use std::ops;
 use super::Value;
 
 #[derive(Default, Debug, Clone)]
-pub struct Environment {
+pub struct Environment<'a> {
+    parent: Option<&'a Environment<'a>>,
     bindings: HashMap<String, Value>,
 }
 
-impl Environment {
+impl<'a> Environment<'a> {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn with_parent(parent: &'a Environment<'a>) -> Self {
+        Self {
+            parent: Some(parent),
+            bindings: Default::default(),
+        }
     }
 
     pub fn set(&mut self, name: String, value: Value) -> Option<Value> {
@@ -22,18 +30,10 @@ impl Environment {
         String: std::borrow::Borrow<Q>,
         Q: Eq + std::hash::Hash,
     {
-        self.bindings.get(name)
-    }
-}
+        if let Some(value) = self.bindings.get(name) {
+            return Some(value);
+        }
 
-impl<Q: ?Sized> ops::Index<&Q> for Environment
-where
-    String: std::borrow::Borrow<Q>,
-    Q: Eq + std::hash::Hash,
-{
-    type Output = Value;
-
-    fn index(&self, name: &Q) -> &Self::Output {
-        &self.bindings[name]
+        self.parent.and_then(|env| env.get(name))
     }
 }
