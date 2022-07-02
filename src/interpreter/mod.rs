@@ -75,10 +75,9 @@ impl Interpreter {
     }
 
     pub fn visit_expression(&self, env: &Environment, expr: &ast::Expression) -> Result<Value> {
-        let result = match expr {
-            ast::Expression::Integer(value) => Ok(*value),
-            _ => Err(Error::Unsupported("expression that is not an integer literal")),
-        }?;
-        Ok(Value::Number(result.into()))
+        match expr {
+            ast::Expression::Number(value) => Ok(Value::Number(value.clone())),
+            _ => Err(Error::Unsupported("expression that is not an number literal")),
+        }
     }
 }

@@ -1,11 +1,13 @@
 use std::fmt;
 
+use bigdecimal::BigDecimal;
+
 use crate::fmt::FormatterExt;
 use super::Statement;
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Expression {
-    Integer(i32),
+    Number(BigDecimal),
     Identifier(String),
     Binary(Box<Binary>),
     Unary(Box<Unary>),
@@ -17,7 +19,7 @@ pub enum Expression {
 impl fmt::Debug for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Integer(value) => write!(f, "{value:?}"),
+            Self::Number(value) => write!(f, "{value:?}"),
             Self::Identifier(name) => write!(f, "{name}"),
             Self::Binary(expr) => write!(f, "{expr:?}"),
             Self::Unary(expr) => write!(f, "{expr:?}"),

@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use bigdecimal::BigDecimal;
+
 use crate::ast;
 
 grammar;
@@ -119,7 +121,7 @@ pub Call: ast::Expression = {
 }
 
 pub Atomic: ast::Expression = {
-	Integer => ast::Expression::Integer(<>),
+	Number => ast::Expression::Number(<>),
 	Identifier => ast::Expression::Identifier(<>),
 	Block => ast::Expression::Block(Box::new(<>)),
 	If => ast::Expression::If(<>),
@@ -159,8 +161,8 @@ pub Identifier: String = {
 	r"[_a-zA-Z][_a-zA-Z0-9]*" => <>.to_string(),
 }
 
-pub Integer: i32 = {
-	r"[0-9]+" => i32::from_str(<>).unwrap(),
+pub Number: BigDecimal = {
+	r"[0-9]+" => BigDecimal::from_str(<>).unwrap(),
 }
 
 match {
