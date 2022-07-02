@@ -14,8 +14,6 @@ mod tests {
 
     use super::*;
 
-    use crate::ast;
-
     struct TestParser<F> {
         parser: F,
     }
