@@ -61,7 +61,7 @@ impl Interpreter {
             Binary(expr) => self.visit_binary(env, expr),
             Unary(expr) => self.visit_unary(env, expr),
             Call(expr) => self.visit_call(env, expr),
-            // Block(expr) => self.visit_expr(env, expr),
+            Block(expr) => self.visit_block(env, expr),
             // If(expr) => self.visit_expr(env, expr),
             _ => Err(Error::Unsupported("expression that is not an number literal")),
         }
@@ -159,13 +159,15 @@ impl Interpreter {
             env.set(name.clone(), value.clone());
         }
 
-        let body = function.body();
+        self.visit_block(&env, function.body())
+    }
 
-        if !body.statements.is_empty() {
-            Err(Error::Unsupported("statements in function body"))?;
+    fn visit_block(&self, env: &Environment, block: &ast::Block) -> Result<Value> {
+        if !block.statements.is_empty() {
+            Err(Error::Unsupported("statements in block"))?;
         }
 
-        if let Some(expr) = &body.expression {
+        if let Some(expr) = &block.expression {
             self.visit_expression(&env, expr)
         } else {
             Ok(Value::Unit)
@@ -195,5 +197,6 @@ mod tests {
         assert_eq!(run("fn main() { 5 == 10 }").unwrap(), Value::Bool(false));
         assert_eq!(run("fn foo() { 42 } fn main() { foo() }").unwrap(), Value::Number(42.into()));
         assert_eq!(run("fn foo(a) { -a } fn main() { foo(-42) }").unwrap(), Value::Number(42.into()));
+        assert_eq!(run("fn main() { 5 == { 10 } }").unwrap(), Value::Bool(false));
     }
 }
