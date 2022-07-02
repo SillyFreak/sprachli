@@ -19,7 +19,7 @@ pub enum Expression {
 impl fmt::Debug for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Number(value) => write!(f, "{value:?}"),
+            Self::Number(value) => write!(f, "{value}"),
             Self::Identifier(name) => write!(f, "{name}"),
             Self::Binary(expr) => write!(f, "{expr:?}"),
             Self::Unary(expr) => write!(f, "{expr:?}"),
