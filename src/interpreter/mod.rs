@@ -47,11 +47,9 @@ impl Interpreter {
             }
         }
 
-        let main = env.get("main")
-            .ok_or_else(|| Error::NameError("main".to_string()))?
-            .as_function()?;
-
-        self.visit_call(&env, main, &[])
+        let main = self.visit_identifier(&env, "main")?;
+        let main = main.as_function()?;
+        self.visit_invoke(&env, main, &[])
     }
 
     pub fn visit_expression(&self, env: &Environment, expr: &ast::Expression) -> Result<Value> {
@@ -62,7 +60,7 @@ impl Interpreter {
             Identifier(name) => self.visit_identifier(env, name),
             Binary(expr) => self.visit_binary(env, expr),
             Unary(expr) => self.visit_unary(env, expr),
-            // Call(expr) => self.visit_expr(env, expr),
+            Call(expr) => self.visit_call(env, expr),
             // Block(expr) => self.visit_expr(env, expr),
             // If(expr) => self.visit_expr(env, expr),
             _ => Err(Error::Unsupported("expression that is not an number literal")),
@@ -74,7 +72,7 @@ impl Interpreter {
     }
 
     fn visit_identifier(&self, env: &Environment, name: &str) -> Result<Value> {
-        Err(Error::Unsupported("identifier expression"))
+        env.get(name).cloned().ok_or_else(|| Error::NameError(name.to_string()))
     }
 
     fn visit_binary(&self, env: &Environment, expr: &ast::Binary) -> Result<Value> {
@@ -143,7 +141,17 @@ impl Interpreter {
         }
     }
 
-    fn visit_call(&self, env: &Environment, function: &value::Function, actual_parameters: &[Value]) -> Result<Value> {
+    fn visit_call(&self, env: &Environment, call: &ast::Call) -> Result<Value> {
+        let function = self.visit_expression(env, &call.function)?;
+        let function = function.as_function()?;
+        let actual_parameters = call.actual_parameters.iter()
+                .map(|expr| self.visit_expression(env, expr))
+                .collect::<Result<Vec<_>>>()?;
+
+        self.visit_invoke(&env, function, &actual_parameters)
+    }
+
+    fn visit_invoke(&self, env: &Environment, function: &value::Function, actual_parameters: &[Value]) -> Result<Value> {
         function.check_arity(actual_parameters.len())?;
 
         let mut env = Environment::new();
