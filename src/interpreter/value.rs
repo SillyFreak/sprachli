@@ -8,15 +8,16 @@ pub type Number = BigDecimal;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     Unit,
+    Bool(bool),
     Number(Number),
     Function(Function),
 }
 
 impl Value {
-    pub fn as_function(&self) -> Result<&Function> {
+    pub fn as_bool(&self) -> Result<bool> {
         match self {
-            Self::Function(function) => Ok(function),
-            _ => Err(Error::TypeError("function".to_string())),
+            Self::Bool(bool) => Ok(*bool),
+            _ => Err(Error::TypeError("bool".to_string())),
         }
     }
 
@@ -24,6 +25,13 @@ impl Value {
         match self {
             Self::Number(number) => Ok(number),
             _ => Err(Error::TypeError("number".to_string())),
+        }
+    }
+
+    pub fn as_function(&self) -> Result<&Function> {
+        match self {
+            Self::Function(function) => Ok(function),
+            _ => Err(Error::TypeError("function".to_string())),
         }
     }
 }

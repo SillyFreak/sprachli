@@ -9,7 +9,7 @@ fn main() -> anyhow::Result<()> {
     let source = "\
 // a
 fn main() {
-    22
+    22 + 20
 }
 ";
     let source = grammar::SourceFileParser::new().parse(source)?;

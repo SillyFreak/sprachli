@@ -3,6 +3,7 @@ mod value;
 
 use crate::ast;
 
+use bigdecimal::BigDecimal;
 pub use environment::Environment;
 pub use value::Value;
 
@@ -53,7 +54,96 @@ impl Interpreter {
         self.visit_call(&env, main, &[])
     }
 
-    pub fn visit_call(&self, env: &Environment, function: &value::Function, actual_parameters: &[Value]) -> Result<Value> {
+    pub fn visit_expression(&self, env: &Environment, expr: &ast::Expression) -> Result<Value> {
+        use ast::Expression::*;
+
+        match expr {
+            Number(value) => self.visit_number(env, value),
+            Identifier(name) => self.visit_identifier(env, name),
+            Binary(expr) => self.visit_binary(env, expr),
+            Unary(expr) => self.visit_unary(env, expr),
+            // Call(expr) => self.visit_expr(env, expr),
+            // Block(expr) => self.visit_expr(env, expr),
+            // If(expr) => self.visit_expr(env, expr),
+            _ => Err(Error::Unsupported("expression that is not an number literal")),
+        }
+    }
+
+    fn visit_number(&self, env: &Environment, value: &value::Number) -> Result<Value> {
+        Ok(Value::Number(value.clone()))
+    }
+
+    fn visit_identifier(&self, env: &Environment, name: &str) -> Result<Value> {
+        Err(Error::Unsupported("identifier expression"))
+    }
+
+    fn visit_binary(&self, env: &Environment, expr: &ast::Binary) -> Result<Value> {
+        use ast::BinaryOperator::*;
+        use Value::*;
+
+        let equality_comparison = |eq: bool| -> Result<Value> {
+            let left = self.visit_expression(env, &expr.left)?;
+            let right = self.visit_expression(env, &expr.right)?;
+
+            let result = match (left, right) {
+                (Unit, Unit) => true,
+                (Bool(left), Bool(right)) => left == right,
+                (Number(left), Number(right)) => left == right,
+                // TODO functions?
+                _ => false,
+            };
+
+            Ok(Value::Bool(result == eq))
+        };
+
+        let number_comparison = |op: fn(&BigDecimal, &BigDecimal) -> bool| {
+            let left = self.visit_expression(env, &expr.left)?;
+            let right = self.visit_expression(env, &expr.right)?;
+
+            let result = op(left.as_number()?, right.as_number()?);
+            Ok(Value::Bool(result))
+        };
+
+        let arithmetic = |op: fn(&BigDecimal, &BigDecimal) -> BigDecimal| {
+            let left = self.visit_expression(env, &expr.left)?;
+            let right = self.visit_expression(env, &expr.right)?;
+
+            let result = op(left.as_number()?, right.as_number()?);
+            Ok(Value::Number(result))
+        };
+
+        match expr.operator {
+            Equals => equality_comparison(true),
+            NotEquals => equality_comparison(false),
+            Greater => number_comparison(|a, b| a > b),
+            GreaterEquals => number_comparison(|a, b| a >= b),
+            Less => number_comparison(|a, b| a < b),
+            LessEquals => number_comparison(|a, b| a <= b),
+            Add => arithmetic(|a, b| a + b),
+            Subtract => arithmetic(|a, b| a - b),
+            Multiply => arithmetic(|a, b| a * b),
+            Divide => arithmetic(|a, b| a / b),
+        }
+    }
+
+    fn visit_unary(&self, env: &Environment, expr: &ast::Unary) -> Result<Value> {
+        use ast::UnaryOperator::*;
+
+        match expr.operator {
+            Negate => {
+                let right = self.visit_expression(env, &expr.right)?;
+                let result = !right.as_bool()?;
+                Ok(Value::Bool(result))
+            },
+            Invert => {
+                let right = self.visit_expression(env, &expr.right)?;
+                let result = -right.as_number()?;
+                Ok(Value::Number(result))
+            },
+        }
+    }
+
+    fn visit_call(&self, env: &Environment, function: &value::Function, actual_parameters: &[Value]) -> Result<Value> {
         function.check_arity(actual_parameters.len())?;
 
         let mut env = Environment::new();
@@ -71,13 +161,6 @@ impl Interpreter {
             self.visit_expression(&env, expr)
         } else {
             Ok(Value::Unit)
-        }
-    }
-
-    pub fn visit_expression(&self, env: &Environment, expr: &ast::Expression) -> Result<Value> {
-        match expr {
-            ast::Expression::Number(value) => Ok(Value::Number(value.clone())),
-            _ => Err(Error::Unsupported("expression that is not an number literal")),
         }
     }
 }
