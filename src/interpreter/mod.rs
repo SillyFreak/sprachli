@@ -225,5 +225,16 @@ mod tests {
         }
         ";
         assert_eq!(run(source).unwrap(), Value::Number(42.into()));
+
+        let source = "
+        fn is_even(x) {
+            if x >= 2 { is_even(x - 2) } else { x == 0 }
+        }
+
+        fn main() {
+            is_even(42)
+        }
+        ";
+        assert_eq!(run(source).unwrap(), Value::Bool(true));
     }
 }
