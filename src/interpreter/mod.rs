@@ -62,8 +62,7 @@ impl Interpreter {
             Unary(expr) => self.visit_unary(env, expr),
             Call(expr) => self.visit_call(env, expr),
             Block(expr) => self.visit_block(env, expr),
-            // If(expr) => self.visit_expr(env, expr),
-            _ => Err(Error::Unsupported("expression that is not an number literal")),
+            If(expr) => self.visit_if(env, expr),
         }
     }
 
@@ -148,7 +147,7 @@ impl Interpreter {
                 .map(|expr| self.visit_expression(env, expr))
                 .collect::<Result<Vec<_>>>()?;
 
-        self.visit_invoke(&env, function, &actual_parameters)
+        self.visit_invoke(env, function, &actual_parameters)
     }
 
     fn visit_invoke(&self, env: &Environment, function: &value::Function, actual_parameters: &[Value]) -> Result<Value> {
@@ -168,10 +167,27 @@ impl Interpreter {
         }
 
         if let Some(expr) = &block.expression {
-            self.visit_expression(&env, expr)
+            self.visit_expression(env, expr)
         } else {
             Ok(Value::Unit)
         }
+    }
+
+    fn visit_if(&self, env: &Environment, expr: &ast::If) -> Result<Value> {
+        for (condition, then_branch) in &expr.then_branches {
+            let condition = self.visit_expression(env, condition)?;
+            let condition = condition.as_bool()?;
+
+            if condition {
+                return self.visit_block(env, then_branch);
+            }
+        }
+
+        if let Some(else_branch) = &expr.else_branch {
+            return self.visit_block(env, else_branch);
+        }
+
+        Ok(Value::Unit)
     }
 }
 
@@ -198,5 +214,16 @@ mod tests {
         assert_eq!(run("fn foo() { 42 } fn main() { foo() }").unwrap(), Value::Number(42.into()));
         assert_eq!(run("fn foo(a) { -a } fn main() { foo(-42) }").unwrap(), Value::Number(42.into()));
         assert_eq!(run("fn main() { 5 == { 10 } }").unwrap(), Value::Bool(false));
+
+        let source = "
+        fn max(a, b) {
+            if a > b { a } else { b }
+        }
+
+        fn main() {
+            max(2, 42)
+        }
+        ";
+        assert_eq!(run(source).unwrap(), Value::Number(42.into()));
     }
 }
