@@ -28,7 +28,7 @@ impl Interpreter {
         Self::default()
     }
 
-    pub fn visit_source_file(&mut self, source: &ast::SourceFile) -> Result<Value> {
+    pub fn visit_source_file(&self, source: &ast::SourceFile) -> Result<Value> {
         use ast::Declaration::*;
         
         let mut env = Environment::new();
@@ -53,7 +53,7 @@ impl Interpreter {
         self.visit_call(&env, main, &[])
     }
 
-    pub fn visit_call(&mut self, env: &Environment, function: &value::Function, actual_parameters: &[Value]) -> Result<Value> {
+    pub fn visit_call(&self, env: &Environment, function: &value::Function, actual_parameters: &[Value]) -> Result<Value> {
         function.check_arity(actual_parameters.len())?;
 
         let mut env = Environment::new();

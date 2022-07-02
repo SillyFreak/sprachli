@@ -14,7 +14,7 @@ fn main() {
 ";
     let source = grammar::SourceFileParser::new().parse(source)?;
     println!("{:?}", source);
-    println!("{:?}", interpreter::Interpreter.visit_source_file(&source)?);
+    println!("{:?}", interpreter::Interpreter::new().visit_source_file(&source)?);
 
     // let exprs = [
     //     "-1 * f(2)",
