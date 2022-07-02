@@ -109,7 +109,7 @@ pub Unary: ast::Expression = {
 
 UnaryOp: ast::UnaryOperator = {
 	"-" => ast::UnaryOperator::Negate,
-	"!" => ast::UnaryOperator::Invert,
+	"!" => ast::UnaryOperator::Not,
 }
 
 pub Call: ast::Expression = {

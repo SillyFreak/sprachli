@@ -130,13 +130,13 @@ impl Interpreter {
         match expr.operator {
             Negate => {
                 let right = self.visit_expression(env, &expr.right)?;
-                let result = !right.as_bool()?;
-                Ok(Value::Bool(result))
-            },
-            Invert => {
-                let right = self.visit_expression(env, &expr.right)?;
                 let result = -right.as_number()?;
                 Ok(Value::Number(result))
+            },
+            Not => {
+                let right = self.visit_expression(env, &expr.right)?;
+                let result = !right.as_bool()?;
+                Ok(Value::Bool(result))
             },
         }
     }
@@ -170,5 +170,28 @@ impl Interpreter {
         } else {
             Ok(Value::Unit)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::grammar::SourceFileParser;
+
+    fn run(source: &str) -> Result<Value> {
+        let source = SourceFileParser::new().parse(source).unwrap();
+        Interpreter::new().visit_source_file(&source)
+    }
+
+    #[test]
+    fn test_interpreter() {
+        assert_eq!(run("fn main() {}").unwrap(), Value::Unit);
+        assert_eq!(run("fn main() { 42 }").unwrap(), Value::Number(42.into()));
+        assert_eq!(run("fn main() { 21 * 2 }").unwrap(), Value::Number(42.into()));
+        assert_eq!(run("fn main() { 22 + 20 }").unwrap(), Value::Number(42.into()));
+        assert_eq!(run("fn main() { 22 >= 20 }").unwrap(), Value::Bool(true));
+        assert_eq!(run("fn main() { -22 < 20 }").unwrap(), Value::Bool(true));
+        assert_eq!(run("fn main() { 5 == 10 }").unwrap(), Value::Bool(false));
     }
 }

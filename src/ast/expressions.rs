@@ -103,14 +103,14 @@ pub enum UnaryOperator {
     // negation
     Negate,
     // logical inverse
-    Invert,
+    Not,
 }
 
 impl fmt::Debug for UnaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Negate => write!(f, "-"),
-            Self::Invert => write!(f, "!"),
+            Self::Not => write!(f, "!"),
         }
     }
 }
