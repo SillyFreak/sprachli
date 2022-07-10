@@ -1,16 +1,30 @@
+use std::fmt;
+
 use bigdecimal::BigDecimal;
+use itertools::Itertools;
 
 use crate::ast::Block;
 use super::{Error, Result};
 
 pub type Number = BigDecimal;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Value {
     Unit,
     Bool(bool),
     Number(Number),
     Function(Function),
+}
+
+impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Unit => f.write_str("unit"),
+            Self::Bool(value) => fmt::Display::fmt(value, f),
+            Self::Number(value) => fmt::Display::fmt(value, f),
+            Self::Function(value) => value.fmt(f),
+        }
+    }
 }
 
 impl Value {
@@ -36,10 +50,20 @@ impl Value {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Function {
     formal_parameters: Vec<String>,
     body: Block,
+}
+
+impl fmt::Debug for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("fn (")?;
+        for str in self.formal_parameters.iter().map(String::as_str).intersperse(", ") {
+            f.write_str(str)?;
+        }
+        f.write_str(") { ... }")
+    }
 }
 
 impl Function {
