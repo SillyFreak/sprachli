@@ -19,13 +19,13 @@ pub enum Expression {
 impl fmt::Debug for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Number(value) => write!(f, "{value}"),
-            Self::Identifier(name) => write!(f, "{name}"),
-            Self::Binary(expr) => write!(f, "{expr:?}"),
-            Self::Unary(expr) => write!(f, "{expr:?}"),
-            Self::Call(expr) => write!(f, "{expr:?}"),
-            Self::Block(expr) => write!(f, "{expr:?}"),
-            Self::If(expr) => write!(f, "{expr:?}"),
+            Self::Number(value) => fmt::Display::fmt(value, f),
+            Self::Identifier(name) => f.write_str(name),
+            Self::Binary(expr) => expr.fmt(f),
+            Self::Unary(expr) => expr.fmt(f),
+            Self::Call(expr) => expr.fmt(f),
+            Self::Block(expr) => expr.fmt(f),
+            Self::If(expr) => expr.fmt(f),
         }
     }
 }
@@ -51,16 +51,16 @@ pub enum BinaryOperator {
 impl fmt::Debug for BinaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Equals => write!(f, "=="),
-            Self::NotEquals => write!(f, "!="),
-            Self::Greater => write!(f, ">"),
-            Self::GreaterEquals => write!(f, ">="),
-            Self::Less => write!(f, "<"),
-            Self::LessEquals => write!(f, "<="),
-            Self::Add => write!(f, "+"),
-            Self::Subtract => write!(f, "-"),
-            Self::Multiply => write!(f, "*"),
-            Self::Divide => write!(f, "/"),
+            Self::Equals => f.write_str("=="),
+            Self::NotEquals => f.write_str("!="),
+            Self::Greater => f.write_str(">"),
+            Self::GreaterEquals => f.write_str(">="),
+            Self::Less => f.write_str("<"),
+            Self::LessEquals => f.write_str("<="),
+            Self::Add => f.write_str("+"),
+            Self::Subtract => f.write_str("-"),
+            Self::Multiply => f.write_str("*"),
+            Self::Divide => f.write_str("/"),
         }
     }
 }
@@ -109,8 +109,8 @@ pub enum UnaryOperator {
 impl fmt::Debug for UnaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Negate => write!(f, "-"),
-            Self::Not => write!(f, "!"),
+            Self::Negate => f.write_str("-"),
+            Self::Not => f.write_str("!"),
         }
     }
 }

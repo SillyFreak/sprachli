@@ -20,11 +20,11 @@ pub enum Declaration {
 impl fmt::Debug for Declaration {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Use(item) => write!(f, "{item:?}"),
-            Self::Fn(item) => write!(f, "{item:?}"),
-            Self::Struct(item) => write!(f, "{item:?}"),
-            Self::Mixin(item) => write!(f, "{item:?}"),
-            Self::Impl(item) => write!(f, "{item:?}"),
+            Self::Use(item) => item.fmt(f),
+            Self::Fn(item) => item.fmt(f),
+            Self::Struct(item) => item.fmt(f),
+            Self::Mixin(item) => item.fmt(f),
+            Self::Impl(item) => item.fmt(f),
         }
     }
 }

@@ -11,8 +11,8 @@ pub enum Statement {
 impl fmt::Debug for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Declaration(stmt) => write!(f, "{stmt:?}"),
-            Self::Expression(stmt) => write!(f, "{stmt:?}"),
+            Self::Declaration(stmt) => stmt.fmt(f),
+            Self::Expression(stmt) => stmt.fmt(f),
         }
     }
 }
