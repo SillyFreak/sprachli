@@ -8,6 +8,7 @@ use super::Statement;
 #[derive(Clone, PartialEq, Eq)]
 pub enum Expression {
     Number(BigDecimal),
+    String(String),
     Identifier(String),
     Binary(Binary),
     Unary(Unary),
@@ -20,6 +21,7 @@ impl fmt::Debug for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Number(value) => fmt::Display::fmt(value, f),
+            Self::String(value) => fmt::Display::fmt(value, f),
             Self::Identifier(name) => f.write_str(name),
             Self::Binary(expr) => expr.fmt(f),
             Self::Unary(expr) => expr.fmt(f),

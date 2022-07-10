@@ -13,6 +13,7 @@ pub enum Value {
     Unit,
     Bool(bool),
     Number(Number),
+    String(String),
     Function(Function),
 }
 
@@ -22,6 +23,7 @@ impl fmt::Debug for Value {
             Self::Unit => f.write_str("unit"),
             Self::Bool(value) => fmt::Display::fmt(value, f),
             Self::Number(value) => fmt::Display::fmt(value, f),
+            Self::String(value) => fmt::Display::fmt(value, f),
             Self::Function(value) => value.fmt(f),
         }
     }
@@ -39,6 +41,13 @@ impl Value {
         match self {
             Self::Number(number) => Ok(number),
             _ => Err(Error::TypeError("number".to_string())),
+        }
+    }
+
+    pub fn as_string(&self) -> Result<&str> {
+        match self {
+            Self::String(string) => Ok(string),
+            _ => Err(Error::TypeError("string".to_string())),
         }
     }
 

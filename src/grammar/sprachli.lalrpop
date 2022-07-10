@@ -119,6 +119,7 @@ pub Call: ast::Expression = {
 
 pub Atomic: ast::Expression = {
 	Number => ast::Expression::Number(<>),
+	String => ast::Expression::String(<>),
 	Identifier => ast::Expression::Identifier(<>),
 	Block => ast::Expression::Block(<>),
 	If => ast::Expression::If(<>),
@@ -154,16 +155,27 @@ CommaSeparated<T>: Vec<T> = { // (1)
 }
 
 pub Identifier: String = {
-	r"[_a-zA-Z][_a-zA-Z0-9]*" => <>.to_string(),
+	IDENTIFIER => <>.to_string(),
 }
 
 pub Number: BigDecimal = {
-	r"[0-9]+" => BigDecimal::from_str(<>).unwrap(),
+	NUMBER => BigDecimal::from_str(<>).unwrap(),
+}
+
+pub String: String = {
+	STRING => <>.to_string(),
 }
 
 match {
+	// keywords must have priority over identifiers
+	"pub", "fn", "struct", "if", "else",
+} else {
+	r"[_a-zA-Z][_a-zA-Z0-9]*" => IDENTIFIER,
+	r"[0-9]+" => NUMBER,
+	r#""([^\\"]|\\[\\fnrt"])*""# => STRING,
+
 	r"\s*" => { }, // The default whitespace skipping is disabled an `ignore pattern` is specified
 	r"//[^\n\r]*[\n\r]*" => { }, // Skip `// comments`
 	r"/\*[^*]*\*+(?:[^/*][^*]*\*+)*/" => { },  // Skip `/* comments */`
-	_
+	_,
 }

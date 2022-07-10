@@ -57,6 +57,7 @@ impl Interpreter {
 
         match expr {
             Number(value) => self.visit_number(env, value),
+            String(value) => self.visit_string(env, value),
             Identifier(name) => self.visit_identifier(env, name),
             Binary(expr) => self.visit_binary(env, expr),
             Unary(expr) => self.visit_unary(env, expr),
@@ -68,6 +69,10 @@ impl Interpreter {
 
     fn visit_number(&self, _env: &Environment, value: &value::Number) -> Result<Value> {
         Ok(Value::Number(value.clone()))
+    }
+
+    fn visit_string(&self, _env: &Environment, value: &String) -> Result<Value> {
+        Ok(Value::String(value.clone()))
     }
 
     fn visit_identifier(&self, env: &Environment, name: &str) -> Result<Value> {
@@ -86,6 +91,7 @@ impl Interpreter {
                 (Unit, Unit) => true,
                 (Bool(left), Bool(right)) => left == right,
                 (Number(left), Number(right)) => left == right,
+                (String(left), String(right)) => left == right,
                 // TODO functions?
                 _ => false,
             };
