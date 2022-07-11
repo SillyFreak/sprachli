@@ -9,15 +9,15 @@ use super::Block;
 /// are a kind of declaration that supplement structs; these blocks don't have
 /// their own identity (or visiblity), they just belong to the named struct.
 #[derive(Clone, PartialEq, Eq)]
-pub enum Declaration {
-    Use(Use),
-    Fn(Fn),
-    Struct(Struct),
-    Mixin(Mixin),
-    Impl(Impl),
+pub enum Declaration<'input> {
+    Use(Use<'input>),
+    Fn(Fn<'input>),
+    Struct(Struct<'input>),
+    Mixin(Mixin<'input>),
+    Impl(Impl<'input>),
 }
 
-impl fmt::Debug for Declaration {
+impl fmt::Debug for Declaration<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Use(item) => item.fmt(f),
@@ -31,16 +31,16 @@ impl fmt::Debug for Declaration {
 
 /// A path is a possibly qualified name for some declaration.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Path {
-    pub segments: Vec<PathSegment>,
+pub struct Path<'input> {
+    pub segments: Vec<PathSegment<'input>>,
 }
 
 /// A path segment is a single part of a path.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PathSegment {
+pub enum PathSegment<'input> {
     Root,
     Super,
-    Name(String),
+    Name(&'input str),
 }
 
 /// Most constructs have an explicit or implicit visibility that determines
@@ -63,21 +63,21 @@ impl Visibility {
 /// Use declarations make some named declaration available in the current scope,
 /// optionally changing the name under which it's available.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Use {
+pub struct Use<'input> {
     pub visibility: Visibility,
-    pub path: Path,
-    pub name: Option<String>,
+    pub path: Path<'input>,
+    pub name: Option<&'input str>,
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub struct Fn {
+pub struct Fn<'input> {
     pub visibility: Visibility,
-    pub name: String,
-    pub formal_parameters: Vec<String>,
-    pub body: Block,
+    pub name: &'input str,
+    pub formal_parameters: Vec<&'input str>,
+    pub body: Block<'input>,
 }
 
-impl fmt::Debug for Fn {
+impl fmt::Debug for Fn<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut f = f.debug_prefixed();
         f.name("fn");
@@ -86,34 +86,34 @@ impl fmt::Debug for Fn {
     }
 }
 
-impl Fn {
+impl<'input> Fn<'input> {
     pub fn new(
         visibility: Visibility,
-        name: String,
-        formal_parameters: Vec<String>,
-        body: Block,
+        name: &'input str,
+        formal_parameters: Vec<&'input str>,
+        body: Block<'input>,
     ) -> Self {
         Self { visibility, name, formal_parameters, body }
     }
 
     pub fn new_declaration(
         visibility: Visibility,
-        name: String,
-        formal_parameters: Vec<String>,
-        body: Block,
-    ) -> Declaration {
+        name: &'input str,
+        formal_parameters: Vec<&'input str>,
+        body: Block<'input>,
+    ) -> Declaration<'input> {
         Declaration::Fn(Self::new(visibility, name, formal_parameters, body))
     }
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub struct Struct {
+pub struct Struct<'input> {
     pub visibility: Visibility,
-    pub name: String,
-    pub members: StructMembers,
+    pub name: &'input str,
+    pub members: StructMembers<'input>,
 }
 
-impl fmt::Debug for Struct {
+impl fmt::Debug for Struct<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut f = f.debug_prefixed();
         f.name("struct");
@@ -123,32 +123,32 @@ impl fmt::Debug for Struct {
     }
 }
 
-impl Struct {
+impl<'input> Struct<'input> {
     pub fn new(
         visibility: Visibility,
-        name: String,
-        members: StructMembers,
+        name: &'input str,
+        members: StructMembers<'input>,
     ) -> Self {
         Self { visibility, name, members }
     }
 
     pub fn new_declaration(
         visibility: Visibility,
-        name: String,
-        members: StructMembers,
-    ) -> Declaration {
+        name: &'input str,
+        members: StructMembers<'input>,
+    ) -> Declaration<'input> {
         Declaration::Struct(Self::new(visibility, name, members))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum StructMembers {
+pub enum StructMembers<'input> {
     Empty,
-    Positional(Vec<String>),
-    Named(Vec<String>),
+    Positional(Vec<&'input str>),
+    Named(Vec<&'input str>),
 }
 
-impl StructMembers {
+impl StructMembers<'_> {
     fn fmt(&self, f: &mut DebugPrefixed<'_, '_>, name: &str) {
         f.name(match self {
             Self::Empty => "empty",
@@ -165,16 +165,16 @@ impl StructMembers {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Mixin {
+pub struct Mixin<'input> {
     pub visibility: Visibility,
-    pub name: String,
-    pub inheritances: Vec<Path>,
-    pub methods: Vec<Fn>,
+    pub name: &'input str,
+    pub inheritances: Vec<Path<'input>>,
+    pub methods: Vec<Fn<'input>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Impl {
-    pub name: String,
-    pub inheritances: Vec<Path>,
-    pub methods: Vec<Fn>,
+pub struct Impl<'input> {
+    pub name: &'input str,
+    pub inheritances: Vec<Path<'input>>,
+    pub methods: Vec<Fn<'input>>,
 }

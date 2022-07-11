@@ -1,19 +1,15 @@
-use std::str::FromStr;
-
-use bigdecimal::BigDecimal;
-
 use crate::ast;
 
 grammar;
 
-pub SourceFile: ast::SourceFile = {
+pub SourceFile: ast::SourceFile<'input> = {
 	<declarations:Declaration*> => ast::SourceFile { <> },
 }
 
 //////
 // declarations
 
-pub Declaration: ast::Declaration = {
+pub Declaration: ast::Declaration<'input> = {
 	// Use
 	<Fn> => ast::Declaration::Fn(<>),
 	<Struct> => ast::Declaration::Struct(<>),
@@ -26,20 +22,20 @@ Visibility: ast::Visibility = {
 	"pub" => ast::Visibility::Public,
 }
 
-pub Fn: ast::Fn = {
+pub Fn: ast::Fn<'input> = {
 	<visibility:Visibility>
 	"fn" <name:Identifier>
 	"(" <formal_parameters:CommaSeparated<Identifier>> ")"
 	<body:Block> => ast::Fn::new(<>),
 }
 
-pub Struct: ast::Struct = {
+pub Struct: ast::Struct<'input> = {
 	<visibility:Visibility>
 	"struct" <name:Identifier>
 	<members:StructMembers> => ast::Struct::new(<>),
 }
 
-StructMembers: ast::StructMembers = {
+StructMembers: ast::StructMembers<'input> = {
 	";" => ast::StructMembers::Empty,
 	"(" <members:CommaSeparated<Identifier>> ")" ";" => ast::StructMembers::Positional(<>),
 	"{" <members:CommaSeparated<Identifier>> "}" => ast::StructMembers::Named(<>),
@@ -48,7 +44,7 @@ StructMembers: ast::StructMembers = {
 //////
 // statements
 
-pub Statement: ast::Statement = {
+pub Statement: ast::Statement<'input> = {
 	Declaration => ast::Statement::Declaration(<>),
 	<Expression> ";" => ast::Statement::Expression(<>),
 }
@@ -56,11 +52,11 @@ pub Statement: ast::Statement = {
 //////
 // expressions
 
-pub Expression: ast::Expression = {
+pub Expression: ast::Expression<'input> = {
 	Equality,
 }
 
-pub Equality: ast::Expression = {
+pub Equality: ast::Expression<'input> = {
 	<left:Equality> <operator:EqualityOp> <right:Comparison> => ast::Binary::new_expression(<>),
 	Comparison,
 }
@@ -70,7 +66,7 @@ EqualityOp: ast::BinaryOperator = {
 	"!=" => ast::BinaryOperator::NotEquals,
 }
 
-pub Comparison: ast::Expression = {
+pub Comparison: ast::Expression<'input> = {
 	<left:Comparison> <operator:ComparisonOp> <right:Additive> => ast::Binary::new_expression(<>),
 	Additive,
 }
@@ -82,7 +78,7 @@ ComparisonOp: ast::BinaryOperator = {
 	"<=" => ast::BinaryOperator::LessEquals,
 }
 
-pub Additive: ast::Expression = {
+pub Additive: ast::Expression<'input> = {
 	<left:Additive> <operator:AdditiveOp> <right:Multiplicative> => ast::Binary::new_expression(<>),
 	Multiplicative,
 }
@@ -92,7 +88,7 @@ AdditiveOp: ast::BinaryOperator = {
 	"-" => ast::BinaryOperator::Subtract,
 }
 
-pub Multiplicative: ast::Expression = {
+pub Multiplicative: ast::Expression<'input> = {
 	<left:Multiplicative> <operator:MultiplicativeOp> <right:Unary> => ast::Binary::new_expression(<>),
 	Unary,
 }
@@ -102,7 +98,7 @@ MultiplicativeOp: ast::BinaryOperator = {
 	"/" => ast::BinaryOperator::Divide,
 }
 
-pub Unary: ast::Expression = {
+pub Unary: ast::Expression<'input> = {
 	<operator:UnaryOp> <right:Unary> => ast::Unary::new_expression(<>),
 	Call,
 }
@@ -112,12 +108,12 @@ UnaryOp: ast::UnaryOperator = {
 	"!" => ast::UnaryOperator::Not,
 }
 
-pub Call: ast::Expression = {
+pub Call: ast::Expression<'input> = {
 	<function:Atomic> "(" <actual_parameters:CommaSeparated<Expression>> ")" => ast::Call::new_expression(<>),
 	Atomic,
 }
 
-pub Atomic: ast::Expression = {
+pub Atomic: ast::Expression<'input> = {
 	Number => ast::Expression::Number(<>),
 	String => ast::Expression::String(<>),
 	Identifier => ast::Expression::Identifier(<>),
@@ -126,11 +122,11 @@ pub Atomic: ast::Expression = {
 	"(" <Expression> ")",
 }
 
-pub Block: ast::Block = {
+pub Block: ast::Block<'input> = {
 	"{" <statements:Statement*> <expression:Expression?> "}" => ast::Block::new(<>),
 }
 
-pub If: ast::If = {
+pub If: ast::If<'input> = {
 	<mut then_branches:(<ThenBranch> "else")*>
 	<last_then_branch:ThenBranch>
 	<else_branch:("else" <Block>)?>
@@ -140,7 +136,7 @@ pub If: ast::If = {
 	},
 }
 
-ThenBranch: (ast::Expression, ast::Block) = {
+ThenBranch: (ast::Expression<'input>, ast::Block<'input>) = {
 	"if" <Expression> <Block>
 }
 
@@ -154,16 +150,16 @@ CommaSeparated<T>: Vec<T> = { // (1)
 	}
 }
 
-pub Identifier: String = {
-	IDENTIFIER => <>.to_string(),
+pub Identifier: &'input str = {
+	IDENTIFIER,
 }
 
-pub Number: BigDecimal = {
-	NUMBER => BigDecimal::from_str(<>).unwrap(),
+pub Number: &'input str = {
+	NUMBER,
 }
 
-pub String: String = {
-	STRING => <>.to_string(),
+pub String: &'input str = {
+	STRING,
 }
 
 match {

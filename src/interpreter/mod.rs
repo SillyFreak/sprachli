@@ -1,6 +1,8 @@
 mod environment;
 mod value;
 
+use std::str::FromStr;
+
 use crate::ast;
 
 use bigdecimal::BigDecimal;
@@ -29,7 +31,7 @@ impl Interpreter {
         Self::default()
     }
 
-    pub fn visit_source_file(&self, source: &ast::SourceFile) -> Result<Value> {
+    pub fn visit_source_file<'input>(&self, source: &ast::SourceFile<'input>) -> Result<Value<'input>> {
         use ast::Declaration::*;
         
         let mut env = Environment::new();
@@ -39,7 +41,7 @@ impl Interpreter {
                 Use(_decl) => Err(Error::Unsupported("use declaration"))?,
                 Fn(ast::Fn { name, formal_parameters, body, .. }) => {
                     let function = value::Function::new(formal_parameters.clone(), body.clone());
-                    env.set(name.clone(), Value::Function(function));
+                    env.set(name.to_string(), Value::Function(function));
                 },
                 Struct(_decl) => Err(Error::Unsupported("struct"))?,
                 Mixin(_decl) => Err(Error::Unsupported("mixin"))?,
@@ -52,12 +54,12 @@ impl Interpreter {
         self.visit_invoke(&env, main, &[])
     }
 
-    pub fn visit_expression(&self, env: &Environment, expr: &ast::Expression) -> Result<Value> {
+    pub fn visit_expression<'input>(&self, env: &Environment<'input, '_>, expr: &ast::Expression) -> Result<Value<'input>> {
         use ast::Expression::*;
 
         match expr {
-            Number(value) => self.visit_number(env, value),
-            String(value) => self.visit_string(env, value),
+            Number(literal) => self.visit_number(env, literal),
+            String(literal) => self.visit_string(env, literal),
             Identifier(name) => self.visit_identifier(env, name),
             Binary(expr) => self.visit_binary(env, expr),
             Unary(expr) => self.visit_unary(env, expr),
@@ -67,23 +69,27 @@ impl Interpreter {
         }
     }
 
-    fn visit_number(&self, _env: &Environment, value: &value::Number) -> Result<Value> {
-        Ok(Value::Number(value.clone()))
+    fn visit_number<'input>(&self, _env: &Environment<'input, '_>, literal: &str) -> Result<Value<'input>> {
+        let number = value::Number::from_str(literal).expect("number liteal is not a valid number");
+        Ok(Value::Number(number))
     }
 
-    fn visit_string(&self, _env: &Environment, value: &String) -> Result<Value> {
-        Ok(Value::String(value.clone()))
+    fn visit_string<'input>(&self, _env: &Environment<'input, '_>, literal: &str) -> Result<Value<'input>> {
+        let string = literal.to_string();
+        // TODO remove quotes and do escaping
+        Ok(Value::String(string))
     }
 
-    fn visit_identifier(&self, env: &Environment, name: &str) -> Result<Value> {
-        env.get(name).cloned().ok_or_else(|| Error::NameError(name.to_string()))
+    fn visit_identifier<'input>(&self, env: &Environment<'input, '_>, name: &str) -> Result<Value<'input>> {
+        let x = env.get(name).cloned();
+        x.ok_or_else(|| Error::NameError(name.to_string()))
     }
 
-    fn visit_binary(&self, env: &Environment, expr: &ast::Binary) -> Result<Value> {
+    fn visit_binary<'input>(&self, env: &Environment<'input, '_>, expr: &ast::Binary) -> Result<Value<'input>> {
         use ast::BinaryOperator::*;
         use Value::*;
 
-        let equality_comparison = |eq: bool| -> Result<Value> {
+        let equality_comparison = |eq: bool| -> Result<Value<'input>> {
             let left = self.visit_expression(env, &expr.left)?;
             let right = self.visit_expression(env, &expr.right)?;
 
@@ -129,7 +135,7 @@ impl Interpreter {
         }
     }
 
-    fn visit_unary(&self, env: &Environment, expr: &ast::Unary) -> Result<Value> {
+    fn visit_unary<'input>(&self, env: &Environment<'input, '_>, expr: &ast::Unary) -> Result<Value<'input>> {
         use ast::UnaryOperator::*;
 
         match expr.operator {
@@ -146,7 +152,7 @@ impl Interpreter {
         }
     }
 
-    fn visit_call(&self, env: &Environment, call: &ast::Call) -> Result<Value> {
+    fn visit_call<'input>(&self, env: &Environment<'input, '_>, call: &ast::Call) -> Result<Value<'input>> {
         let function = self.visit_expression(env, &call.function)?;
         let function = function.as_function()?;
         let actual_parameters = call.actual_parameters.iter()
@@ -156,18 +162,18 @@ impl Interpreter {
         self.visit_invoke(env, function, &actual_parameters)
     }
 
-    fn visit_invoke(&self, env: &Environment, function: &value::Function, actual_parameters: &[Value]) -> Result<Value> {
+    fn visit_invoke<'input>(&self, env: &Environment<'input, '_>, function: &value::Function, actual_parameters: &[Value<'input>]) -> Result<Value<'input>> {
         function.check_arity(actual_parameters.len())?;
 
         let mut env = Environment::with_parent(env);
         for (name, value) in function.formal_parameters().iter().zip(actual_parameters) {
-            env.set(name.clone(), value.clone());
+            env.set(name.to_string(), value.clone());
         }
 
         self.visit_block(&env, function.body())
     }
 
-    fn visit_block(&self, env: &Environment, block: &ast::Block) -> Result<Value> {
+    fn visit_block<'input>(&self, env: &Environment<'input, '_>, block: &ast::Block) -> Result<Value<'input>> {
         if !block.statements.is_empty() {
             Err(Error::Unsupported("statements in block"))?;
         }
@@ -179,7 +185,7 @@ impl Interpreter {
         }
     }
 
-    fn visit_if(&self, env: &Environment, expr: &ast::If) -> Result<Value> {
+    fn visit_if<'input>(&self, env: &Environment<'input, '_>, expr: &ast::If) -> Result<Value<'input>> {
         for (condition, then_branch) in &expr.then_branches {
             let condition = self.visit_expression(env, condition)?;
             let condition = condition.as_bool()?;

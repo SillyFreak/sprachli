@@ -9,15 +9,15 @@ use super::{Error, Result};
 pub type Number = BigDecimal;
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum Value {
+pub enum Value<'input> {
     Unit,
     Bool(bool),
     Number(Number),
     String(String),
-    Function(Function),
+    Function(Function<'input>),
 }
 
-impl fmt::Debug for Value {
+impl fmt::Debug for Value<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Unit => f.write_str("unit"),
@@ -29,7 +29,7 @@ impl fmt::Debug for Value {
     }
 }
 
-impl Value {
+impl<'input> Value<'input> {
     pub fn as_bool(&self) -> Result<bool> {
         match self {
             Self::Bool(bool) => Ok(*bool),
@@ -51,7 +51,7 @@ impl Value {
         }
     }
 
-    pub fn as_function(&self) -> Result<&Function> {
+    pub fn as_function(&self) -> Result<&Function<'input>> {
         match self {
             Self::Function(function) => Ok(function),
             _ => Err(Error::TypeError("function".to_string())),
@@ -60,23 +60,23 @@ impl Value {
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub struct Function {
-    formal_parameters: Vec<String>,
-    body: Block,
+pub struct Function<'input> {
+    formal_parameters: Vec<&'input str>,
+    body: Block<'input>,
 }
 
-impl fmt::Debug for Function {
+impl fmt::Debug for Function<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("fn (")?;
-        for str in self.formal_parameters.iter().map(String::as_str).intersperse(", ") {
+        for str in self.formal_parameters.iter().copied().intersperse(", ") {
             f.write_str(str)?;
         }
         f.write_str(") { ... }")
     }
 }
 
-impl Function {
-    pub fn new(formal_parameters: Vec<String>, body: Block) -> Self {
+impl<'input> Function<'input> {
+    pub fn new(formal_parameters: Vec<&'input str>, body: Block<'input>) -> Self {
         Self { formal_parameters, body }
     }
 
@@ -92,11 +92,11 @@ impl Function {
         Ok(())
     }
 
-    pub fn formal_parameters(&self) -> &[String] {
+    pub fn formal_parameters(&self) -> &[&'input str] {
         &self.formal_parameters
     }
 
-    pub fn body(&self) -> &Block {
+    pub fn body(&self) -> &Block<'input> {
         &self.body
     }
 }

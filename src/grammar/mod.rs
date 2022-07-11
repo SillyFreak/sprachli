@@ -3,7 +3,7 @@ lalrpop_mod!(sprachli, "/grammar/sprachli.rs");
 use lalrpop_util::ParseError;
 use lalrpop_util::lexer::Token;
 
-pub use sprachli::*;
+pub use self::sprachli::*;
 
 pub type Error<'a> = ParseError<usize, Token<'a>, &'static str>;
 pub type Result<'a, T> = std::result::Result<T, Error<'a>>;
@@ -14,38 +14,63 @@ mod tests {
 
     use super::*;
 
+    trait ParsingFn<'input> {
+        type Ast: 'input + fmt::Debug;
+
+        fn call<'a>(&'a self, input: &'input str) -> Result<Self::Ast>
+        where
+            'input: 'a;
+    }
+
+    impl<'input, Ast, F> ParsingFn<'input> for F
+    where
+        F: Fn(&'input str) -> Result<Ast>,
+        Ast: 'input + fmt::Debug,
+    {
+        type Ast = Ast;
+
+        fn call<'a>(&'a self, input: &'input str) -> Result<Self::Ast>
+        where
+            'input: 'a {
+            self(input)
+        }
+    }
+
     struct TestParser<F> {
         parser: F,
     }
 
-    impl<F, T> TestParser<F>
+    impl<F> TestParser<F>
     where
-        F: Fn(&str) -> Result<T>,
-        T: fmt::Debug,
+        F: for<'input> ParsingFn<'input>,
     {
         pub fn new(parser: F) -> Self {
             Self { parser }
         }
 
         pub fn parse(&self, s: &str, expected: &str) {
-            let actual = (self.parser)(s).unwrap();
+            let actual = self.parser.call(s).unwrap();
             assert_eq!(format!("{actual:?}"), expected);
         }
 
         pub fn parse_eq(&self, a: &str, b: &str) {
-            let a = (self.parser)(a).unwrap();
-            let b = (self.parser)(b).unwrap();
+            let a = self.parser.call(a).unwrap();
+            let b = self.parser.call(b).unwrap();
             assert_eq!(format!("{a:?}"), format!("{b:?}"));
         }
     
         pub fn parse_err(&self, s: &str) {
-            (self.parser)(s).unwrap_err();
+            self.parser.call(s).unwrap_err();
         }
     }
 
     #[test]
     fn test_declaration_parser() {
-        let test = TestParser::new(|s|  DeclarationParser::new().parse(s));
+        fn parse<'input>(input: &'input str) -> Result<crate::ast::Declaration<'input>> {
+            DeclarationParser::new().parse(input)
+        }
+
+        let test = TestParser::new(parse);
 
         test.parse("fn foo() {}", "(fn foo (block ()))");
         test.parse("struct Foo;", "(struct empty Foo)");
@@ -53,7 +78,11 @@ mod tests {
 
     #[test]
     fn test_fn_parser() {
-        let test = TestParser::new(|s|  FnParser::new().parse(s));
+        fn parse<'input>(input: &'input str) -> Result<crate::ast::Fn<'input>> {
+            FnParser::new().parse(input)
+        }
+
+        let test = TestParser::new(parse);
 
         test.parse("fn foo() {}", "(fn foo (block ()))");
         test.parse("pub fn foo() {}", "(fn pub foo (block ()))");
@@ -66,7 +95,11 @@ mod tests {
 
     #[test]
     fn test_struct_parser() {
-        let test = TestParser::new(|s|  StructParser::new().parse(s));
+        fn parse<'input>(input: &'input str) -> Result<crate::ast::Struct<'input>> {
+            StructParser::new().parse(input)
+        }
+
+        let test = TestParser::new(parse);
 
         test.parse("struct Foo;", "(struct empty Foo)");
         test.parse("pub struct Foo(a);", "(struct pub positional Foo a)");
@@ -83,7 +116,11 @@ mod tests {
 
     #[test]
     fn test_expr_parser() {
-        let test = TestParser::new(|s|  ExpressionParser::new().parse(s));
+        fn parse<'input>(input: &'input str) -> Result<crate::ast::Expression<'input>> {
+            ExpressionParser::new().parse(input)
+        }
+
+        let test = TestParser::new(parse);
 
         test.parse("22", "22");
         test.parse("a", "a");
@@ -132,7 +169,11 @@ mod tests {
 
     #[test]
     fn test_stmt_parser() {
-        let test = TestParser::new(|s|  StatementParser::new().parse(s));
+        fn parse<'input>(input: &'input str) -> Result<crate::ast::Statement<'input>> {
+            StatementParser::new().parse(input)
+        }
+
+        let test = TestParser::new(parse);
 
         test.parse("22;", "22");
 
