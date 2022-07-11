@@ -8,6 +8,39 @@ pub use self::sprachli::*;
 pub type Error<'a> = ParseError<usize, Token<'a>, &'static str>;
 pub type Result<'a, T> = std::result::Result<T, Error<'a>>;
 
+pub fn string_from_literal(literal: &str) -> String {
+    let mut string = String::with_capacity(literal.len());
+
+    let mut iter = literal.chars();
+    iter.next()
+        .filter(|&ch| ch == '"')
+        .expect("string literal without opening double quote");
+    while let Some(ch) = iter.next() {
+        match ch {
+            '\\' => {
+                let ch = iter.next().expect("unfinished escape sequence");
+                match ch {
+                    '\\' | '\"' => string.push(ch),
+                    'n' => string.push('\n'),
+                    'r' => string.push('\r'),
+                    't' => string.push('\t'),
+                    _ => unreachable!("illegal escape sequence"),
+                }
+            },
+            '"' => {
+                iter.next()
+                    .ok_or(())
+                    .expect_err("string literal with trailing content after the closing double quote");
+            }
+            _ => {
+                string.push(ch);
+            }
+        }
+    }
+
+    string
+}
+
 #[cfg(test)]
 mod tests {
     use std::fmt;

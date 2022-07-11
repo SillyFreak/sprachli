@@ -3,7 +3,7 @@ mod value;
 
 use std::str::FromStr;
 
-use crate::ast;
+use crate::{ast, grammar::string_from_literal};
 
 use bigdecimal::BigDecimal;
 pub use environment::Environment;
@@ -75,35 +75,7 @@ impl Interpreter {
     }
 
     fn visit_string<'input>(&self, _env: &Environment<'input, '_>, literal: &str) -> Result<Value<'input>> {
-        let mut string = String::with_capacity(literal.len());
-
-        let mut iter = literal.chars();
-        iter.next()
-            .filter(|&ch| ch == '"')
-            .expect("string literal without opening double quote");
-        while let Some(ch) = iter.next() {
-            match ch {
-                '\\' => {
-                    let ch = iter.next().expect("unfinished escape sequence");
-                    match ch {
-                        '\\' | '\"' => string.push(ch),
-                        'n' => string.push('\n'),
-                        'r' => string.push('\r'),
-                        't' => string.push('\t'),
-                        _ => unreachable!("illegal escape sequence"),
-                    }
-                },
-                '"' => {
-                    iter.next()
-                        .ok_or(())
-                        .expect_err("string literal with trailing content after the closing double quote");
-                }
-                _ => {
-                    string.push(ch);
-                }
-            }
-        }
-
+        let string = string_from_literal(literal);
         Ok(Value::String(string))
     }
 
