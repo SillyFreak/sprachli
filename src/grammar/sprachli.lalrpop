@@ -168,7 +168,7 @@ match {
 } else {
 	r"[_a-zA-Z][_a-zA-Z0-9]*" => IDENTIFIER,
 	r"[0-9]+" => NUMBER,
-	r#""([^\\"]|\\[\\fnrt"])*""# => STRING,
+	r#""([^\\"]|\\[\\nrt"])*""# => STRING,
 
 	r"\s*" => { }, // The default whitespace skipping is disabled an `ignore pattern` is specified
 	r"//[^\n\r]*[\n\r]*" => { }, // Skip `// comments`
