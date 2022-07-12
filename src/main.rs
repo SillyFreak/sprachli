@@ -2,7 +2,8 @@ use std::env;
 use std::fs;
 
 use sprachli::grammar::SourceFileParser;
-use sprachli::interpreter::Interpreter;
+// use sprachli::interpreter::Interpreter;
+use sprachli::vm::Vm;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -23,8 +24,11 @@ fn main() {
     let parser = SourceFileParser::new();
     let ast = parser.parse(&source).unwrap();
 
-    let interpreter = Interpreter::new();
-    let result = interpreter.visit_source_file(&ast).unwrap();
+    // let interpreter = Interpreter::new();
+    // let result = interpreter.visit_source_file(&ast).unwrap();
+
+    let vm = Vm::try_from(&ast).expect("Vm::new()");
+    let result = vm.run().expect("execution error");
 
     println!("{result:?}");
 }

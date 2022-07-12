@@ -7,6 +7,7 @@ mod value;
 use std::str::FromStr;
 
 use constant_table::{ConstantTable, ConstantTableBuilder};
+use environment::Environment;
 pub use error::*;
 use instruction::InstructionSequence;
 pub use value::Value;
@@ -16,6 +17,7 @@ use crate::{ast, grammar::string_from_literal};
 #[derive(Debug, Clone)]
 pub struct Vm {
     constants: ConstantTable,
+    global_scope: Environment<'static>,
 }
 
 impl<'input> TryFrom<&ast::SourceFile<'input>> for Vm {
@@ -29,18 +31,35 @@ impl<'input> TryFrom<&ast::SourceFile<'input>> for Vm {
 }
 
 impl Vm {
-    pub fn new(constants: ConstantTable) -> Self {
-        Self { constants }
+    pub fn new(constants: ConstantTable, global_scope: Environment<'static>) -> Self {
+        Self { constants, global_scope }
     }
 
     pub fn run(&self) -> Result<Value> {
-        todo!();
+        use instruction::Instruction::*;
+
+        let main = self.global_scope
+                .get("main")
+                .ok_or_else(|| Error::NameError("main".to_string()))?
+                .as_function()?;
+
+        main.check_arity(0)?;
+        let mut it = main.body().iter();
+        if let (Some(Constant(constant)), None) = (it.next(), it.next()) {
+            let constant = self.constants
+                    .get(constant)
+                    .expect("constant not in constant table");
+            Ok(constant.clone())
+        } else {
+            Err(Error::Unsupported("unecpected instruction: must be constant"))
+        }
     }
 }
 
 #[derive(Default, Debug, Clone)]
 struct VmBuilder {
     constants: ConstantTableBuilder,
+    global_scope: Environment<'static>,
 }
 
 impl VmBuilder {
@@ -49,7 +68,7 @@ impl VmBuilder {
     }
 
     pub fn into_vm(self) -> Vm {
-        Vm::new(self.constants.into_table())
+        Vm::new(self.constants.into_table(), self.global_scope)
     }
 
     pub fn visit_source_file(&mut self, ast: &ast::SourceFile) -> Result<()> {
@@ -75,15 +94,15 @@ impl VmBuilder {
     }
 
     fn visit_fn(&mut self, function: &ast::Fn) -> Result<()> {
-        let ast::Fn { name: _name, formal_parameters, body, .. } = function;
+        let ast::Fn { name, formal_parameters, body, .. } = function;
 
         let formal_parameters = formal_parameters.iter().map(ToString::to_string).collect();
         let mut instructions = InstructionSequence::new();
         self.visit_block(&mut instructions, body)?;
 
-        let _function = value::Function::new(formal_parameters, instructions);
-        todo!("bind function to a name");
-        // env.set(name.to_string(), Value::Function(function));
+        let function = value::Function::new(formal_parameters, instructions);
+        self.global_scope.set(name.to_string(), function.into());
+        Ok(())
     }
 
     fn visit_expression(&mut self, instructions: &mut InstructionSequence, expr: &ast::Expression) -> Result<()> {
