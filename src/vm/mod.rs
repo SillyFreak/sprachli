@@ -36,7 +36,11 @@ impl Vm {
     }
 
     pub fn run(&self) -> Result<Value> {
-        use instruction::Instruction::*;
+        use bigdecimal::BigDecimal;
+
+        use instruction::{InlineConstant, Instruction::*};
+        use ast::{BinaryOperator::*, UnaryOperator::*};
+        use value::RawValue::*;
 
         let main = self.global_scope
                 .get("main")
@@ -44,15 +48,85 @@ impl Vm {
                 .as_function()?;
 
         main.check_arity(0)?;
-        let mut it = main.body().iter();
-        if let (Some(Constant(constant)), None) = (it.next(), it.next()) {
-            let constant = self.constants
-                    .get(constant)
-                    .expect("constant not in constant table");
-            Ok(constant.clone())
-        } else {
-            Err(Error::Unsupported("unecpected instruction: must be constant"))
+        
+        let mut stack = Vec::new();
+
+        stack.reserve(main.body().stack_size());
+        for ins in main.body() {
+            match ins {
+                Constant(constant) => {
+                    let constant = self.constants
+                            .get(constant)
+                            .cloned()
+                            .expect("constant not in constant table");
+                    stack.push(constant);
+                }
+                InlineConstant(constant) => {
+                    let constant = match constant {
+                        InlineConstant::Unit => ().into(),
+                        InlineConstant::Bool(bool) => bool.into(),
+                    };
+                    stack.push(constant);
+                }
+                Unary(operator) => {
+                    let right = stack.pop().expect("empty stack");
+
+                    let result = match operator {
+                        Negate => Value::from(-right.as_number()?),
+                        Not => Value::from(!right.as_bool()?),
+                    };
+
+                    stack.push(result);
+                }
+                Binary(operator) => {
+                    let right = stack.pop().expect("empty stack");
+                    let left = stack.pop().expect("empty stack");
+
+                    let equality_comparison = |eq: bool| -> Result<Value> {
+                        let result = match (left.get(), right.get()) {
+                            (Unit, Unit) => true,
+                            (Bool(left), Bool(right)) => left == right,
+                            (Number(left), Number(right)) => left == right,
+                            (String(left), String(right)) => left == right,
+                            // TODO functions?
+                            _ => false,
+                        };
+            
+                        Ok(Value::from(result == eq))
+                    };
+            
+                    let number_comparison = |op: fn(&BigDecimal, &BigDecimal) -> bool| {
+                        let result = op(left.as_number()?, right.as_number()?);
+                        Ok(Value::from(result))
+                    };
+            
+                    let arithmetic = |op: fn(&BigDecimal, &BigDecimal) -> BigDecimal| {
+                        let result = op(left.as_number()?, right.as_number()?);
+                        Ok(Value::from(result))
+                    };
+            
+                    let result = match operator {
+                        Equals => equality_comparison(true),
+                        NotEquals => equality_comparison(false),
+                        Greater => number_comparison(|a, b| a > b),
+                        GreaterEquals => number_comparison(|a, b| a >= b),
+                        Less => number_comparison(|a, b| a < b),
+                        LessEquals => number_comparison(|a, b| a <= b),
+                        Add => arithmetic(|a, b| a + b),
+                        Subtract => arithmetic(|a, b| a - b),
+                        Multiply => arithmetic(|a, b| a * b),
+                        Divide => arithmetic(|a, b| a / b),
+                    }?;
+
+                    stack.push(result);
+                }
+            }
         }
+
+        let result = stack.pop().expect("empty stack");
+        assert!(stack.len() == 0, "stack not empty after execution");
+
+        Ok(result)
     }
 }
 
