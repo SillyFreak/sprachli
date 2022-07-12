@@ -36,7 +36,7 @@ pub struct Path<'input> {
 }
 
 /// A path segment is a single part of a path.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PathSegment<'input> {
     Root,
     Super,
@@ -45,7 +45,7 @@ pub enum PathSegment<'input> {
 
 /// Most constructs have an explicit or implicit visibility that determines
 /// whether a construct can be accessed by code in different modules.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Visibility {
     Private,
     Public,

@@ -30,7 +30,7 @@ impl fmt::Debug for Expression<'_> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub enum BinaryOperator {
     // equality
     Equals,
@@ -98,7 +98,7 @@ impl<'input> Binary<'input> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub enum UnaryOperator {
     // negation
     Negate,
