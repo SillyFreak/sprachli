@@ -8,6 +8,19 @@ pub enum Instruction {
     Binary(BinaryOperator),
 }
 
+impl Instruction {
+    fn stack_deltas(self) -> (isize, isize) {
+        use Instruction::*;
+
+        match self {
+            Constant(_) => (1, 1),
+            InlineConstant(_) => (1, 1),
+            Unary(_) => (0, 0),
+            Binary(_) => (0, -1),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum InlineConstant {
     Unit,
@@ -15,15 +28,18 @@ pub enum InlineConstant {
 }
 
 #[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
-pub struct InstructionSequence(Vec<Instruction>);
+pub struct InstructionSequence {
+    stack_size: usize,
+    instructions: Vec<Instruction>,
+}
 
 impl InstructionSequence {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(stack_size: usize, instructions: Vec<Instruction>) -> Self {
+        Self { stack_size, instructions }
     }
 
-    pub fn push(&mut self, instruction: Instruction) {
-        self.0.push(instruction);
+    pub fn stack_size(&self) -> usize {
+        self.stack_size
     }
 
     #[inline]
@@ -46,7 +62,7 @@ pub struct Iter<'a>(std::slice::Iter<'a, Instruction>);
 
 impl<'a> Iter<'a> {
     fn new(instructions: &'a InstructionSequence) -> Self {
-        Self(instructions.0.iter())
+        Self(instructions.instructions.iter())
     }
 }
 
@@ -55,5 +71,36 @@ impl Iterator for Iter<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().copied()
+    }
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct InstructionSequenceBuilder {
+    stack_size: usize,
+    current_stack_size: usize,
+    instructions: Vec<Instruction>,
+}
+
+impl InstructionSequenceBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn into_instruction_sequence(self) -> InstructionSequence {
+        InstructionSequence::new(self.stack_size, self.instructions)
+    }
+
+    pub fn push(&mut self, instruction: Instruction) {
+        let (size, delta) = instruction.stack_deltas();
+
+        let max_size = self.current_stack_size.wrapping_add(size as usize);
+        if max_size > self.stack_size {
+            self.stack_size = max_size;
+        }
+
+        let new_size = self.current_stack_size.wrapping_add(delta as usize);
+        self.current_stack_size = new_size;
+
+        self.instructions.push(instruction);
     }
 }

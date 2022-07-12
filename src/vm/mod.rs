@@ -9,7 +9,7 @@ use std::str::FromStr;
 use constant_table::{ConstantTable, ConstantTableBuilder};
 use environment::Environment;
 pub use error::*;
-use instruction::InstructionSequence;
+use instruction::InstructionSequenceBuilder;
 pub use value::Value;
 
 use crate::{ast, grammar::string_from_literal};
@@ -97,15 +97,17 @@ impl VmBuilder {
         let ast::Fn { name, formal_parameters, body, .. } = function;
 
         let formal_parameters = formal_parameters.iter().map(ToString::to_string).collect();
-        let mut instructions = InstructionSequence::new();
+
+        let mut instructions = InstructionSequenceBuilder::new();
         self.visit_block(&mut instructions, body)?;
+        let instructions = instructions.into_instruction_sequence();
 
         let function = value::Function::new(formal_parameters, instructions);
         self.global_scope.set(name.to_string(), function.into());
         Ok(())
     }
 
-    fn visit_expression(&mut self, instructions: &mut InstructionSequence, expr: &ast::Expression) -> Result<()> {
+    fn visit_expression(&mut self, instructions: &mut InstructionSequenceBuilder, expr: &ast::Expression) -> Result<()> {
         use ast::Expression::*;
 
         match expr {
@@ -120,7 +122,7 @@ impl VmBuilder {
         }
     }
 
-    fn visit_number(&mut self, instructions: &mut InstructionSequence, literal: &str) -> Result<()> {
+    fn visit_number(&mut self, instructions: &mut InstructionSequenceBuilder, literal: &str) -> Result<()> {
         use instruction::Instruction::*;
 
         let number = value::Number::from_str(literal).expect("number liteal is not a valid number");
@@ -129,7 +131,7 @@ impl VmBuilder {
         Ok(())
     }
 
-    fn visit_string(&mut self, instructions: &mut InstructionSequence, literal: &str) -> Result<()> {
+    fn visit_string(&mut self, instructions: &mut InstructionSequenceBuilder, literal: &str) -> Result<()> {
         use instruction::Instruction::*;
 
         let string = string_from_literal(literal);
@@ -138,11 +140,11 @@ impl VmBuilder {
         Ok(())
     }
 
-    fn visit_identifier(&mut self, _instructions: &mut InstructionSequence, _name: &str) -> Result<()> {
+    fn visit_identifier(&mut self, _instructions: &mut InstructionSequenceBuilder, _name: &str) -> Result<()> {
         todo!("emit instructions")
     }
 
-    fn visit_binary(&mut self, instructions: &mut InstructionSequence, expr: &ast::Binary) -> Result<()> {
+    fn visit_binary(&mut self, instructions: &mut InstructionSequenceBuilder, expr: &ast::Binary) -> Result<()> {
         use instruction::Instruction::*;
 
         self.visit_expression(instructions, &expr.left)?;
@@ -151,7 +153,7 @@ impl VmBuilder {
         Ok(())
     }
 
-    fn visit_unary(&mut self, instructions: &mut InstructionSequence, expr: &ast::Unary) -> Result<()> {
+    fn visit_unary(&mut self, instructions: &mut InstructionSequenceBuilder, expr: &ast::Unary) -> Result<()> {
         use instruction::Instruction::*;
 
         self.visit_expression(instructions, &expr.right)?;
@@ -159,7 +161,7 @@ impl VmBuilder {
         Ok(())
     }
 
-    fn visit_call(&mut self, instructions: &mut InstructionSequence, call: &ast::Call) -> Result<()> {
+    fn visit_call(&mut self, instructions: &mut InstructionSequenceBuilder, call: &ast::Call) -> Result<()> {
         self.visit_expression(instructions, &call.function)?;
         for expr in &call.actual_parameters {
             self.visit_expression(instructions, &expr)?;
@@ -167,7 +169,7 @@ impl VmBuilder {
         todo!("emit instructions")
     }
 
-    fn visit_block(&mut self, instructions: &mut InstructionSequence, block: &ast::Block) -> Result<()> {
+    fn visit_block(&mut self, instructions: &mut InstructionSequenceBuilder, block: &ast::Block) -> Result<()> {
         use instruction::{InlineConstant, Instruction::*};
 
         for _stmt in &block.statements {
@@ -181,7 +183,7 @@ impl VmBuilder {
         Ok(())
     }
 
-    fn visit_if(&mut self, instructions: &mut InstructionSequence, expr: &ast::If) -> Result<()> {
+    fn visit_if(&mut self, instructions: &mut InstructionSequenceBuilder, expr: &ast::If) -> Result<()> {
         for (condition, then_branch) in &expr.then_branches {
             self.visit_expression(instructions, condition)?;
             todo!("emit instructions");
