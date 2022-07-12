@@ -102,7 +102,7 @@ impl VmBuilder {
     }
 
     fn visit_number(&mut self, instructions: &mut InstructionSequence, literal: &str) -> Result<()> {
-        use instruction::Instruction::*; 
+        use instruction::Instruction::*;
 
         let number = value::Number::from_str(literal).expect("number liteal is not a valid number");
         let constant = self.constants.insert(number.into());
@@ -111,7 +111,7 @@ impl VmBuilder {
     }
 
     fn visit_string(&mut self, instructions: &mut InstructionSequence, literal: &str) -> Result<()> {
-        use instruction::Instruction::*; 
+        use instruction::Instruction::*;
 
         let string = string_from_literal(literal);
         let constant = self.constants.insert(string.into());
@@ -124,7 +124,7 @@ impl VmBuilder {
     }
 
     fn visit_binary(&mut self, instructions: &mut InstructionSequence, expr: &ast::Binary) -> Result<()> {
-        use instruction::Instruction::*; 
+        use instruction::Instruction::*;
 
         self.visit_expression(instructions, &expr.left)?;
         self.visit_expression(instructions, &expr.right)?;
@@ -133,7 +133,7 @@ impl VmBuilder {
     }
 
     fn visit_unary(&mut self, instructions: &mut InstructionSequence, expr: &ast::Unary) -> Result<()> {
-        use instruction::Instruction::*; 
+        use instruction::Instruction::*;
 
         self.visit_expression(instructions, &expr.right)?;
         instructions.push(Unary(expr.operator));
@@ -149,7 +149,7 @@ impl VmBuilder {
     }
 
     fn visit_block(&mut self, instructions: &mut InstructionSequence, block: &ast::Block) -> Result<()> {
-        use instruction::{InlineConstant, Instruction::*}; 
+        use instruction::{InlineConstant, Instruction::*};
 
         for _stmt in &block.statements {
             todo!("emit instructions");
