@@ -16,11 +16,13 @@ pub struct DebugPrefixed<'a, 'b: 'a> {
 }
 
 impl<'a, 'b: 'a> DebugPrefixed<'a, 'b> {
-    fn new(
-        fmt: &'a mut fmt::Formatter<'b>,
-    ) -> Self {
+    fn new(fmt: &'a mut fmt::Formatter<'b>) -> Self {
         let result = fmt.write_str("(");
-        Self { fmt, result, first: true }
+        Self {
+            fmt,
+            result,
+            first: true,
+        }
     }
 
     pub fn name(&mut self, name: &str) -> &mut Self {
@@ -70,9 +72,7 @@ impl<'a, 'b: 'a> DebugPrefixed<'a, 'b> {
     }
 
     pub fn finish(&mut self) -> fmt::Result {
-        self.result = self.result.and_then(|_| {
-            self.fmt.write_str(")")
-        });
+        self.result = self.result.and_then(|_| self.fmt.write_str(")"));
         self.result
     }
 

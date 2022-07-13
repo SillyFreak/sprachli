@@ -1,10 +1,6 @@
 use bigdecimal::BigDecimal;
 
-use super::{
-    Error, Result, Value, Vm,
-    environment::Environment,
-    value::Function,
-};
+use super::{environment::Environment, value::Function, Error, Result, Value, Vm};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Interpreter<'a> {
@@ -24,19 +20,27 @@ impl<'a> Interpreter<'a> {
     }
 
     fn constant(&self, index: usize) -> Result<Value> {
-        let constant = self.vm.constants.get(index)
-                .cloned()
-                .expect("constant not in constant table");
+        let constant = self
+            .vm
+            .constants
+            .get(index)
+            .cloned()
+            .expect("constant not in constant table");
         Ok(constant)
     }
 
     fn load(&self, env: &Environment, name: &str) -> Result<Value> {
         env.get(name)
-                .cloned()
-                .ok_or_else(|| Error::NameError(name.to_string()))
+            .cloned()
+            .ok_or_else(|| Error::NameError(name.to_string()))
     }
 
-    fn call(&self, env: &Environment, function: &Function, actual_parameters: &[Value]) -> Result<Value> {
+    fn call(
+        &self,
+        env: &Environment,
+        function: &Function,
+        actual_parameters: &[Value],
+    ) -> Result<Value> {
         use super::{
             ast::{BinaryOperator::*, UnaryOperator::*},
             instruction::{InlineConstant, Instruction::*},
@@ -88,20 +92,20 @@ impl<'a> Interpreter<'a> {
                             // TODO functions?
                             _ => false,
                         };
-            
+
                         Ok(Value::from(result == eq))
                     };
-            
+
                     let number_comparison = |op: fn(&BigDecimal, &BigDecimal) -> bool| {
                         let result = op(left.as_number()?, right.as_number()?);
                         Ok(Value::from(result))
                     };
-            
+
                     let arithmetic = |op: fn(&BigDecimal, &BigDecimal) -> BigDecimal| {
                         let result = op(left.as_number()?, right.as_number()?);
                         Ok(Value::from(result))
                     };
-            
+
                     let result = match operator {
                         Equals => equality_comparison(true),
                         NotEquals => equality_comparison(false),

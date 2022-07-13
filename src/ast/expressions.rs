@@ -1,7 +1,7 @@
 use std::fmt;
 
-use crate::fmt::FormatterExt;
 use super::Statement;
+use crate::fmt::FormatterExt;
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Expression<'input> {
@@ -74,7 +74,11 @@ pub struct Binary<'input> {
 
 impl fmt::Debug for Binary<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_prefixed().item(&self.operator).item(&self.left).item(&self.right).finish()
+        f.debug_prefixed()
+            .item(&self.operator)
+            .item(&self.left)
+            .item(&self.right)
+            .finish()
     }
 }
 
@@ -86,7 +90,11 @@ impl<'input> Binary<'input> {
     ) -> Self {
         let left = Box::new(left);
         let right = Box::new(right);
-        Self { operator, left, right }
+        Self {
+            operator,
+            left,
+            right,
+        }
     }
 
     pub fn new_expression(
@@ -123,15 +131,15 @@ pub struct Unary<'input> {
 
 impl fmt::Debug for Unary<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_prefixed().item(&self.operator).item(&self.right).finish()
+        f.debug_prefixed()
+            .item(&self.operator)
+            .item(&self.right)
+            .finish()
     }
 }
 
 impl<'input> Unary<'input> {
-    pub fn new(
-        operator: UnaryOperator,
-        right: Expression<'input>,
-    ) -> Self {
+    pub fn new(operator: UnaryOperator, right: Expression<'input>) -> Self {
         let right = Box::new(right);
         Self { operator, right }
     }
@@ -152,18 +160,21 @@ pub struct Call<'input> {
 
 impl fmt::Debug for Call<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_prefixed();
-        f.name("call").item(&self.function).items(&self.actual_parameters).finish()
+        f.debug_prefixed()
+            .name("call")
+            .item(&self.function)
+            .items(&self.actual_parameters)
+            .finish()
     }
 }
 
 impl<'input> Call<'input> {
-    pub fn new(
-        function: Expression<'input>,
-        actual_parameters: Vec<Expression<'input>>,
-    ) -> Self {
+    pub fn new(function: Expression<'input>, actual_parameters: Vec<Expression<'input>>) -> Self {
         let function = Box::new(function);
-        Self { function, actual_parameters }
+        Self {
+            function,
+            actual_parameters,
+        }
     }
 
     pub fn new_expression(
@@ -194,12 +205,12 @@ impl fmt::Debug for Block<'_> {
 }
 
 impl<'input> Block<'input> {
-    pub fn new(
-        statements: Vec<Statement<'input>>,
-        expression: Option<Expression<'input>>,
-    ) -> Self {
-		let expression = expression.map(Box::new);
-        Self { statements, expression }
+    pub fn new(statements: Vec<Statement<'input>>, expression: Option<Expression<'input>>) -> Self {
+        let expression = expression.map(Box::new);
+        Self {
+            statements,
+            expression,
+        }
     }
 
     pub fn new_expression(
@@ -234,7 +245,10 @@ impl<'input> If<'input> {
         then_branches: Vec<(Expression<'input>, Block<'input>)>,
         else_branch: Option<Block<'input>>,
     ) -> Self {
-        Self { then_branches, else_branch }
+        Self {
+            then_branches,
+            else_branch,
+        }
     }
 
     pub fn new_expression(

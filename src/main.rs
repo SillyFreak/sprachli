@@ -16,7 +16,10 @@ fn main() {
 
     let filename = match &args[..] {
         [_, filename] => filename,
-        _ => Err(Error::Usage("unexpected number of command line arguments (expected one)".to_string())).unwrap(),
+        _ => {
+            let msg = "unexpected number of command line arguments (expected one)";
+            Err(Error::Usage(msg.to_string())).unwrap()
+        }
     };
 
     let source = fs::read_to_string(filename).unwrap();

@@ -18,6 +18,9 @@ pub struct SourceFile<'input> {
 
 impl fmt::Debug for SourceFile<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_prefixed().name("sprachli").items(&self.declarations).finish()
+        f.debug_prefixed()
+            .name("sprachli")
+            .items(&self.declarations)
+            .finish()
     }
 }

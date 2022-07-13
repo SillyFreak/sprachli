@@ -1,7 +1,7 @@
 use std::fmt;
 
-use crate::fmt::{FormatterExt, DebugPrefixed};
 use super::Block;
+use crate::fmt::{DebugPrefixed, FormatterExt};
 
 /// Declarations are the individual constructs that can go (among other places)
 /// directly in a sprachli file. The most typical declarations are [functions](Fn)
@@ -54,8 +54,10 @@ pub enum Visibility {
 impl Visibility {
     fn fmt(&self, f: &mut DebugPrefixed<'_, '_>) {
         match self {
-            Self::Public => { f.name("pub"); },
-            _ => {},
+            Self::Public => {
+                f.name("pub");
+            }
+            _ => {}
         }
     }
 }
@@ -82,7 +84,10 @@ impl fmt::Debug for Fn<'_> {
         let mut f = f.debug_prefixed();
         f.name("fn");
         self.visibility.fmt(&mut f);
-        f.name(&self.name).names(&self.formal_parameters).item(&self.body).finish()
+        f.name(&self.name)
+            .names(&self.formal_parameters)
+            .item(&self.body)
+            .finish()
     }
 }
 
@@ -93,7 +98,12 @@ impl<'input> Fn<'input> {
         formal_parameters: Vec<&'input str>,
         body: Block<'input>,
     ) -> Self {
-        Self { visibility, name, formal_parameters, body }
+        Self {
+            visibility,
+            name,
+            formal_parameters,
+            body,
+        }
     }
 
     pub fn new_declaration(
@@ -124,12 +134,12 @@ impl fmt::Debug for Struct<'_> {
 }
 
 impl<'input> Struct<'input> {
-    pub fn new(
-        visibility: Visibility,
-        name: &'input str,
-        members: StructMembers<'input>,
-    ) -> Self {
-        Self { visibility, name, members }
+    pub fn new(visibility: Visibility, name: &'input str, members: StructMembers<'input>) -> Self {
+        Self {
+            visibility,
+            name,
+            members,
+        }
     }
 
     pub fn new_declaration(
@@ -157,9 +167,13 @@ impl StructMembers<'_> {
         });
         f.name(name);
         match self {
-            Self::Empty => {},
-            Self::Positional(members) => { f.names(members); },
-            Self::Named(members) => { f.names(members); },
+            Self::Empty => {}
+            Self::Positional(members) => {
+                f.names(members);
+            }
+            Self::Named(members) => {
+                f.names(members);
+            }
         }
     }
 }

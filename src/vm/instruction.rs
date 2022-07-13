@@ -35,7 +35,10 @@ pub struct InstructionSequence {
 
 impl InstructionSequence {
     pub fn new(stack_size: usize, instructions: Vec<Instruction>) -> Self {
-        Self { stack_size, instructions }
+        Self {
+            stack_size,
+            instructions,
+        }
     }
 
     pub fn stack_size(&self) -> usize {

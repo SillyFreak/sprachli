@@ -3,8 +3,8 @@ use std::{fmt, sync::Arc};
 use bigdecimal::BigDecimal;
 use itertools::Itertools;
 
-use super::{Error, Result};
 use super::instruction::InstructionSequence;
+use super::{Error, Result};
 
 pub type Number = BigDecimal;
 
@@ -119,7 +119,12 @@ pub struct Function {
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("fn (")?;
-        for str in self.formal_parameters.iter().map(String::as_str).intersperse(", ") {
+        for str in self
+            .formal_parameters
+            .iter()
+            .map(String::as_str)
+            .intersperse(", ")
+        {
             f.write_str(str)?;
         }
         f.write_str(") { ... }")
@@ -128,7 +133,10 @@ impl fmt::Debug for Function {
 
 impl Function {
     pub fn new(formal_parameters: Vec<String>, body: InstructionSequence) -> Self {
-        Self { formal_parameters, body }
+        Self {
+            formal_parameters,
+            body,
+        }
     }
 
     pub fn check_arity(&self, actual_parameter_count: usize) -> Result<()> {
@@ -136,8 +144,7 @@ impl Function {
         if actual_parameter_count != expected_parameter_count {
             Err(Error::ValueError(format!(
                 "wrong parameter number; expected {}, got {}",
-                expected_parameter_count,
-                actual_parameter_count,
+                expected_parameter_count, actual_parameter_count,
             )))?;
         }
         Ok(())

@@ -34,7 +34,10 @@ impl<'input> TryFrom<&ast::SourceFile<'input>> for Vm {
 
 impl Vm {
     pub fn new(constants: ConstantTable, global_scope: Environment<'static>) -> Self {
-        Self { constants, global_scope }
+        Self {
+            constants,
+            global_scope,
+        }
     }
 
     pub fn run(&self) -> Result<Value> {
@@ -84,7 +87,12 @@ impl VmBuilder {
     }
 
     fn visit_fn(&mut self, function: &ast::Fn) -> Result<()> {
-        let ast::Fn { name, formal_parameters, body, .. } = function;
+        let ast::Fn {
+            name,
+            formal_parameters,
+            body,
+            ..
+        } = function;
 
         let formal_parameters = formal_parameters.iter().map(ToString::to_string).collect();
 
@@ -97,7 +105,11 @@ impl VmBuilder {
         Ok(())
     }
 
-    fn visit_expression(&mut self, instructions: &mut InstructionSequenceBuilder, expr: &ast::Expression) -> Result<()> {
+    fn visit_expression(
+        &mut self,
+        instructions: &mut InstructionSequenceBuilder,
+        expr: &ast::Expression,
+    ) -> Result<()> {
         use ast::Expression::*;
 
         match expr {
@@ -112,7 +124,11 @@ impl VmBuilder {
         }
     }
 
-    fn visit_number(&mut self, instructions: &mut InstructionSequenceBuilder, literal: &str) -> Result<()> {
+    fn visit_number(
+        &mut self,
+        instructions: &mut InstructionSequenceBuilder,
+        literal: &str,
+    ) -> Result<()> {
         use instruction::Instruction::*;
 
         let number = value::Number::from_str(literal).expect("number liteal is not a valid number");
@@ -121,7 +137,11 @@ impl VmBuilder {
         Ok(())
     }
 
-    fn visit_string(&mut self, instructions: &mut InstructionSequenceBuilder, literal: &str) -> Result<()> {
+    fn visit_string(
+        &mut self,
+        instructions: &mut InstructionSequenceBuilder,
+        literal: &str,
+    ) -> Result<()> {
         use instruction::Instruction::*;
 
         let string = string_from_literal(literal);
@@ -130,11 +150,19 @@ impl VmBuilder {
         Ok(())
     }
 
-    fn visit_identifier(&mut self, _instructions: &mut InstructionSequenceBuilder, _name: &str) -> Result<()> {
+    fn visit_identifier(
+        &mut self,
+        _instructions: &mut InstructionSequenceBuilder,
+        _name: &str,
+    ) -> Result<()> {
         todo!("emit instructions")
     }
 
-    fn visit_binary(&mut self, instructions: &mut InstructionSequenceBuilder, expr: &ast::Binary) -> Result<()> {
+    fn visit_binary(
+        &mut self,
+        instructions: &mut InstructionSequenceBuilder,
+        expr: &ast::Binary,
+    ) -> Result<()> {
         use instruction::Instruction::*;
 
         self.visit_expression(instructions, &expr.left)?;
@@ -143,7 +171,11 @@ impl VmBuilder {
         Ok(())
     }
 
-    fn visit_unary(&mut self, instructions: &mut InstructionSequenceBuilder, expr: &ast::Unary) -> Result<()> {
+    fn visit_unary(
+        &mut self,
+        instructions: &mut InstructionSequenceBuilder,
+        expr: &ast::Unary,
+    ) -> Result<()> {
         use instruction::Instruction::*;
 
         self.visit_expression(instructions, &expr.right)?;
@@ -151,7 +183,11 @@ impl VmBuilder {
         Ok(())
     }
 
-    fn visit_call(&mut self, instructions: &mut InstructionSequenceBuilder, call: &ast::Call) -> Result<()> {
+    fn visit_call(
+        &mut self,
+        instructions: &mut InstructionSequenceBuilder,
+        call: &ast::Call,
+    ) -> Result<()> {
         self.visit_expression(instructions, &call.function)?;
         for expr in &call.actual_parameters {
             self.visit_expression(instructions, &expr)?;
@@ -159,7 +195,11 @@ impl VmBuilder {
         todo!("emit instructions")
     }
 
-    fn visit_block(&mut self, instructions: &mut InstructionSequenceBuilder, block: &ast::Block) -> Result<()> {
+    fn visit_block(
+        &mut self,
+        instructions: &mut InstructionSequenceBuilder,
+        block: &ast::Block,
+    ) -> Result<()> {
         use instruction::{InlineConstant, Instruction::*};
 
         for _stmt in &block.statements {
@@ -173,7 +213,11 @@ impl VmBuilder {
         Ok(())
     }
 
-    fn visit_if(&mut self, instructions: &mut InstructionSequenceBuilder, expr: &ast::If) -> Result<()> {
+    fn visit_if(
+        &mut self,
+        instructions: &mut InstructionSequenceBuilder,
+        expr: &ast::If,
+    ) -> Result<()> {
         for (condition, then_branch) in &expr.then_branches {
             self.visit_expression(instructions, condition)?;
             todo!("emit instructions");

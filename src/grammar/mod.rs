@@ -1,7 +1,7 @@
 lalrpop_mod!(sprachli, "/grammar/sprachli.rs");
 
-use lalrpop_util::ParseError;
 use lalrpop_util::lexer::Token;
+use lalrpop_util::ParseError;
 
 pub use self::sprachli::*;
 
@@ -26,11 +26,11 @@ pub fn string_from_literal(literal: &str) -> String {
                     't' => string.push('\t'),
                     _ => unreachable!("illegal escape sequence"),
                 }
-            },
+            }
             '"' => {
-                iter.next()
-                    .ok_or(())
-                    .expect_err("string literal with trailing content after the closing double quote");
+                iter.next().ok_or(()).expect_err(
+                    "string literal with trailing content after the closing double quote",
+                );
             }
             _ => {
                 string.push(ch);
@@ -64,7 +64,8 @@ mod tests {
 
         fn call<'a>(&'a self, input: &'input str) -> Result<Self::Ast>
         where
-            'input: 'a {
+            'input: 'a,
+        {
             self(input)
         }
     }
@@ -91,7 +92,7 @@ mod tests {
             let b = self.parser.call(b).unwrap();
             assert_eq!(format!("{a:?}"), format!("{b:?}"));
         }
-    
+
         pub fn parse_err(&self, s: &str) {
             self.parser.call(s).unwrap_err();
         }
@@ -161,7 +162,10 @@ mod tests {
         test.parse_err("((22)");
         test.parse("{ 22 }", "(block 22)");
         test.parse("if a { b } else { c }", "(if a (block b) else (block c))");
-        test.parse("if a { b } else if c { d }", "(if a (block b) if c (block d))");
+        test.parse(
+            "if a { b } else if c { d }",
+            "(if a (block b) if c (block d))",
+        );
 
         test.parse("-1", "(- 1)");
         test.parse("!true", "(! true)");

@@ -31,18 +31,26 @@ impl Interpreter {
         Self::default()
     }
 
-    pub fn visit_source_file<'input>(&self, source: &ast::SourceFile<'input>) -> Result<Value<'input>> {
+    pub fn visit_source_file<'input>(
+        &self,
+        source: &ast::SourceFile<'input>,
+    ) -> Result<Value<'input>> {
         use ast::Declaration::*;
-        
+
         let mut env = Environment::new();
 
         for decl in &source.declarations {
             match decl {
                 Use(_decl) => Err(Error::Unsupported("use declaration"))?,
-                Fn(ast::Fn { name, formal_parameters, body, .. }) => {
+                Fn(ast::Fn {
+                    name,
+                    formal_parameters,
+                    body,
+                    ..
+                }) => {
                     let function = value::Function::new(formal_parameters.clone(), body.clone());
                     env.set(name.to_string(), Value::Function(function));
-                },
+                }
                 Struct(_decl) => Err(Error::Unsupported("struct"))?,
                 Mixin(_decl) => Err(Error::Unsupported("mixin"))?,
                 Impl(_decl) => Err(Error::Unsupported("impl block"))?,
@@ -54,7 +62,11 @@ impl Interpreter {
         self.visit_invoke(&env, main, &[])
     }
 
-    pub fn visit_expression<'input>(&self, env: &Environment<'input, '_>, expr: &ast::Expression) -> Result<Value<'input>> {
+    pub fn visit_expression<'input>(
+        &self,
+        env: &Environment<'input, '_>,
+        expr: &ast::Expression,
+    ) -> Result<Value<'input>> {
         use ast::Expression::*;
 
         match expr {
@@ -69,22 +81,38 @@ impl Interpreter {
         }
     }
 
-    fn visit_number<'input>(&self, _env: &Environment<'input, '_>, literal: &str) -> Result<Value<'input>> {
+    fn visit_number<'input>(
+        &self,
+        _env: &Environment<'input, '_>,
+        literal: &str,
+    ) -> Result<Value<'input>> {
         let number = value::Number::from_str(literal).expect("number liteal is not a valid number");
         Ok(Value::Number(number))
     }
 
-    fn visit_string<'input>(&self, _env: &Environment<'input, '_>, literal: &str) -> Result<Value<'input>> {
+    fn visit_string<'input>(
+        &self,
+        _env: &Environment<'input, '_>,
+        literal: &str,
+    ) -> Result<Value<'input>> {
         let string = string_from_literal(literal);
         Ok(Value::String(string))
     }
 
-    fn visit_identifier<'input>(&self, env: &Environment<'input, '_>, name: &str) -> Result<Value<'input>> {
+    fn visit_identifier<'input>(
+        &self,
+        env: &Environment<'input, '_>,
+        name: &str,
+    ) -> Result<Value<'input>> {
         let x = env.get(name).cloned();
         x.ok_or_else(|| Error::NameError(name.to_string()))
     }
 
-    fn visit_binary<'input>(&self, env: &Environment<'input, '_>, expr: &ast::Binary) -> Result<Value<'input>> {
+    fn visit_binary<'input>(
+        &self,
+        env: &Environment<'input, '_>,
+        expr: &ast::Binary,
+    ) -> Result<Value<'input>> {
         use ast::BinaryOperator::*;
         use Value::*;
 
@@ -134,7 +162,11 @@ impl Interpreter {
         }
     }
 
-    fn visit_unary<'input>(&self, env: &Environment<'input, '_>, expr: &ast::Unary) -> Result<Value<'input>> {
+    fn visit_unary<'input>(
+        &self,
+        env: &Environment<'input, '_>,
+        expr: &ast::Unary,
+    ) -> Result<Value<'input>> {
         use ast::UnaryOperator::*;
 
         match expr.operator {
@@ -142,26 +174,37 @@ impl Interpreter {
                 let right = self.visit_expression(env, &expr.right)?;
                 let result = -right.as_number()?;
                 Ok(Value::Number(result))
-            },
+            }
             Not => {
                 let right = self.visit_expression(env, &expr.right)?;
                 let result = !right.as_bool()?;
                 Ok(Value::Bool(result))
-            },
+            }
         }
     }
 
-    fn visit_call<'input>(&self, env: &Environment<'input, '_>, call: &ast::Call) -> Result<Value<'input>> {
+    fn visit_call<'input>(
+        &self,
+        env: &Environment<'input, '_>,
+        call: &ast::Call,
+    ) -> Result<Value<'input>> {
         let function = self.visit_expression(env, &call.function)?;
         let function = function.as_function()?;
-        let actual_parameters = call.actual_parameters.iter()
-                .map(|expr| self.visit_expression(env, expr))
-                .collect::<Result<Vec<_>>>()?;
+        let actual_parameters = call
+            .actual_parameters
+            .iter()
+            .map(|expr| self.visit_expression(env, expr))
+            .collect::<Result<Vec<_>>>()?;
 
         self.visit_invoke(env, function, &actual_parameters)
     }
 
-    fn visit_invoke<'input>(&self, env: &Environment<'input, '_>, function: &value::Function, actual_parameters: &[Value<'input>]) -> Result<Value<'input>> {
+    fn visit_invoke<'input>(
+        &self,
+        env: &Environment<'input, '_>,
+        function: &value::Function,
+        actual_parameters: &[Value<'input>],
+    ) -> Result<Value<'input>> {
         function.check_arity(actual_parameters.len())?;
 
         let mut env = Environment::with_parent(env);
@@ -172,7 +215,11 @@ impl Interpreter {
         self.visit_block(&env, function.body())
     }
 
-    fn visit_block<'input>(&self, env: &Environment<'input, '_>, block: &ast::Block) -> Result<Value<'input>> {
+    fn visit_block<'input>(
+        &self,
+        env: &Environment<'input, '_>,
+        block: &ast::Block,
+    ) -> Result<Value<'input>> {
         if !block.statements.is_empty() {
             Err(Error::Unsupported("statements in block"))?;
         }
@@ -184,7 +231,11 @@ impl Interpreter {
         }
     }
 
-    fn visit_if<'input>(&self, env: &Environment<'input, '_>, expr: &ast::If) -> Result<Value<'input>> {
+    fn visit_if<'input>(
+        &self,
+        env: &Environment<'input, '_>,
+        expr: &ast::If,
+    ) -> Result<Value<'input>> {
         for (condition, then_branch) in &expr.then_branches {
             let condition = self.visit_expression(env, condition)?;
             let condition = condition.as_bool()?;
@@ -217,14 +268,29 @@ mod tests {
     fn test_interpreter() {
         assert_eq!(run("fn main() {}").unwrap(), Value::Unit);
         assert_eq!(run("fn main() { 42 }").unwrap(), Value::Number(42.into()));
-        assert_eq!(run("fn main() { 21 * 2 }").unwrap(), Value::Number(42.into()));
-        assert_eq!(run("fn main() { 22 + 20 }").unwrap(), Value::Number(42.into()));
+        assert_eq!(
+            run("fn main() { 21 * 2 }").unwrap(),
+            Value::Number(42.into())
+        );
+        assert_eq!(
+            run("fn main() { 22 + 20 }").unwrap(),
+            Value::Number(42.into())
+        );
         assert_eq!(run("fn main() { 22 >= 20 }").unwrap(), Value::Bool(true));
         assert_eq!(run("fn main() { -22 < 20 }").unwrap(), Value::Bool(true));
         assert_eq!(run("fn main() { 5 == 10 }").unwrap(), Value::Bool(false));
-        assert_eq!(run("fn foo() { 42 } fn main() { foo() }").unwrap(), Value::Number(42.into()));
-        assert_eq!(run("fn foo(a) { -a } fn main() { foo(-42) }").unwrap(), Value::Number(42.into()));
-        assert_eq!(run("fn main() { 5 == { 10 } }").unwrap(), Value::Bool(false));
+        assert_eq!(
+            run("fn foo() { 42 } fn main() { foo() }").unwrap(),
+            Value::Number(42.into())
+        );
+        assert_eq!(
+            run("fn foo(a) { -a } fn main() { foo(-42) }").unwrap(),
+            Value::Number(42.into())
+        );
+        assert_eq!(
+            run("fn main() { 5 == { 10 } }").unwrap(),
+            Value::Bool(false)
+        );
 
         let source = "
         fn max(a, b) {

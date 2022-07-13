@@ -3,8 +3,8 @@ use std::fmt;
 use bigdecimal::BigDecimal;
 use itertools::Itertools;
 
-use crate::ast::Block;
 use super::{Error, Result};
+use crate::ast::Block;
 
 pub type Number = BigDecimal;
 
@@ -77,7 +77,10 @@ impl fmt::Debug for Function<'_> {
 
 impl<'input> Function<'input> {
     pub fn new(formal_parameters: Vec<&'input str>, body: Block<'input>) -> Self {
-        Self { formal_parameters, body }
+        Self {
+            formal_parameters,
+            body,
+        }
     }
 
     pub fn check_arity(&self, actual_parameter_count: usize) -> Result<()> {
@@ -85,8 +88,7 @@ impl<'input> Function<'input> {
         if actual_parameter_count != expected_parameter_count {
             Err(Error::ValueError(format!(
                 "wrong parameter number; expected {}, got {}",
-                expected_parameter_count,
-                actual_parameter_count,
+                expected_parameter_count, actual_parameter_count,
             )))?;
         }
         Ok(())
