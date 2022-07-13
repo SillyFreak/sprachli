@@ -84,7 +84,7 @@ impl fmt::Debug for Fn<'_> {
         let mut f = f.debug_prefixed();
         f.name("fn");
         self.visibility.fmt(&mut f);
-        f.name(&self.name)
+        f.name(self.name)
             .names(&self.formal_parameters)
             .item(&self.body)
             .finish()
@@ -128,7 +128,7 @@ impl fmt::Debug for Struct<'_> {
         let mut f = f.debug_prefixed();
         f.name("struct");
         self.visibility.fmt(&mut f);
-        self.members.fmt(&mut f, &self.name);
+        self.members.fmt(&mut f, self.name);
         f.finish()
     }
 }

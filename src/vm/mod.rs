@@ -190,7 +190,7 @@ impl VmBuilder {
     ) -> Result<()> {
         self.visit_expression(instructions, &call.function)?;
         for expr in &call.actual_parameters {
-            self.visit_expression(instructions, &expr)?;
+            self.visit_expression(instructions, expr)?;
         }
         todo!("emit instructions")
     }

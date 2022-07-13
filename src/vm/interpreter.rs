@@ -125,7 +125,7 @@ impl<'a> Interpreter<'a> {
         }
 
         let result = stack.pop().expect("empty stack");
-        assert!(stack.len() == 0, "stack not empty after execution");
+        assert!(stack.is_empty(), "stack not empty after execution");
 
         Ok(result)
     }
