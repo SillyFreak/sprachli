@@ -44,6 +44,7 @@ impl<'a> Interpreter<'a> {
         use super::{
             instruction::Instruction::*,
             value::RawValue::*,
+            value::Value::*,
         };
         function.check_arity(actual_parameters.len())?;
 
@@ -89,12 +90,17 @@ impl<'a> Interpreter<'a> {
                     let left = stack.pop().expect("empty stack");
 
                     let equality_comparison = |eq: bool| -> Result<Value> {
-                        let result = match (left.get(), right.get()) {
+                        let result = match (&left, &right) {
                             (Unit, Unit) => true,
                             (Bool(left), Bool(right)) => left == right,
-                            (Number(left), Number(right)) => left == right,
-                            (String(left), String(right)) => left == right,
-                            // TODO functions?
+                            (Boxed(left), Boxed(right)) => {
+                                match (left.as_ref(), right.as_ref()) {
+                                    (Number(left), Number(right)) => left == right,
+                                    (String(left), String(right)) => left == right,
+                                    // TODO functions?
+                                    _ => false,
+                                }
+                            },
                             _ => false,
                         };
 

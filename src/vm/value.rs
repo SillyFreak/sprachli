@@ -9,24 +9,36 @@ use super::{Error, Result};
 pub type Number = BigDecimal;
 
 #[derive(Clone, Hash, PartialEq, Eq)]
-pub enum RawValue {
+pub enum Value {
     Unit,
     Bool(bool),
+    Boxed(Arc<RawValue>),
+}
+
+#[derive(Clone, Hash, PartialEq, Eq)]
+pub enum RawValue {
     Number(Number),
     String(String),
     Function(Function),
 }
 
-#[derive(Clone, Hash, PartialEq, Eq)]
-pub struct Value(Arc<RawValue>);
-
 impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Value::*;
+
+        match self {
+            Unit => f.write_str("unit"),
+            Bool(value) => fmt::Display::fmt(value, f),
+            Boxed(value) => value.fmt(f),
+        }
+    }
+}
+
+impl fmt::Debug for RawValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use RawValue::*;
 
-        match self.get() {
-            Unit => f.write_str("unit"),
-            Bool(value) => fmt::Display::fmt(value, f),
+        match self {
             Number(value) => fmt::Display::fmt(value, f),
             String(value) => fmt::Display::fmt(value, f),
             Function(value) => value.fmt(f),
@@ -34,79 +46,118 @@ impl fmt::Debug for Value {
     }
 }
 
+impl Default for Value {
+    fn default() -> Self {
+        Self::unit()
+    }
+}
+
 impl From<()> for Value {
     fn from(_: ()) -> Self {
-        Self::new(RawValue::Unit)
+        Self::unit()
     }
 }
 
 impl From<bool> for Value {
     fn from(value: bool) -> Self {
-        Self::new(RawValue::Bool(value))
+        Self::bool(value)
     }
 }
 
 impl From<Number> for Value {
     fn from(value: Number) -> Self {
-        Self::new(RawValue::Number(value))
+        Self::number(value)
     }
 }
 
 impl From<String> for Value {
     fn from(value: String) -> Self {
-        Self::new(RawValue::String(value))
+        Self::string(value)
     }
 }
 
 impl From<Function> for Value {
     fn from(value: Function) -> Self {
-        Self::new(RawValue::Function(value))
+        Self::function(value)
     }
 }
 
 impl Value {
-    pub fn new(value: RawValue) -> Self {
-        Self(Arc::new(value))
+    pub fn unit() -> Self {
+        Self::Unit
     }
 
-    pub fn get(&self) -> &RawValue {
-        &self.0
+    pub fn bool(value: bool) -> Self {
+        Self::Bool(value)
+    }
+
+    fn boxed(value: RawValue) -> Self {
+        Self::Boxed(Arc::new(value))
+    }
+
+    pub fn number(value: Number) -> Self {
+        Self::boxed(RawValue::Number(value))
+    }
+
+    pub fn string(value: String) -> Self {
+        Self::boxed(RawValue::String(value))
+    }
+
+    pub fn function(value: Function) -> Self {
+        Self::boxed(RawValue::Function(value))
+    }
+
+    pub fn is_unit(&self) -> bool {
+        self == &Self::Unit
     }
 
     pub fn as_bool(&self) -> Result<bool> {
-        use RawValue::*;
+        use Value::*;
 
-        match self.get() {
-            Bool(bool) => Ok(*bool),
-            _ => Err(Error::TypeError("bool".to_string())),
+        if let Bool(value) = self {
+            return Ok(*value);
         }
+
+        Err(Error::TypeError("bool".to_string()))
     }
 
     pub fn as_number(&self) -> Result<&Number> {
         use RawValue::*;
+        use Value::*;
 
-        match self.get() {
-            Number(number) => Ok(number),
-            _ => Err(Error::TypeError("number".to_string())),
+        if let Boxed(value) = self {
+            if let Number(value) = value.as_ref() {
+                return Ok(value);
+            }
         }
+
+        Err(Error::TypeError("bool".to_string()))
     }
 
     pub fn as_string(&self) -> Result<&str> {
         use RawValue::*;
+        use Value::*;
 
-        match self.get() {
-            String(string) => Ok(string),
-            _ => Err(Error::TypeError("string".to_string())),
+        if let Boxed(value) = self {
+            if let String(value) = value.as_ref() {
+                return Ok(value);
+            }
         }
+
+        Err(Error::TypeError("string".to_string()))
     }
 
     pub fn as_function(&self) -> Result<&Function> {
         use RawValue::*;
+        use Value::*;
 
-        match self.get() {
-            Function(function) => Ok(function),
-            _ => Err(Error::TypeError("function".to_string())),
+        if let Boxed(value) = self {
+            if let Function(value) = value.as_ref() {
+                return Ok(value);
+            }
         }
+
+        Err(Error::TypeError("function".to_string()))
     }
 }
 
