@@ -1,4 +1,4 @@
-lalrpop_mod!(sprachli, "/grammar/sprachli.rs");
+lalrpop_mod!(#[allow(clippy::all)] sprachli, "/grammar/sprachli.rs");
 
 use lalrpop_util::lexer::Token;
 use lalrpop_util::ParseError;
