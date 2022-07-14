@@ -42,8 +42,7 @@ impl<'a> Interpreter<'a> {
         actual_parameters: &[Value],
     ) -> Result<Value> {
         use super::{
-            ast::{BinaryOperator::*, UnaryOperator::*},
-            instruction::{InlineConstant, Instruction::*},
+            instruction::Instruction::*,
             value::RawValue::*,
         };
         function.check_arity(actual_parameters.len())?;
@@ -63,6 +62,8 @@ impl<'a> Interpreter<'a> {
                     stack.push(constant);
                 }
                 InlineConstant(constant) => {
+                    use super::instruction::InlineConstant;
+
                     let constant = match constant {
                         InlineConstant::Unit => ().into(),
                         InlineConstant::Bool(bool) => bool.into(),
@@ -70,6 +71,8 @@ impl<'a> Interpreter<'a> {
                     stack.push(constant);
                 }
                 Unary(operator) => {
+                    use super::ast::UnaryOperator::*;
+
                     let right = stack.pop().expect("empty stack");
 
                     let result = match operator {
@@ -80,6 +83,8 @@ impl<'a> Interpreter<'a> {
                     stack.push(result);
                 }
                 Binary(operator) => {
+                    use super::ast::BinaryOperator::*;
+
                     let right = stack.pop().expect("empty stack");
                     let left = stack.pop().expect("empty stack");
 
