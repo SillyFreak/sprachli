@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::Value;
+use super::{InternalError, Result, Value};
 
 #[derive(Debug, Clone)]
 pub struct ConstantTable {
@@ -8,8 +8,10 @@ pub struct ConstantTable {
 }
 
 impl ConstantTable {
-    pub fn get(&self, index: usize) -> Option<&Value> {
-        self.table.get(index)
+    pub fn get(&self, index: usize) -> Result<&Value> {
+        self.table
+            .get(index)
+            .ok_or_else(|| InternalError::InvalidConstant(index, self.table.len()).into())
     }
 }
 

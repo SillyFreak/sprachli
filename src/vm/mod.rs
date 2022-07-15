@@ -5,14 +5,15 @@ mod instruction;
 mod interpreter;
 mod value;
 
+pub use error::*;
+pub use value::Value;
+
 use std::str::FromStr;
 
 use constant_table::{ConstantTable, ConstantTableBuilder};
 use environment::Environment;
-pub use error::*;
 use instruction::InstructionSequenceBuilder;
 use interpreter::Interpreter;
-pub use value::Value;
 
 use crate::{ast, grammar::string_from_literal};
 
@@ -131,7 +132,7 @@ impl VmBuilder {
     ) -> Result<()> {
         use instruction::Instruction::*;
 
-        let number = value::Number::from_str(literal).expect("number liteal is not a valid number");
+        let number = value::Number::from_str(literal).map_err(InternalError::from)?;
         let constant = self.constants.insert(number.into());
         instructions.push(Constant(constant));
         Ok(())

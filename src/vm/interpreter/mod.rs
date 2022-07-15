@@ -28,7 +28,7 @@ impl<'a> Interpreter<'a> {
         self.call(env, 0)?;
 
         // the call opcode checks that only one value remains on the stack
-        Ok(self.stack.pop())
+        self.stack.pop()
     }
 
     fn constant(&mut self, index: usize) -> Result<()> {
@@ -36,8 +36,7 @@ impl<'a> Interpreter<'a> {
             .vm
             .constants
             .get(index)
-            .cloned()
-            .expect("constant not in constant table");
+            .cloned()?;
 
         self.stack.push(value)
     }
@@ -65,7 +64,7 @@ impl<'a> Interpreter<'a> {
     fn unary(&mut self, operator: UnaryOperator) -> Result<()> {
         use UnaryOperator::*;
 
-        let right = self.stack.pop();
+        let right = self.stack.pop()?;
 
         let value = match operator {
             Negate => Value::from(-right.as_number()?),
@@ -80,8 +79,8 @@ impl<'a> Interpreter<'a> {
         use super::value::RawValue::*;
         use super::value::Value::*;
 
-        let right = self.stack.pop();
-        let left = self.stack.pop();
+        let right = self.stack.pop()?;
+        let left = self.stack.pop()?;
 
         let equality_comparison = |eq: bool| -> Result<Value> {
             let result = match (&left, &right) {

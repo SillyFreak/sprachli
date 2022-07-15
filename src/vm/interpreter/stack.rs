@@ -1,4 +1,4 @@
-use crate::vm::{Result, Value};
+use crate::vm::{InternalError, Result, Value};
 
 #[derive(Default, Debug, Clone)]
 pub struct Stack(Vec<Value>);
@@ -13,27 +13,22 @@ impl Stack {
         Ok(())
     }
 
-    pub fn pop(&mut self) -> Value {
-        self.0.pop().expect("empty stack")
+    pub fn pop(&mut self) -> Result<Value> {
+        self.0.pop().ok_or_else(|| InternalError::EmptyStack.into())
     }
 
     pub fn pop_call(&mut self, arity: usize) -> Result<(Value, Vec<Value>)> {
-        let offset = self.len() - arity - 1;
+        let offset = self.len().checked_sub(arity + 1)
+            .ok_or(InternalError::EmptyStack)?;
 
-        let function = self.get(offset)
-            .expect("stack frame without function")
-            .as_function()?;
+        let function = self.0[offset].as_function()?;
 
         function.check_arity(arity)?;
 
         let parameters = self.0.drain((offset + 1)..).collect::<Vec<_>>();
-        let function = self.pop();
+        let function = self.pop()?;
 
         Ok((function, parameters))
-    }
-
-    pub fn get(&self, index: usize) -> Option<&Value> {
-        self.0.get(index)
     }
 
     pub fn len(&self) -> usize {
