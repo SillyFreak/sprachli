@@ -1,143 +1,168 @@
+mod stack;
+
 use bigdecimal::BigDecimal;
 
-use super::{environment::Environment, value::Function, Error, Result, Value, Vm};
+use crate::ast::{UnaryOperator, BinaryOperator};
+use super::{Error, Result, Value, Vm};
+use super::environment::Environment;
+use super::instruction::InlineConstant;
+use stack::Stack;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Interpreter<'a> {
+    stack: Stack,
     vm: &'a Vm,
 }
 
 impl<'a> Interpreter<'a> {
     pub fn new(vm: &'a Vm) -> Self {
-        Self { vm }
+        Self {
+            stack: Stack::new(),
+            vm,
+        }
     }
 
-    pub fn main(&self) -> Result<Value> {
+    pub fn main(&mut self) -> Result<Value> {
         let env = self.vm.global_scope();
-        let main = self.load(env, "main")?;
-        let main = main.as_function()?;
-        self.call(env, main, &[])
+        self.load(env, "main")?;
+        self.call(env, 0)?;
+
+        // the call opcode checks that only one value remains on the stack
+        Ok(self.stack.pop())
     }
 
-    fn constant(&self, index: usize) -> Result<Value> {
-        let constant = self
+    fn constant(&mut self, index: usize) -> Result<()> {
+        let value = self
             .vm
             .constants
             .get(index)
             .cloned()
             .expect("constant not in constant table");
-        Ok(constant)
+
+        self.stack.push(value)
     }
 
-    fn load(&self, env: &Environment, name: &str) -> Result<Value> {
-        env.get(name)
+    fn inline_constant(&mut self, constant: InlineConstant) -> Result<()> {
+        use InlineConstant::*;
+
+        let value = match constant {
+            Unit => ().into(),
+            Bool(bool) => bool.into(),
+        };
+
+        self.stack.push(value)
+    }
+
+    fn load(&mut self, env: &Environment, name: &str) -> Result<()> {
+        let value = env
+            .get(name)
             .cloned()
-            .ok_or_else(|| Error::NameError(name.to_string()))
+            .ok_or_else(|| Error::NameError(name.to_string()))?;
+
+        self.stack.push(value)
+    }
+
+    fn unary(&mut self, operator: UnaryOperator) -> Result<()> {
+        use UnaryOperator::*;
+
+        let right = self.stack.pop();
+
+        let value = match operator {
+            Negate => Value::from(-right.as_number()?),
+            Not => Value::from(!right.as_bool()?),
+        };
+
+        self.stack.push(value)
+    }
+
+    fn binary(&mut self, operator: BinaryOperator) -> Result<()> {
+        use BinaryOperator::*;
+        use super::value::RawValue::*;
+        use super::value::Value::*;
+
+        let right = self.stack.pop();
+        let left = self.stack.pop();
+
+        let equality_comparison = |eq: bool| -> Result<Value> {
+            let result = match (&left, &right) {
+                (Unit, Unit) => true,
+                (Bool(left), Bool(right)) => left == right,
+                (Boxed(left), Boxed(right)) => {
+                    match (left.as_ref(), right.as_ref()) {
+                        (Number(left), Number(right)) => left == right,
+                        (String(left), String(right)) => left == right,
+                        // TODO functions?
+                        _ => false,
+                    }
+                },
+                _ => false,
+            };
+
+            Ok(Value::from(result == eq))
+        };
+
+        let number_comparison = |op: fn(&BigDecimal, &BigDecimal) -> bool| {
+            let result = op(left.as_number()?, right.as_number()?);
+            Ok(Value::from(result))
+        };
+
+        let arithmetic = |op: fn(&BigDecimal, &BigDecimal) -> BigDecimal| {
+            let result = op(left.as_number()?, right.as_number()?);
+            Ok(Value::from(result))
+        };
+
+        let value = match operator {
+            Equals => equality_comparison(true),
+            NotEquals => equality_comparison(false),
+            Greater => number_comparison(|a, b| a > b),
+            GreaterEquals => number_comparison(|a, b| a >= b),
+            Less => number_comparison(|a, b| a < b),
+            LessEquals => number_comparison(|a, b| a <= b),
+            Add => arithmetic(|a, b| a + b),
+            Subtract => arithmetic(|a, b| a - b),
+            Multiply => arithmetic(|a, b| a * b),
+            Divide => arithmetic(|a, b| a / b),
+        }?;
+
+        self.stack.push(value)
     }
 
     fn call(
-        &self,
+        &mut self,
         env: &Environment,
-        function: &Function,
-        actual_parameters: &[Value],
-    ) -> Result<Value> {
-        use super::{
-            instruction::Instruction::*,
-            value::RawValue::*,
-            value::Value::*,
-        };
-        function.check_arity(actual_parameters.len())?;
+        arity: usize,
+    ) -> Result<()> {
+        use super::instruction::Instruction::*;
+
+        let (function, actual_parameters) = self.stack.pop_call(arity)?;
+        let function = function.as_function().expect("pop_call returned non-function function");
+
+        let offset = self.stack.len();
 
         let mut env = Environment::with_parent(env);
-        for (name, value) in function.formal_parameters().iter().zip(actual_parameters) {
-            env.set(name.to_string(), value.clone());
+        for (name, actual_parameter) in function.formal_parameters().iter().zip(actual_parameters.into_iter()) {
+            env.set(name.to_string(), actual_parameter);
         }
 
-        let mut stack = Vec::new();
-
-        stack.reserve(function.body().stack_size());
         for ins in function.body() {
             match ins {
                 Constant(index) => {
-                    let constant = self.constant(index)?;
-                    stack.push(constant);
+                    self.constant(index)?;
                 }
                 InlineConstant(constant) => {
-                    use super::instruction::InlineConstant;
-
-                    let constant = match constant {
-                        InlineConstant::Unit => ().into(),
-                        InlineConstant::Bool(bool) => bool.into(),
-                    };
-                    stack.push(constant);
+                    self.inline_constant(constant)?;
                 }
                 Unary(operator) => {
-                    use super::ast::UnaryOperator::*;
-
-                    let right = stack.pop().expect("empty stack");
-
-                    let result = match operator {
-                        Negate => Value::from(-right.as_number()?),
-                        Not => Value::from(!right.as_bool()?),
-                    };
-
-                    stack.push(result);
+                    self.unary(operator)?;
                 }
                 Binary(operator) => {
-                    use super::ast::BinaryOperator::*;
-
-                    let right = stack.pop().expect("empty stack");
-                    let left = stack.pop().expect("empty stack");
-
-                    let equality_comparison = |eq: bool| -> Result<Value> {
-                        let result = match (&left, &right) {
-                            (Unit, Unit) => true,
-                            (Bool(left), Bool(right)) => left == right,
-                            (Boxed(left), Boxed(right)) => {
-                                match (left.as_ref(), right.as_ref()) {
-                                    (Number(left), Number(right)) => left == right,
-                                    (String(left), String(right)) => left == right,
-                                    // TODO functions?
-                                    _ => false,
-                                }
-                            },
-                            _ => false,
-                        };
-
-                        Ok(Value::from(result == eq))
-                    };
-
-                    let number_comparison = |op: fn(&BigDecimal, &BigDecimal) -> bool| {
-                        let result = op(left.as_number()?, right.as_number()?);
-                        Ok(Value::from(result))
-                    };
-
-                    let arithmetic = |op: fn(&BigDecimal, &BigDecimal) -> BigDecimal| {
-                        let result = op(left.as_number()?, right.as_number()?);
-                        Ok(Value::from(result))
-                    };
-
-                    let result = match operator {
-                        Equals => equality_comparison(true),
-                        NotEquals => equality_comparison(false),
-                        Greater => number_comparison(|a, b| a > b),
-                        GreaterEquals => number_comparison(|a, b| a >= b),
-                        Less => number_comparison(|a, b| a < b),
-                        LessEquals => number_comparison(|a, b| a <= b),
-                        Add => arithmetic(|a, b| a + b),
-                        Subtract => arithmetic(|a, b| a - b),
-                        Multiply => arithmetic(|a, b| a * b),
-                        Divide => arithmetic(|a, b| a / b),
-                    }?;
-
-                    stack.push(result);
+                    self.binary(operator)?;
                 }
             }
         }
 
-        let result = stack.pop().expect("empty stack");
-        assert!(stack.is_empty(), "stack not empty after execution");
+        assert_eq!(self.stack.len(), offset + 1);
 
-        Ok(result)
+        Ok(())
     }
 }
