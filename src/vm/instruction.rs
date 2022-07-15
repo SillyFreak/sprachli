@@ -6,6 +6,7 @@ pub enum Instruction {
     InlineConstant(InlineConstant),
     Unary(UnaryOperator),
     Binary(BinaryOperator),
+    Load(usize),
 }
 
 impl Instruction {
@@ -17,6 +18,7 @@ impl Instruction {
             InlineConstant(_) => (1, 1),
             Unary(_) => (0, 0),
             Binary(_) => (0, -1),
+            Load(_) => (1, 1),
         }
     }
 }

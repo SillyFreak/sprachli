@@ -153,10 +153,14 @@ impl VmBuilder {
 
     fn visit_identifier(
         &mut self,
-        _instructions: &mut InstructionSequenceBuilder,
-        _name: &str,
+        instructions: &mut InstructionSequenceBuilder,
+        name: &str,
     ) -> Result<()> {
-        todo!("emit instructions")
+        use instruction::Instruction::*;
+
+        let name = self.constants.insert(name.to_string().into());
+        instructions.push(Load(name));
+        Ok(())
     }
 
     fn visit_binary(

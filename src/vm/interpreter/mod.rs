@@ -24,7 +24,7 @@ impl<'a> Interpreter<'a> {
 
     pub fn main(&mut self) -> Result<Value> {
         let env = self.vm.global_scope();
-        self.load(env, "main")?;
+        self.do_load(env, "main")?;
         self.call(env, 0)?;
 
         // the call opcode checks that only one value remains on the stack
@@ -52,7 +52,17 @@ impl<'a> Interpreter<'a> {
         self.stack.push(value)
     }
 
-    fn load(&mut self, env: &Environment, name: &str) -> Result<()> {
+    fn load(&mut self, env: &Environment, index: usize) -> Result<()> {
+        let name = self
+            .vm
+            .constants
+            .get(index)?
+            .as_string()?;
+
+        self.do_load(env, name)
+    }
+
+    fn do_load(&mut self, env: &Environment, name: &str) -> Result<()> {
         let value = env
             .get(name)
             .cloned()
@@ -156,6 +166,9 @@ impl<'a> Interpreter<'a> {
                 }
                 Binary(operator) => {
                     self.binary(operator)?;
+                }
+                Load(index) => {
+                    self.load(&env, index)?;
                 }
             }
         }
