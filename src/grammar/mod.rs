@@ -16,6 +16,8 @@ pub enum ParseStringError {
     UnfinishedEscapeSequence,
     #[error("illegal escape sequence: '\\{0}'")]
     IllegalEscapeSequence(char),
+    #[error("string literal without closing double quote")]
+    MissingClosedQuote,
     #[error("string literal with trailing content after the closing double quote")]
     TrailingContent,
 }
@@ -43,6 +45,8 @@ pub fn string_from_literal(literal: &str) -> std::result::Result<String, ParseSt
                 if iter.next().is_some() {
                     Err(TrailingContent)?;
                 }
+
+                return Ok(string);
             }
             _ => {
                 string.push(ch);
@@ -50,7 +54,7 @@ pub fn string_from_literal(literal: &str) -> std::result::Result<String, ParseSt
         }
     }
 
-    Ok(string)
+    Err(MissingClosedQuote)
 }
 
 #[cfg(test)]
