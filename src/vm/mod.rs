@@ -145,7 +145,7 @@ impl VmBuilder {
     ) -> Result<()> {
         use instruction::Instruction::*;
 
-        let string = string_from_literal(literal);
+        let string = string_from_literal(literal).map_err(InternalError::from)?;
         let constant = self.constants.insert(string.into());
         instructions.push(Constant(constant));
         Ok(())

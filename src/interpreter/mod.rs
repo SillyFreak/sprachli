@@ -95,7 +95,7 @@ impl Interpreter {
         _env: &Environment<'input, '_>,
         literal: &str,
     ) -> Result<Value<'input>> {
-        let string = string_from_literal(literal);
+        let string = string_from_literal(literal).expect("string liteal is not a valid string");
         Ok(Value::String(string))
     }
 

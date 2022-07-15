@@ -8,29 +8,41 @@ pub use self::sprachli::*;
 pub type Error<'a> = ParseError<usize, Token<'a>, &'static str>;
 pub type Result<'a, T> = std::result::Result<T, Error<'a>>;
 
-pub fn string_from_literal(literal: &str) -> String {
+#[derive(thiserror::Error, Debug)]
+pub enum ParseStringError {
+    #[error("string literal without opening double quote")]
+    MissingOpenQuote,
+    #[error("unfinished escape sequence")]
+    UnfinishedEscapeSequence,
+    #[error("illegal escape sequence: '\\{0}'")]
+    IllegalEscapeSequence(char),
+    #[error("string literal with trailing content after the closing double quote")]
+    TrailingContent,
+}
+
+pub fn string_from_literal(literal: &str) -> std::result::Result<String, ParseStringError> {
+    use ParseStringError::*;
+
     let mut string = String::with_capacity(literal.len());
 
     let mut iter = literal.chars();
-    iter.next()
-        .filter(|&ch| ch == '"')
-        .expect("string literal without opening double quote");
+    iter.next().filter(|&ch| ch == '"').ok_or(MissingOpenQuote)?;
     while let Some(ch) = iter.next() {
         match ch {
             '\\' => {
-                let ch = iter.next().expect("unfinished escape sequence");
+                let ch = iter.next().ok_or(UnfinishedEscapeSequence)?;
                 match ch {
                     '\\' | '\"' => string.push(ch),
                     'n' => string.push('\n'),
                     'r' => string.push('\r'),
                     't' => string.push('\t'),
-                    _ => unreachable!("illegal escape sequence"),
+                    _ => Err(IllegalEscapeSequence(ch))?,
                 }
             }
             '"' => {
-                iter.next().ok_or(()).expect_err(
-                    "string literal with trailing content after the closing double quote",
-                );
+                if iter.next().is_some() {
+                    Err(TrailingContent)?;
+                }
             }
             _ => {
                 string.push(ch);
@@ -38,7 +50,7 @@ pub fn string_from_literal(literal: &str) -> String {
         }
     }
 
-    string
+    Ok(string)
 }
 
 #[cfg(test)]

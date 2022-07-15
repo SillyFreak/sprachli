@@ -1,5 +1,7 @@
 use bigdecimal::ParseBigDecimalError;
 
+use crate::grammar::ParseStringError;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Name not known: {0}")]
@@ -22,6 +24,8 @@ pub enum InternalError {
     InvalidConstant(usize, usize),
     #[error("Invalid number literal: {0}")]
     InvalidNumberLiteral(#[from] ParseBigDecimalError),
+    #[error("Invalid string literal: {0}")]
+    InvalidStringLiteral(#[from] ParseStringError),
     #[error("Tried to pop from an empty stack")]
     EmptyStack,
 }
