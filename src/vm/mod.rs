@@ -193,11 +193,14 @@ impl VmBuilder {
         instructions: &mut InstructionSequenceBuilder,
         call: &ast::Call,
     ) -> Result<()> {
+        use instruction::Instruction::*;
+
         self.visit_expression(instructions, &call.function)?;
         for expr in &call.actual_parameters {
             self.visit_expression(instructions, expr)?;
         }
-        todo!("emit instructions")
+        instructions.push(Call(call.actual_parameters.len()));
+        Ok(())
     }
 
     fn visit_block(

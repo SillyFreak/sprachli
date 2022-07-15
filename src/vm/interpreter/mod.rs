@@ -170,6 +170,9 @@ impl<'a> Interpreter<'a> {
                 Load(index) => {
                     self.load(&env, index)?;
                 }
+                Call(arity) => {
+                    self.call(&env, arity)?;
+                }
             }
         }
 

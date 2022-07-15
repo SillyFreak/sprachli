@@ -7,6 +7,7 @@ pub enum Instruction {
     Unary(UnaryOperator),
     Binary(BinaryOperator),
     Load(usize),
+    Call(usize),
 }
 
 impl Instruction {
@@ -19,6 +20,7 @@ impl Instruction {
             Unary(_) => (0, 0),
             Binary(_) => (0, -1),
             Load(_) => (1, 1),
+            Call(arity) => (0, -isize::try_from(arity).expect("illegal arity")),
         }
     }
 }
