@@ -4,6 +4,7 @@ use crate::ast::{BinaryOperator, UnaryOperator};
 pub enum Instruction {
     Constant(usize),
     InlineConstant(InlineConstant),
+    Pop,
     Unary(UnaryOperator),
     Binary(BinaryOperator),
     Load(usize),
@@ -17,6 +18,7 @@ impl Instruction {
         match self {
             Constant(_) => (1, 1),
             InlineConstant(_) => (1, 1),
+            Pop => (0, -1),
             Unary(_) => (0, 0),
             Binary(_) => (0, -1),
             Load(_) => (1, 1),

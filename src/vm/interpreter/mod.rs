@@ -155,24 +155,13 @@ impl<'a> Interpreter<'a> {
 
         for ins in function.body() {
             match ins {
-                Constant(index) => {
-                    self.constant(index)?;
-                }
-                InlineConstant(constant) => {
-                    self.inline_constant(constant)?;
-                }
-                Unary(operator) => {
-                    self.unary(operator)?;
-                }
-                Binary(operator) => {
-                    self.binary(operator)?;
-                }
-                Load(index) => {
-                    self.load(&env, index)?;
-                }
-                Call(arity) => {
-                    self.call(&env, arity)?;
-                }
+                Constant(index) => self.constant(index)?,
+                InlineConstant(constant) => self.inline_constant(constant)?,
+                Pop => self.stack.pop().map(|_| ())?,
+                Unary(operator) => self.unary(operator)?,
+                Binary(operator) => self.binary(operator)?,
+                Load(index) => self.load(&env, index)?,
+                Call(arity) => self.call(&env, arity)?,
             }
         }
 

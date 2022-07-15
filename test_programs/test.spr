@@ -3,5 +3,6 @@ fn add(a, b) {
 }
 
 fn main() {
+	add(1, 2);
 	add(1, 2)
 }

@@ -210,8 +210,8 @@ impl VmBuilder {
     ) -> Result<()> {
         use instruction::{InlineConstant, Instruction::*};
 
-        for _stmt in &block.statements {
-            todo!("emit instructions");
+        for stmt in &block.statements {
+            self.visit_statement(instructions, stmt)?;
         }
         if let Some(expr) = &block.expression {
             self.visit_expression(instructions, expr)?;
@@ -219,6 +219,26 @@ impl VmBuilder {
             instructions.push(InlineConstant(InlineConstant::Unit));
         }
         Ok(())
+    }
+
+    fn visit_statement(
+        &mut self,
+        instructions: &mut InstructionSequenceBuilder,
+        stmt: &ast::Statement,
+    ) -> Result<()> {
+        use instruction::Instruction::*;
+        use ast::Statement::*;
+
+        match stmt {
+            Declaration(_) => {
+                todo!("emit instructions");
+            }
+            Expression(expr) => {
+                self.visit_expression(instructions, expr)?;
+                instructions.push(Pop);
+                Ok(())
+            }
+        }
     }
 
     fn visit_if(
