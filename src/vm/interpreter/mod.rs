@@ -89,8 +89,10 @@ impl<'a> Interpreter<'a> {
         use super::value::RawValue::*;
         use super::value::Value::*;
 
-        let right = self.stack.pop()?;
-        let left = self.stack.pop()?;
+        let [left, right] = {
+            let mut ops = self.stack.pop_multiple(2)?;
+            [ops.next().unwrap(), ops.next().unwrap()]
+        };
 
         let equality_comparison = |eq: bool| -> Result<Value> {
             let result = match (&left, &right) {
@@ -143,15 +145,18 @@ impl<'a> Interpreter<'a> {
     ) -> Result<()> {
         use super::instruction::Instruction::*;
 
-        let (function, actual_parameters) = self.stack.pop_call(arity)?;
-        let function = function.as_function().expect("pop_call returned non-function function");
+        let mut ops = self.stack.pop_multiple(arity + 1)?;
 
-        let offset = self.stack.len();
+        let function = ops.next().unwrap();
+        let function = function.as_function()?;
+        function.check_arity(arity)?;
 
         let mut env = Environment::with_parent(env);
-        for (name, actual_parameter) in function.formal_parameters().iter().zip(actual_parameters.into_iter()) {
+        for (name, actual_parameter) in function.formal_parameters().iter().zip(ops) {
             env.set(name.to_string(), actual_parameter);
         }
+
+        let offset = self.stack.len();
 
         for ins in function.body() {
             match ins {

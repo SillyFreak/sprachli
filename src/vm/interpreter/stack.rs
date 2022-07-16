@@ -17,18 +17,11 @@ impl Stack {
         self.0.pop().ok_or_else(|| InternalError::EmptyStack.into())
     }
 
-    pub fn pop_call(&mut self, arity: usize) -> Result<(Value, Vec<Value>)> {
-        let offset = self.len().checked_sub(arity + 1)
+    pub fn pop_multiple(&mut self, count: usize) -> Result<impl Iterator<Item = Value> + '_> {
+        let offset = self.len().checked_sub(count)
             .ok_or(InternalError::EmptyStack)?;
 
-        let function = self.0[offset].as_function()?;
-
-        function.check_arity(arity)?;
-
-        let parameters = self.0.drain((offset + 1)..).collect::<Vec<_>>();
-        let function = self.pop()?;
-
-        Ok((function, parameters))
+        Ok(self.0.drain(offset..))
     }
 
     pub fn len(&self) -> usize {
