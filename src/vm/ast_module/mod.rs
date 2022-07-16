@@ -1,12 +1,16 @@
+mod constants;
+
 use std::collections::HashMap;
 use std::str::FromStr;
+
+pub use constants::ConstantTable;
 
 use crate::ast;
 use crate::grammar::string_from_literal;
 use super::{Error, InternalError, Result, Value};
-use super::constant_table::{ConstantTable, ConstantTableBuilder};
 use super::instruction::{Instruction, InstructionSequence};
 use super::value;
+use constants::ConstantTableBuilder;
 
 #[derive(Debug, Clone)]
 pub struct AstModule {

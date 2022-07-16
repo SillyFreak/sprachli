@@ -1,5 +1,4 @@
 mod ast_module;
-mod constant_table;
 mod environment;
 mod error;
 mod instruction;
@@ -10,8 +9,7 @@ pub use error::*;
 pub use value::Value;
 
 use crate::ast;
-use ast_module::AstModule;
-use constant_table::ConstantTable;
+use ast_module::{AstModule, ConstantTable};
 use environment::Environment;
 use interpreter::Interpreter;
 
