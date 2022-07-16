@@ -1,27 +1,39 @@
 use std::collections::HashMap;
 
-use super::Value;
+use super::{InternalError, Result, Value};
 
-#[derive(Default, Debug, Clone)]
-pub struct Environment<'a> {
-    parent: Option<&'a Environment<'a>>,
-    bindings: HashMap<String, Value>,
+#[derive(Debug, Clone)]
+pub enum Environment<'a> {
+    Root(&'a HashMap<String, Value>),
+    Child {
+        parent: &'a Environment<'a>,
+        bindings: HashMap<String, Value>,
+    }
 }
 
 impl<'a> Environment<'a> {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn root(bindings: &'a HashMap<String, Value>) -> Self {
+        Self::Root(bindings)
     }
 
-    pub fn with_parent(parent: &'a Environment<'a>) -> Self {
-        Self {
-            parent: Some(parent),
+    pub fn child(parent: &'a Environment<'a>) -> Self {
+        Self::Child {
+            parent,
             bindings: Default::default(),
         }
     }
 
-    pub fn set(&mut self, name: String, value: Value) -> Option<Value> {
-        self.bindings.insert(name, value)
+    pub fn set(&mut self, name: String, value: Value) -> Result<Option<Value>> {
+        use Environment::*;
+
+        match self {
+            Root(_) => {
+                Err(InternalError::WriteGlobalScope.into())
+            }
+            Child { bindings, .. } => {
+                Ok(bindings.insert(name, value))
+            }
+        }
     }
 
     pub fn get<Q: ?Sized>(&self, name: &Q) -> Option<&Value>
@@ -29,10 +41,13 @@ impl<'a> Environment<'a> {
         String: std::borrow::Borrow<Q>,
         Q: Eq + std::hash::Hash,
     {
-        if let Some(value) = self.bindings.get(name) {
-            return Some(value);
-        }
+        use Environment::*;
 
-        self.parent.and_then(|env| env.get(name))
+        let (parent, bindings) = match *self {
+            Root(bindings) => (None, bindings),
+            Child { parent, ref bindings } => (Some(parent), bindings),
+        };
+
+        bindings.get(name).or_else(|| parent.and_then(|env| env.get(name)))
     }
 }

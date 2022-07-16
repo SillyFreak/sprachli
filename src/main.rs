@@ -30,7 +30,7 @@ fn main() {
     // let interpreter = Interpreter::new();
     // let result = interpreter.visit_source_file(&ast).unwrap();
 
-    let vm = Vm::try_from(&ast).expect("Vm::new()");
+    let vm = Vm::try_from(ast).expect("Vm::new()");
     let result = vm.run().expect("execution error");
 
     println!("{result:?}");

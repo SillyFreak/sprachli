@@ -23,7 +23,7 @@ impl<'a> Interpreter<'a> {
     }
 
     pub fn main(&mut self) -> Result<Value> {
-        let env = self.vm.global_scope();
+        let env = &self.vm.global_scope();
         self.do_load(env, "main")?;
         self.call(env, 0)?;
 
@@ -34,7 +34,7 @@ impl<'a> Interpreter<'a> {
     fn constant(&mut self, index: usize) -> Result<()> {
         let value = self
             .vm
-            .constants
+            .constants()
             .get(index)
             .cloned()?;
 
@@ -55,7 +55,7 @@ impl<'a> Interpreter<'a> {
     fn load(&mut self, env: &Environment, index: usize) -> Result<()> {
         let name = self
             .vm
-            .constants
+            .constants()
             .get(index)?
             .as_string()?;
 
@@ -151,9 +151,9 @@ impl<'a> Interpreter<'a> {
         let function = function.as_function()?;
         function.check_arity(arity)?;
 
-        let mut env = Environment::with_parent(env);
+        let mut env = Environment::child(env);
         for (name, actual_parameter) in function.formal_parameters().iter().zip(ops) {
-            env.set(name.to_string(), actual_parameter);
+            env.set(name.to_string(), actual_parameter)?;
         }
 
         let offset = self.stack.len();
