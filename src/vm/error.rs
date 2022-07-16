@@ -22,6 +22,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum InternalError {
     #[error("Constant #{0} not in constant table of len {1}")]
     InvalidConstant(usize, usize),
+    #[error("Constant #{0} was not a {1}")]
+    InvalidConstantType(usize, &'static str),
     #[error("Invalid number literal: {0}")]
     InvalidNumberLiteral(#[from] ParseBigDecimalError),
     #[error("Invalid string literal: {0}")]

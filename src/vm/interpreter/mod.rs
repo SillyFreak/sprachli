@@ -3,7 +3,7 @@ mod stack;
 use bigdecimal::BigDecimal;
 
 use crate::ast::{UnaryOperator, BinaryOperator};
-use super::{Error, Result, Value, Vm};
+use super::{Error, InternalError, Result, Value, Vm};
 use super::environment::Environment;
 use super::instruction::InlineConstant;
 use stack::Stack;
@@ -32,13 +32,9 @@ impl<'a> Interpreter<'a> {
     }
 
     fn constant(&mut self, index: usize) -> Result<()> {
-        let value = self
-            .vm
-            .constants()
-            .get(index)
-            .cloned()?;
+        let value = self.vm.constants().get(index)?;
 
-        self.stack.push(value)
+        self.stack.push(value.clone())
     }
 
     fn inline_constant(&mut self, constant: InlineConstant) -> Result<()> {
@@ -53,11 +49,9 @@ impl<'a> Interpreter<'a> {
     }
 
     fn load(&mut self, env: &Environment, index: usize) -> Result<()> {
-        let name = self
-            .vm
-            .constants()
-            .get(index)?
-            .as_string()?;
+        let name = self.vm.constants().get(index)?
+            .as_string()
+            .map_err(|_| InternalError::InvalidConstantType(index, "string"))?;
 
         self.do_load(env, name)
     }
