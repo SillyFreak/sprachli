@@ -190,12 +190,15 @@ impl Function {
         }
     }
 
+    pub fn arity(&self) -> usize {
+        self.formal_parameters.len()
+    }
+
     pub fn check_arity(&self, actual_parameter_count: usize) -> Result<()> {
-        let expected_parameter_count = self.formal_parameters.len();
-        if actual_parameter_count != expected_parameter_count {
+        if actual_parameter_count != self.arity() {
             Err(Error::ValueError(format!(
                 "wrong parameter number; expected {}, got {}",
-                expected_parameter_count, actual_parameter_count,
+                self.arity(), actual_parameter_count,
             )))?;
         }
         Ok(())
