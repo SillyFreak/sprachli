@@ -12,7 +12,7 @@ use std::str::FromStr;
 
 use constant_table::{ConstantTable, ConstantTableBuilder};
 use environment::Environment;
-use instruction::InstructionSequenceBuilder;
+use instruction::InstructionSequence;
 use interpreter::Interpreter;
 
 use crate::{ast, grammar::string_from_literal};
@@ -97,9 +97,8 @@ impl VmBuilder {
 
         let formal_parameters = formal_parameters.iter().map(ToString::to_string).collect();
 
-        let mut instructions = InstructionSequenceBuilder::new();
+        let mut instructions = InstructionSequence::new();
         self.visit_block(&mut instructions, body)?;
-        let instructions = instructions.into_instruction_sequence();
 
         let function = value::Function::new(formal_parameters, instructions);
         self.global_scope.set(name.to_string(), function.into());
@@ -108,7 +107,7 @@ impl VmBuilder {
 
     fn visit_expression(
         &mut self,
-        instructions: &mut InstructionSequenceBuilder,
+        instructions: &mut InstructionSequence,
         expr: &ast::Expression,
     ) -> Result<()> {
         use ast::Expression::*;
@@ -127,7 +126,7 @@ impl VmBuilder {
 
     fn visit_number(
         &mut self,
-        instructions: &mut InstructionSequenceBuilder,
+        instructions: &mut InstructionSequence,
         literal: &str,
     ) -> Result<()> {
         use instruction::Instruction::*;
@@ -140,7 +139,7 @@ impl VmBuilder {
 
     fn visit_string(
         &mut self,
-        instructions: &mut InstructionSequenceBuilder,
+        instructions: &mut InstructionSequence,
         literal: &str,
     ) -> Result<()> {
         use instruction::Instruction::*;
@@ -153,7 +152,7 @@ impl VmBuilder {
 
     fn visit_identifier(
         &mut self,
-        instructions: &mut InstructionSequenceBuilder,
+        instructions: &mut InstructionSequence,
         name: &str,
     ) -> Result<()> {
         use instruction::Instruction::*;
@@ -165,7 +164,7 @@ impl VmBuilder {
 
     fn visit_binary(
         &mut self,
-        instructions: &mut InstructionSequenceBuilder,
+        instructions: &mut InstructionSequence,
         expr: &ast::Binary,
     ) -> Result<()> {
         use instruction::Instruction::*;
@@ -178,7 +177,7 @@ impl VmBuilder {
 
     fn visit_unary(
         &mut self,
-        instructions: &mut InstructionSequenceBuilder,
+        instructions: &mut InstructionSequence,
         expr: &ast::Unary,
     ) -> Result<()> {
         use instruction::Instruction::*;
@@ -190,7 +189,7 @@ impl VmBuilder {
 
     fn visit_call(
         &mut self,
-        instructions: &mut InstructionSequenceBuilder,
+        instructions: &mut InstructionSequence,
         call: &ast::Call,
     ) -> Result<()> {
         use instruction::Instruction::*;
@@ -205,7 +204,7 @@ impl VmBuilder {
 
     fn visit_block(
         &mut self,
-        instructions: &mut InstructionSequenceBuilder,
+        instructions: &mut InstructionSequence,
         block: &ast::Block,
     ) -> Result<()> {
         use instruction::{InlineConstant, Instruction::*};
@@ -223,7 +222,7 @@ impl VmBuilder {
 
     fn visit_statement(
         &mut self,
-        instructions: &mut InstructionSequenceBuilder,
+        instructions: &mut InstructionSequence,
         stmt: &ast::Statement,
     ) -> Result<()> {
         use instruction::Instruction::*;
@@ -243,7 +242,7 @@ impl VmBuilder {
 
     fn visit_if(
         &mut self,
-        instructions: &mut InstructionSequenceBuilder,
+        instructions: &mut InstructionSequence,
         expr: &ast::If,
     ) -> Result<()> {
         for (condition, then_branch) in &expr.then_branches {
