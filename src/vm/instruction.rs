@@ -10,8 +10,8 @@ pub enum Instruction {
     Binary(BinaryOperator),
     Load(usize),
     Call(usize),
-    Jump(isize),
-    JumpIf(isize),
+    Jump(Offset),
+    JumpIf(Offset),
     Invalid,
 }
 
@@ -40,6 +40,12 @@ pub enum InlineConstant {
     Bool(bool),
 }
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum Offset {
+    Forward(usize),
+    Backward(usize),
+}
+
 #[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
 pub struct InstructionSequence {
     instructions: Vec<Instruction>,
@@ -59,19 +65,19 @@ impl InstructionSequence {
 
     pub fn push_placeholder<F>(&mut self, f: F) -> Placeholder<F>
     where
-        F: FnOnce(isize) -> Instruction,
+        F: FnOnce(Offset) -> Instruction,
     {
         let index = self.instructions.len();
         self.instructions.push(Instruction::Invalid);
         Placeholder(index, f)
     }
 
-    pub fn offset_from(&self, index: usize) -> isize {
-        (self.len() - index) as isize
+    pub fn offset_from(&self, index: usize) -> Offset {
+        Offset::Forward(self.len() - index)
     }
 
-    pub fn offset_to(&self, index: usize) -> isize {
-        (index - self.len()) as isize
+    pub fn offset_to(&self, index: usize) -> Offset {
+        Offset::Backward(index - self.len())
     }
 
     pub fn len(&self) -> usize {
@@ -86,7 +92,7 @@ impl InstructionSequence {
 
 impl<F> Placeholder<F>
 where
-    F: FnOnce(isize) -> Instruction,
+    F: FnOnce(Offset) -> Instruction,
 {
     pub fn fill(self, instructions: &mut InstructionSequence) {
         let Placeholder(index, f) = self;
@@ -113,16 +119,23 @@ impl<'a> Iter<'a> {
         Self(instructions.instructions.iter())
     }
 
-    pub fn jump(&mut self, offset: isize) -> Result<()> {
+    pub fn jump(&mut self, offset: Offset) -> Result<()> {
         use InternalError::*;
+        use Offset::*;
 
-        if offset > 0 {
-            let offset = offset as usize;
-            self.0.nth(offset - 1).ok_or(InvalidJump)?;
-        } else if offset < 0 {
-            let offset = -offset as usize;
-            self.0.nth_back(offset - 1).ok_or(InvalidJump)?;
+        match offset {
+            Forward(offset) => {
+                if offset > 0 {
+                    self.0.nth(offset - 1).ok_or(InvalidJump)?;
+                }
+            }
+            Backward(offset) => {
+                if offset > 0 {
+                    self.0.nth_back(offset - 1).ok_or(InvalidJump)?;
+                }
+            }
         }
+
         Ok(())
     }
 }

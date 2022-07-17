@@ -5,7 +5,7 @@ use bigdecimal::BigDecimal;
 use crate::ast::{UnaryOperator, BinaryOperator};
 use super::{Error, InternalError, Result, Value, Vm};
 use super::environment::Environment;
-use super::instruction::{self, InlineConstant};
+use super::instruction::{self, InlineConstant, Offset};
 use stack::Stack;
 
 #[derive(Debug, Clone)]
@@ -132,11 +132,11 @@ impl<'a> Interpreter<'a> {
         self.stack.push(value)
     }
 
-    fn jump(&mut self, iter: &mut instruction::Iter, offset: isize) -> Result<()> {
+    fn jump(&mut self, iter: &mut instruction::Iter, offset: Offset) -> Result<()> {
         iter.jump(offset)
     }
 
-    fn jump_if(&mut self, iter: &mut instruction::Iter, offset: isize) -> Result<()> {
+    fn jump_if(&mut self, iter: &mut instruction::Iter, offset: Offset) -> Result<()> {
         let condition = self.stack.pop()?.as_bool()?;
         if condition {
             iter.jump(offset)?;
