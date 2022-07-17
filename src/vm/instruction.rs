@@ -116,16 +116,12 @@ impl<'a> Iter<'a> {
     pub fn jump(&mut self, offset: isize) -> Result<()> {
         use InternalError::*;
 
-        if offset >= 0 {
+        if offset > 0 {
             let offset = offset as usize;
-            for _ in 0..offset {
-                self.0.next().ok_or(InvalidJump)?;
-            }
-        } else {
+            self.0.nth(offset - 1).ok_or(InvalidJump)?;
+        } else if offset < 0 {
             let offset = -offset as usize;
-            for _ in 0..offset {
-                self.0.next_back().ok_or(InvalidJump)?;
-            }
+            self.0.nth_back(offset - 1).ok_or(InvalidJump)?;
         }
         Ok(())
     }
