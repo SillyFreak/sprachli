@@ -5,7 +5,7 @@ use bigdecimal::BigDecimal;
 use crate::ast::{UnaryOperator, BinaryOperator};
 use super::{Error, InternalError, Result, Value, Vm};
 use super::environment::Environment;
-use super::instruction::InlineConstant;
+use super::instruction::{self, InlineConstant};
 use stack::Stack;
 
 #[derive(Debug, Clone)]
@@ -132,6 +132,18 @@ impl<'a> Interpreter<'a> {
         self.stack.push(value)
     }
 
+    fn jump(&mut self, iter: &mut instruction::Iter, offset: isize) -> Result<()> {
+        iter.jump(offset)
+    }
+
+    fn jump_if(&mut self, iter: &mut instruction::Iter, offset: isize) -> Result<()> {
+        let condition = self.stack.pop()?.as_bool()?;
+        if condition {
+            iter.jump(offset)?;
+        }
+        Ok(())
+    }
+
     fn call(
         &mut self,
         env: &Environment,
@@ -152,7 +164,8 @@ impl<'a> Interpreter<'a> {
 
         let offset = self.stack.len();
 
-        for ins in function.body() {
+        let mut instructions = function.body().iter();
+        while let Some(ins) = instructions.next() {
             match ins {
                 Constant(index) => self.constant(index)?,
                 InlineConstant(constant) => self.inline_constant(constant)?,
@@ -161,6 +174,9 @@ impl<'a> Interpreter<'a> {
                 Binary(operator) => self.binary(operator)?,
                 Load(index) => self.load(&env, index)?,
                 Call(arity) => self.call(&env, arity)?,
+                Jump(offset) => self.jump(&mut instructions, offset)?,
+                JumpIf(offset) => self.jump_if(&mut instructions, offset)?,
+                Invalid => Err(InternalError::InvalidInstruction)?,
             }
         }
 

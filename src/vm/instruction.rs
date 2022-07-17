@@ -1,4 +1,5 @@
 use crate::ast::{BinaryOperator, UnaryOperator};
+use super::{InternalError, Result};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Instruction {
@@ -9,6 +10,9 @@ pub enum Instruction {
     Binary(BinaryOperator),
     Load(usize),
     Call(usize),
+    Jump(isize),
+    JumpIf(isize),
+    Invalid,
 }
 
 impl Instruction {
@@ -23,6 +27,9 @@ impl Instruction {
             Binary(_) => -1,
             Load(_) => 1,
             Call(arity) => -isize::try_from(arity).expect("illegal arity"),
+            Jump(_) => 0,
+            JumpIf(_) => -1,
+            Invalid => 0,
         }
     }
 }
@@ -38,6 +45,9 @@ pub struct InstructionSequence {
     instructions: Vec<Instruction>,
 }
 
+#[derive(Debug)]
+pub struct Placeholder<F>(usize, F);
+
 impl InstructionSequence {
     pub fn new() -> Self {
         Self::default()
@@ -47,9 +57,42 @@ impl InstructionSequence {
         self.instructions.push(instruction);
     }
 
+    pub fn push_placeholder<F>(&mut self, f: F) -> Placeholder<F>
+    where
+        F: FnOnce(isize) -> Instruction,
+    {
+        let index = self.instructions.len();
+        self.instructions.push(Instruction::Invalid);
+        Placeholder(index, f)
+    }
+
+    pub fn offset_from(&self, index: usize) -> isize {
+        (self.len() - index) as isize
+    }
+
+    pub fn offset_to(&self, index: usize) -> isize {
+        (index - self.len()) as isize
+    }
+
+    pub fn len(&self) -> usize {
+        self.instructions.len()
+    }
+
     #[inline]
     pub fn iter(&self) -> Iter<'_> {
         Iter::new(self)
+    }
+}
+
+impl<F> Placeholder<F>
+where
+    F: FnOnce(isize) -> Instruction,
+{
+    pub fn fill(self, instructions: &mut InstructionSequence) {
+        let Placeholder(index, f) = self;
+        let instruction = f(instructions.offset_from(index + 1));
+        assert_eq!(instructions.instructions[index], Instruction::Invalid);
+        instructions.instructions[index] = instruction;
     }
 }
 
@@ -68,6 +111,23 @@ pub struct Iter<'a>(std::slice::Iter<'a, Instruction>);
 impl<'a> Iter<'a> {
     fn new(instructions: &'a InstructionSequence) -> Self {
         Self(instructions.instructions.iter())
+    }
+
+    pub fn jump(&mut self, offset: isize) -> Result<()> {
+        use InternalError::*;
+
+        if offset >= 0 {
+            let offset = offset as usize;
+            for _ in 0..offset {
+                self.0.next().ok_or(InvalidJump)?;
+            }
+        } else {
+            let offset = -offset as usize;
+            for _ in 0..offset {
+                self.0.next_back().ok_or(InvalidJump)?;
+            }
+        }
+        Ok(())
     }
 }
 

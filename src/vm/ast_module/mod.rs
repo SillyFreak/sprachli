@@ -244,15 +244,30 @@ impl AstModuleBuilder {
         instructions: &mut InstructionSequence,
         expr: ast::If,
     ) -> Result<()> {
+        use super::instruction::InlineConstant;
+        use Instruction::*;
+        use ast::UnaryOperator::*;
+
+        let mut end_jumps = Vec::new();
+
         for (condition, then_branch) in expr.then_branches {
+            // jump if the condition is false
             self.visit_expression(instructions, condition)?;
-            todo!("emit instructions");
+            instructions.push(Unary(Not));
+            let cond = instructions.push_placeholder(JumpIf);
+            // do the then branch unless jumped
             self.visit_block(instructions, then_branch)?;
-            todo!("emit instructions");
+            end_jumps.push(instructions.push_placeholder(Jump));
+            cond.fill(instructions);
         }
         if let Some(else_branch) = expr.else_branch {
             self.visit_block(instructions, else_branch)?;
+        } else {
+            instructions.push(InlineConstant(InlineConstant::Unit));
         }
-        todo!("emit instructions")
+        for end_jump in end_jumps {
+            end_jump.fill(instructions);
+        }
+        Ok(())
     }
 }
