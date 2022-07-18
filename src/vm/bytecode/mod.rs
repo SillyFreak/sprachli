@@ -5,9 +5,12 @@
 //! includes identifiers, number and string literals, and functions defined in
 //! the code.
 
+mod error;
 mod instructions;
+mod parser;
 
 use bigdecimal::BigDecimal;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 pub use instructions::{InstructionSequence};
 
@@ -23,6 +26,20 @@ pub struct Module<'b>
     constants: Vec<Constant<'b>>,
 }
 
+impl<'b> Module<'b> {
+    pub fn new(constants: Vec<Constant<'b>>) -> Self {
+        Self { constants }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
+pub enum ConstantType {
+    Number,
+    String,
+    Function,
+}
+
 #[derive(Debug, Clone)]
 pub enum Constant<'b>
 {
@@ -35,4 +52,10 @@ pub enum Constant<'b>
 pub struct Function<'b> {
     formal_parameters: Vec<&'b str>,
     body: InstructionSequence<'b>,
+}
+
+impl<'b> Function<'b> {
+    pub fn new(formal_parameters: Vec<&'b str>, body: InstructionSequence<'b>) -> Self {
+        Self { formal_parameters, body }
+    }
 }
