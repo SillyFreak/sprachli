@@ -4,7 +4,7 @@ use super::{InternalError, Result, Value};
 
 #[derive(Debug, Clone)]
 pub struct ConstantTable {
-    table: Vec<Value>,
+    pub table: Vec<Value>,
 }
 
 impl ConstantTable {

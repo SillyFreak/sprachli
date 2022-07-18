@@ -8,6 +8,7 @@
 mod error;
 mod instructions;
 mod parser;
+mod writer;
 
 use bigdecimal::BigDecimal;
 use num_enum::{IntoPrimitive, TryFromPrimitive};

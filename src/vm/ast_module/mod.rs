@@ -14,8 +14,8 @@ use constants::ConstantTableBuilder;
 
 #[derive(Debug, Clone)]
 pub struct AstModule {
-    constants: ConstantTable,
-    global_scope: HashMap<String, Value>,
+    pub constants: ConstantTable,
+    pub global_scope: HashMap<String, Value>,
 }
 
 
