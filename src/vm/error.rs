@@ -32,6 +32,8 @@ pub enum InternalError {
     EmptyStack,
     #[error("Tried to mutate a binding in the global scope")]
     WriteGlobalScope,
+    #[error("Tried read an invalid bytecode sequence")]
+    InvalidBytecode,
     #[error("Tried to execute an invalid instruction")]
     InvalidInstruction,
     #[error("Tried to jump to nonexistent instruction")]

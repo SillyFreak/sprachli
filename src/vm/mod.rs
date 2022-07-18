@@ -1,4 +1,5 @@
 mod ast_module;
+mod bytecode;
 mod environment;
 mod error;
 mod instruction;
