@@ -2,8 +2,10 @@ use std::env;
 use std::fs;
 
 use sprachli::grammar::SourceFileParser;
+use sprachli::vm::AstModule;
 // use sprachli::interpreter::Interpreter;
-use sprachli::vm::Vm;
+// use sprachli::vm::Vm;
+use sprachli::vm::bytecode::write_bytecode;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -26,12 +28,16 @@ fn main() {
 
     let parser = SourceFileParser::new();
     let ast = parser.parse(&source).unwrap();
+    let module = AstModule::new(ast).unwrap();
 
     // let interpreter = Interpreter::new();
     // let result = interpreter.visit_source_file(&ast).unwrap();
 
-    let vm = Vm::try_from(ast).expect("Vm::new()");
-    let result = vm.run().expect("execution error");
+    // let result = Vm::new(module).run().expect("execution error");
 
-    println!("{result:?}");
+    // println!("{result:?}");
+
+    let mut bytes = Vec::new();
+    write_bytecode(&mut bytes, &module).unwrap();
+    println!("{bytes:?}");
 }
