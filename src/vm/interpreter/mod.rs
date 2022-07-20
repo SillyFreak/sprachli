@@ -4,35 +4,34 @@ use bigdecimal::BigDecimal;
 
 use crate::ast::{UnaryOperator, BinaryOperator};
 use super::{Error, InternalError, Result, Value, Vm};
-use super::environment::Environment;
+use super::ast_module::AstModule;
 use super::instruction::{self, InlineConstant, Offset};
 use stack::Stack;
 
 #[derive(Debug, Clone)]
 pub struct Interpreter<'a> {
     stack: Stack,
-    vm: &'a Vm,
+    module: &'a AstModule,
 }
 
 impl<'a> Interpreter<'a> {
-    pub fn new(vm: &'a Vm) -> Self {
+    pub fn new(module: &'a AstModule) -> Self {
         Self {
             stack: Stack::new(),
-            vm,
+            module,
         }
     }
 
     pub fn main(&mut self) -> Result<Value> {
-        let env = &self.vm.global_scope();
-        self.do_load(env, "main")?;
-        self.call(env, 0)?;
+        self.do_load_named("main")?;
+        self.call(0)?;
 
         // the call opcode checks that only one value remains on the stack
         self.stack.pop()
     }
 
     fn constant(&mut self, index: usize) -> Result<()> {
-        let value = self.vm.constants().get(index)?;
+        let value = self.module.constants().get(index)?;
 
         self.stack.push(value.clone())
     }
@@ -48,17 +47,23 @@ impl<'a> Interpreter<'a> {
         self.stack.push(value)
     }
 
-    fn load(&mut self, env: &Environment, index: usize) -> Result<()> {
-        let name = self.vm.constants().get(index)?
+    fn load_local(&mut self, locals: &Vec<Value>, index: usize) -> Result<()> {
+        let value = locals.get(index)
+            .ok_or_else(|| InternalError::InvalidLocal(index))?;
+
+        self.stack.push(value.clone())
+    }
+
+    fn load_named(&mut self, index: usize) -> Result<()> {
+        let name = self.module.constants().get(index)?
             .as_string()
             .map_err(|_| InternalError::InvalidConstantType(index, "string"))?;
 
-        self.do_load(env, name)
+        self.do_load_named(name)
     }
 
-    fn do_load(&mut self, env: &Environment, name: &str) -> Result<()> {
-        let value = env
-            .get(name)
+    fn do_load_named(&mut self, name: &str) -> Result<()> {
+        let value = self.module.global_scope().get(name)
             .cloned()
             .ok_or_else(|| Error::NameError(name.to_string()))?;
 
@@ -146,7 +151,6 @@ impl<'a> Interpreter<'a> {
 
     fn call(
         &mut self,
-        env: &Environment,
         arity: usize,
     ) -> Result<()> {
         use super::instruction::Instruction::*;
@@ -157,10 +161,7 @@ impl<'a> Interpreter<'a> {
         let function = function.as_function()?;
         function.check_arity(arity)?;
 
-        let mut env = Environment::child(env);
-        for (name, actual_parameter) in function.formal_parameters().iter().zip(ops) {
-            env.set(name.to_string(), actual_parameter)?;
-        }
+        let locals = ops.collect();
 
         let offset = self.stack.len();
 
@@ -172,8 +173,9 @@ impl<'a> Interpreter<'a> {
                 Pop => self.stack.pop().map(|_| ())?,
                 Unary(operator) => self.unary(operator)?,
                 Binary(operator) => self.binary(operator)?,
-                Load(index) => self.load(&env, index)?,
-                Call(arity) => self.call(&env, arity)?,
+                LoadLocal(index) => self.load_local(&locals, index)?,
+                LoadNamed(index) => self.load_named(index)?,
+                Call(arity) => self.call(arity)?,
                 Jump(offset) => self.jump(&mut instructions, offset)?,
                 JumpIf(offset) => self.jump_if(&mut instructions, offset)?,
                 Invalid => Err(InternalError::InvalidInstruction)?,

@@ -95,8 +95,12 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 body.push(Op::Binary.into());
                 body.push(BinaryOperator::from(op).into());
             }
-            In::Load(index) => {
-                body.push(Op::Load.into());
+            In::LoadLocal(index) => {
+                body.push(Op::LoadLocal.into());
+                body.push(index as u8);
+            }
+            In::LoadNamed(index) => {
+                body.push(Op::LoadNamed.into());
                 body.push(index as u8);
             }
             In::Call(arity) => {

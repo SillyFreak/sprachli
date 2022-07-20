@@ -16,7 +16,8 @@ pub enum Opcode {
     Pop,
     Unary,
     Binary,
-    Load,
+    LoadLocal,
+    LoadNamed,
     Call,
     // Jump & JumpIf
     JumpForward,
@@ -214,9 +215,13 @@ impl Iterator for Iter<'_> {
                             .map_err(|_| InternalError::InvalidBytecode)?;
                         In::Binary(op.into())
                     }
-                    Op::Load => {
+                    Op::LoadLocal => {
+                        let local = self.parameter()?;
+                        In::LoadLocal(local as usize)
+                    }
+                    Op::LoadNamed => {
                         let constant = self.parameter()?;
-                        In::Load(constant as usize)
+                        In::LoadNamed(constant as usize)
                     }
                     Op::Call => {
                         let arity = self.parameter()?;

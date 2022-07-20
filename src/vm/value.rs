@@ -163,49 +163,46 @@ impl Value {
 
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub struct Function {
-    formal_parameters: Vec<String>,
+    arity: usize,
     body: InstructionSequence,
 }
 
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("fn (")?;
-        for str in self
-            .formal_parameters
-            .iter()
-            .map(String::as_str)
-            .intersperse(", ")
+        for i in (0..self.arity)
+            .map(Some)
+            .intersperse(None)
         {
-            f.write_str(str)?;
+            match i {
+                Some(i) => write!(f, "_{}", i)?,
+                None => f.write_str(", ")?,
+            }
         }
         f.write_str(") { ... }")
     }
 }
 
 impl Function {
-    pub fn new(formal_parameters: Vec<String>, body: InstructionSequence) -> Self {
+    pub fn new(arity: usize, body: InstructionSequence) -> Self {
         Self {
-            formal_parameters,
+            arity,
             body,
         }
     }
 
     pub fn arity(&self) -> usize {
-        self.formal_parameters.len()
+        self.arity
     }
 
     pub fn check_arity(&self, actual_parameter_count: usize) -> Result<()> {
-        if actual_parameter_count != self.arity() {
+        if actual_parameter_count != self.arity {
             Err(Error::ValueError(format!(
                 "wrong parameter number; expected {}, got {}",
-                self.arity(), actual_parameter_count,
+                self.arity, actual_parameter_count,
             )))?;
         }
         Ok(())
-    }
-
-    pub fn formal_parameters(&self) -> &[String] {
-        &self.formal_parameters
     }
 
     pub fn body(&self) -> &InstructionSequence {

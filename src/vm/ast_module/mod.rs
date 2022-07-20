@@ -92,12 +92,11 @@ impl AstModuleBuilder {
             ..
         } = function;
 
-        let formal_parameters = formal_parameters.iter().map(ToString::to_string).collect();
-
         let mut instructions = InstructionSequence::new();
-        self.visit_block(&mut instructions, body)?;
+        let mut locals = formal_parameters.iter().map(ToString::to_string).collect();
+        self.visit_block(&mut instructions, &mut locals, body)?;
 
-        let function = value::Function::new(formal_parameters, instructions);
+        let function = value::Function::new(formal_parameters.len(), instructions);
         self.global_scope.insert(name.to_string(), function.into());
         Ok(())
     }
@@ -105,25 +104,27 @@ impl AstModuleBuilder {
     fn visit_expression(
         &mut self,
         instructions: &mut InstructionSequence,
+        locals: &mut Vec<String>,
         expr: ast::Expression,
     ) -> Result<()> {
         use ast::Expression::*;
 
         match expr {
-            Number(literal) => self.visit_number(instructions, literal),
-            String(literal) => self.visit_string(instructions, literal),
-            Identifier(name) => self.visit_identifier(instructions, name),
-            Binary(expr) => self.visit_binary(instructions, expr),
-            Unary(expr) => self.visit_unary(instructions, expr),
-            Call(expr) => self.visit_call(instructions, expr),
-            Block(expr) => self.visit_block(instructions, expr),
-            If(expr) => self.visit_if(instructions, expr),
+            Number(literal) => self.visit_number(instructions, locals, literal),
+            String(literal) => self.visit_string(instructions, locals, literal),
+            Identifier(name) => self.visit_identifier(instructions, locals, name),
+            Binary(expr) => self.visit_binary(instructions, locals, expr),
+            Unary(expr) => self.visit_unary(instructions, locals, expr),
+            Call(call) => self.visit_call(instructions, locals, call),
+            Block(block) => self.visit_block(instructions, locals, block),
+            If(expr) => self.visit_if(instructions, locals, expr),
         }
     }
 
     fn visit_number(
         &mut self,
         instructions: &mut InstructionSequence,
+        _locals: &mut Vec<String>,
         literal: &str,
     ) -> Result<()> {
         use Instruction::*;
@@ -137,6 +138,7 @@ impl AstModuleBuilder {
     fn visit_string(
         &mut self,
         instructions: &mut InstructionSequence,
+        _locals: &mut Vec<String>,
         literal: &str,
     ) -> Result<()> {
         use Instruction::*;
@@ -150,24 +152,30 @@ impl AstModuleBuilder {
     fn visit_identifier(
         &mut self,
         instructions: &mut InstructionSequence,
+        locals: &mut Vec<String>,
         name: &str,
     ) -> Result<()> {
         use Instruction::*;
 
-        let name = self.constants.insert(name.to_string().into());
-        instructions.push(Load(name));
+        if let Some(local) = locals.iter().enumerate().rev().find_map(|(i, local)| (*local == name).then_some(i)) {
+            instructions.push(LoadLocal(local));
+        } else {
+            let name = self.constants.insert(name.to_string().into());
+            instructions.push(LoadNamed(name));
+        }
         Ok(())
     }
 
     fn visit_binary(
         &mut self,
         instructions: &mut InstructionSequence,
+        locals: &mut Vec<String>,
         expr: ast::Binary,
     ) -> Result<()> {
         use Instruction::*;
 
-        self.visit_expression(instructions, *expr.left)?;
-        self.visit_expression(instructions, *expr.right)?;
+        self.visit_expression(instructions, locals, *expr.left)?;
+        self.visit_expression(instructions, locals, *expr.right)?;
         instructions.push(Binary(expr.operator));
         Ok(())
     }
@@ -175,11 +183,12 @@ impl AstModuleBuilder {
     fn visit_unary(
         &mut self,
         instructions: &mut InstructionSequence,
+        locals: &mut Vec<String>,
         expr: ast::Unary,
     ) -> Result<()> {
         use Instruction::*;
 
-        self.visit_expression(instructions, *expr.right)?;
+        self.visit_expression(instructions, locals, *expr.right)?;
         instructions.push(Unary(expr.operator));
         Ok(())
     }
@@ -187,14 +196,15 @@ impl AstModuleBuilder {
     fn visit_call(
         &mut self,
         instructions: &mut InstructionSequence,
+        locals: &mut Vec<String>,
         call: ast::Call,
     ) -> Result<()> {
         use Instruction::*;
 
-        self.visit_expression(instructions, *call.function)?;
+        self.visit_expression(instructions, locals, *call.function)?;
         let arity = call.actual_parameters.len();
         for expr in call.actual_parameters {
-            self.visit_expression(instructions, expr)?;
+            self.visit_expression(instructions, locals, expr)?;
         }
         instructions.push(Call(arity));
         Ok(())
@@ -203,16 +213,17 @@ impl AstModuleBuilder {
     fn visit_block(
         &mut self,
         instructions: &mut InstructionSequence,
+        locals: &mut Vec<String>,
         block: ast::Block,
     ) -> Result<()> {
         use Instruction::*;
         use super::instruction::InlineConstant;
 
         for stmt in block.statements {
-            self.visit_statement(instructions, stmt)?;
+            self.visit_statement(instructions, locals, stmt)?;
         }
         if let Some(expr) = block.expression {
-            self.visit_expression(instructions, *expr)?;
+            self.visit_expression(instructions, locals, *expr)?;
         } else {
             instructions.push(InlineConstant(InlineConstant::Unit));
         }
@@ -222,6 +233,7 @@ impl AstModuleBuilder {
     fn visit_statement(
         &mut self,
         instructions: &mut InstructionSequence,
+        locals: &mut Vec<String>,
         stmt: ast::Statement,
     ) -> Result<()> {
         use Instruction::*;
@@ -232,7 +244,7 @@ impl AstModuleBuilder {
                 todo!("emit instructions");
             }
             Expression(expr) => {
-                self.visit_expression(instructions, expr)?;
+                self.visit_expression(instructions, locals, expr)?;
                 instructions.push(Pop);
                 Ok(())
             }
@@ -242,6 +254,7 @@ impl AstModuleBuilder {
     fn visit_if(
         &mut self,
         instructions: &mut InstructionSequence,
+        locals: &mut Vec<String>,
         expr: ast::If,
     ) -> Result<()> {
         use super::instruction::InlineConstant;
@@ -252,16 +265,16 @@ impl AstModuleBuilder {
 
         for (condition, then_branch) in expr.then_branches {
             // jump if the condition is false
-            self.visit_expression(instructions, condition)?;
+            self.visit_expression(instructions, locals, condition)?;
             instructions.push(Unary(Not));
             let cond = instructions.push_placeholder(JumpIf);
             // do the then branch unless jumped
-            self.visit_block(instructions, then_branch)?;
+            self.visit_block(instructions, locals, then_branch)?;
             end_jumps.push(instructions.push_placeholder(Jump));
             cond.fill(instructions);
         }
         if let Some(else_branch) = expr.else_branch {
-            self.visit_block(instructions, else_branch)?;
+            self.visit_block(instructions, locals, else_branch)?;
         } else {
             instructions.push(InlineConstant(InlineConstant::Unit));
         }
