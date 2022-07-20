@@ -7,14 +7,13 @@
 
 mod error;
 mod instructions;
-mod parser;
-mod writer;
+pub mod parser;
+pub mod writer;
 
 use bigdecimal::BigDecimal;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 pub use instructions::{InstructionSequence};
-pub use writer::write_bytecode;
 
 pub type Number = BigDecimal;
 

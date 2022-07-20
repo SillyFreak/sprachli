@@ -1,3 +1,4 @@
+use nom::Finish;
 use nom::bytes::complete::{tag, take};
 use nom::multi::count;
 use nom::number::complete::{be_u16, be_u8};
@@ -9,7 +10,11 @@ pub type Input<'a> = &'a [u8];
 
 pub type IResult<'a, O, E = ParseError<Input<'a>>> = nom::IResult<Input<'a>, O, E>;
 
-pub fn parse_bytecode(i: &[u8]) -> IResult<Module> {
+pub fn parse_bytecode(i: &[u8]) -> Result<Module, ParseError<Input<'_>>> {
+    bytecode(i).finish().map(|(_, bytecode)| bytecode)
+}
+
+fn bytecode(i: &[u8]) -> IResult<Module> {
     let (i, _version) = header(i)?;
     let (i, constants) = constants(i)?;
     Ok((i, Module::new(constants)))
