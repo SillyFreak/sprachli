@@ -15,7 +15,7 @@ impl<I> nom::error::ParseError<I> for ParseError<I> {
         nom::error::Error::from_error_kind(input, kind).into()
     }
 
-    fn append(input: I, kind: nom::error::ErrorKind, other: Self) -> Self {
+    fn append(_input: I, _kind: nom::error::ErrorKind, other: Self) -> Self {
         other
     }
 }
