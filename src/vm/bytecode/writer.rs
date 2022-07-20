@@ -8,8 +8,8 @@ use super::{ConstantType, Number};
 use super::instructions;
 
 pub fn write_bytecode<W: Write>(w: &mut W, ast: &AstModule) -> Result<()> {
-    header(w);
-    constants(w, &ast.constants);
+    header(w)?;
+    constants(w, &ast.constants)?;
 
     Ok(())
 }
@@ -21,12 +21,11 @@ fn header<W: Write>(w: &mut W) -> Result<()> {
 }
 
 fn constants<W: Write>(w: &mut W, constants: &ConstantTable) -> Result<()> {
-    w.write(&constants.table.len().to_be_bytes())?;
+    let len = constants.table.len() as u16;
+    w.write(&len.to_be_bytes())?;
     for value in &constants.table {
         constant(w, value)?;
     }
-
-    w.write(b"sprachli")?;
     Ok(())
 }
 
