@@ -1,4 +1,5 @@
 mod constants;
+pub mod value;
 
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -6,7 +7,6 @@ use std::str::FromStr;
 pub use constants::ConstantTable;
 
 use super::instruction::{Instruction, InstructionSequence};
-use super::value;
 use super::{Error, InternalError, Result};
 use crate::ast;
 use crate::grammar::string_from_literal;

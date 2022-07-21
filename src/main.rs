@@ -2,7 +2,7 @@ use std::env;
 use std::fs;
 
 use sprachli::grammar::SourceFileParser;
-use sprachli::vm::AstModule;
+use sprachli::vm::ast_module::AstModule;
 // use sprachli::interpreter::Interpreter;
 use sprachli::vm::Vm;
 use sprachli::vm::bytecode::parser::parse_bytecode;

@@ -3,9 +3,9 @@ use std::io::{Result, Write};
 
 use super::instructions;
 use super::{ConstantType, Number};
+use crate::vm::ast_module::value::{Function, RawValue, Value};
 use crate::vm::ast_module::{AstModule, ConstantTable};
 use crate::vm::instruction::{InlineConstant, Instruction, Offset};
-use crate::vm::value::{Function, RawValue, Value};
 
 pub fn write_bytecode<W: Write>(w: &mut W, ast: &AstModule) -> Result<()> {
     header(w)?;

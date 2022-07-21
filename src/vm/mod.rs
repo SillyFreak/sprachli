@@ -1,11 +1,9 @@
-mod ast_module;
+pub mod ast_module;
 pub mod bytecode;
 mod error;
 mod instruction;
 mod interpreter;
-mod value;
 
-pub use ast_module::AstModule;
 pub use error::*;
 pub use interpreter::Value;
 

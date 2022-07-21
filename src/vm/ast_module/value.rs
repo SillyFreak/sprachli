@@ -3,8 +3,8 @@ use std::{fmt, sync::Arc};
 use bigdecimal::BigDecimal;
 use itertools::Itertools;
 
-use super::instruction::InstructionSequence;
 use super::{Error, Result};
+use crate::vm::instruction::InstructionSequence;
 
 pub type Number = BigDecimal;
 
