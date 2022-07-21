@@ -143,24 +143,21 @@ impl<'a> Iter<'a> {
         use InternalError::*;
         use Offset::*;
 
-        let iter = self.0.clone();
-        match offset {
-            Forward(offset) => {
-                if iter.len() < offset {
-                    Err(InvalidJump)?;
-                }
-                let offset = iter.take(offset).copied().map(Instruction::encoded_len).sum();
-                Ok(Forward(offset))
+        fn calculate_offset<'a, I>(iter: I, offset: usize) -> Result<usize>
+        where
+            I: Iterator<Item = &'a Instruction> + ExactSizeIterator,
+        {
+            if iter.len() < offset {
+                Err(InvalidJump)?;
             }
-            Backward(offset) => {
-                let iter = iter.rev();
-                if iter.len() < offset {
-                    Err(InvalidJump)?;
-                }
-                let offset = iter.take(offset).copied().map(Instruction::encoded_len).sum();
-                Ok(Backward(offset))
-            }
+            Ok(iter.take(offset).copied().map(Instruction::encoded_len).sum())
         }
+
+        let offset = match offset {
+            Forward(offset) => Forward(calculate_offset(self.0.clone(), offset)?),
+            Backward(offset) => Backward(calculate_offset(self.0.clone().rev(), offset)?),
+        };
+        Ok(offset)
     }
 
     pub fn jump(&mut self, offset: Offset) -> Result<()> {
