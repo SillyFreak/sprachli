@@ -150,7 +150,11 @@ impl<'a> Iter<'a> {
             if iter.len() < offset {
                 Err(InvalidJump)?;
             }
-            Ok(iter.take(offset).copied().map(Instruction::encoded_len).sum())
+            Ok(iter
+                .take(offset)
+                .copied()
+                .map(Instruction::encoded_len)
+                .sum())
         }
 
         let offset = match offset {

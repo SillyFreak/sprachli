@@ -96,7 +96,10 @@ fn global<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str, 
     let index = name as usize;
     let name = constants
         .get(index)
-        .ok_or(nom::Err::Error(ParseError::InvalidConstantRef(index, constants.len())))?;
+        .ok_or(nom::Err::Error(ParseError::InvalidConstantRef(
+            index,
+            constants.len(),
+        )))?;
     let name = match name {
         Constant::String(name) => *name,
         _ => {
