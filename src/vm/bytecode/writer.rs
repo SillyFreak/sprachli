@@ -70,7 +70,8 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
     use Instruction as In;
 
     let mut body = Vec::with_capacity(value.body().len());
-    for ins in value.body() {
+    let mut instructions = value.body().iter();
+    while let Some(ins) = instructions.next() {
         match ins {
             In::Constant(index) => {
                 body.push(Op::Constant.into());
@@ -108,6 +109,7 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 body.push(arity as u8);
             }
             In::Jump(offset) => {
+                let offset = instructions.byte_offset(offset).unwrap();
                 let (opcode, offset) = match offset {
                     Offset::Forward(offset) => (Op::JumpForward, offset),
                     Offset::Backward(offset) => (Op::JumpBackward, offset),
@@ -116,6 +118,7 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 body.push(offset as u8);
             }
             In::JumpIf(offset) => {
+                let offset = instructions.byte_offset(offset).unwrap();
                 let (opcode, offset) = match offset {
                     Offset::Forward(offset) => (Op::JumpForwardIf, offset),
                     Offset::Backward(offset) => (Op::JumpBackwardIf, offset),

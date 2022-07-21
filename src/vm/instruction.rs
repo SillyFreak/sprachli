@@ -17,7 +17,7 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    fn stack_effect(self) -> isize {
+    pub fn stack_effect(self) -> isize {
         use Instruction::*;
 
         match self {
@@ -32,6 +32,24 @@ impl Instruction {
             Jump(_) => 0,
             JumpIf(_) => -1,
             Invalid => 0,
+        }
+    }
+
+    pub fn encoded_len(self) -> usize {
+        use Instruction::*;
+
+        match self {
+            Constant(_) => 2,
+            InlineConstant(_) => 2,
+            Pop => 1,
+            Unary(_) => 2,
+            Binary(_) => 2,
+            LoadLocal(_) => 2,
+            LoadNamed(_) => 2,
+            Call(_) => 2,
+            Jump(_) => 2,
+            JumpIf(_) => 2,
+            Invalid => 1,
         }
     }
 }
@@ -119,6 +137,30 @@ pub struct Iter<'a>(std::slice::Iter<'a, Instruction>);
 impl<'a> Iter<'a> {
     fn new(instructions: &'a InstructionSequence) -> Self {
         Self(instructions.instructions.iter())
+    }
+
+    pub fn byte_offset(&self, offset: Offset) -> Result<Offset> {
+        use InternalError::*;
+        use Offset::*;
+
+        let iter = self.0.clone();
+        match offset {
+            Forward(offset) => {
+                if iter.len() < offset {
+                    Err(InvalidJump)?;
+                }
+                let offset = iter.take(offset).copied().map(Instruction::encoded_len).sum();
+                Ok(Forward(offset))
+            }
+            Backward(offset) => {
+                let iter = iter.rev();
+                if iter.len() < offset {
+                    Err(InvalidJump)?;
+                }
+                let offset = iter.take(offset).copied().map(Instruction::encoded_len).sum();
+                Ok(Backward(offset))
+            }
+        }
     }
 
     pub fn jump(&mut self, offset: Offset) -> Result<()> {
