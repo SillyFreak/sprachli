@@ -35,7 +35,7 @@ fn constants(i: &[u8]) -> IResult<Vec<Constant>> {
     Ok((i, constants))
 }
 
-fn constant<'b>(i: &'b [u8]) -> IResult<'b, Constant<'b>> {
+fn constant(i: &[u8]) -> IResult<Constant> {
     use ConstantType::*;
 
     let (i, t) = be_u8(i)?;
@@ -74,7 +74,7 @@ fn string(i: &[u8]) -> IResult<&str> {
     Ok((i, value))
 }
 
-fn function<'b>(i: &'b [u8]) -> IResult<'b, Function<'b>> {
+fn function(i: &[u8]) -> IResult<Function> {
     let (i, arity) = be_u16(i)?;
     let (i, len) = be_u16(i)?;
     let (i, bytes) = take(len as usize)(i)?;
