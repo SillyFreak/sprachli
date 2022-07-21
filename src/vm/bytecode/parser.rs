@@ -1,10 +1,10 @@
-use nom::Finish;
 use nom::bytes::complete::{tag, take};
 use nom::multi::count;
 use nom::number::complete::{be_u16, be_u8};
+use nom::Finish;
 
-use super::{Constant, Function, Module, Number, ConstantType, InstructionSequence};
 use super::error::ParseError;
+use super::{Constant, ConstantType, Function, InstructionSequence, Module, Number};
 
 pub type Input<'a> = &'a [u8];
 
@@ -43,8 +43,8 @@ fn constant<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, Constant
     use ConstantType::*;
 
     let (i, t) = be_u8(i)?;
-    let t = ConstantType::try_from(t)
-        .map_err(|_| nom::Err::Error(ParseError::InvalidConstantType))?;
+    let t =
+        ConstantType::try_from(t).map_err(|_| nom::Err::Error(ParseError::InvalidConstantType))?;
 
     match t {
         Number => {
@@ -65,8 +65,8 @@ fn constant<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, Constant
 fn number(i: &[u8]) -> IResult<Number> {
     let (i, len) = be_u16(i)?;
     let (i, bytes) = take(len as usize)(i)?;
-    let value = Number::parse_bytes(bytes, 10)
-        .ok_or(nom::Err::Error(ParseError::InvalidNumberConstant))?;
+    let value =
+        Number::parse_bytes(bytes, 10).ok_or(nom::Err::Error(ParseError::InvalidNumberConstant))?;
     Ok((i, value))
 }
 
@@ -80,15 +80,18 @@ fn string(i: &[u8]) -> IResult<&str> {
 
 fn function<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, Function<'b>> {
     let (i, arity) = be_u16(i)?;
-    let (i, formal_parameters) = count(|i| {
-        let (i, index) = be_u8(i)?;
-        let constant = &constants[index as usize];
-        let name = match *constant {
-            Constant::String(name) => name,
-            _ => todo!(),
-        };
-        Ok((i, name))
-    }, arity as usize)(i)?;
+    let (i, formal_parameters) = count(
+        |i| {
+            let (i, index) = be_u8(i)?;
+            let constant = &constants[index as usize];
+            let name = match *constant {
+                Constant::String(name) => name,
+                _ => todo!(),
+            };
+            Ok((i, name))
+        },
+        arity as usize,
+    )(i)?;
 
     let (i, len) = be_u16(i)?;
     let (i, bytes) = take(len as usize)(i)?;

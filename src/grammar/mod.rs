@@ -1,4 +1,8 @@
-lalrpop_mod!(#[allow(clippy::all)] sprachli, "/grammar/sprachli.rs");
+lalrpop_mod!(
+    #[allow(clippy::all)]
+    sprachli,
+    "/grammar/sprachli.rs"
+);
 
 use lalrpop_util::lexer::Token;
 use lalrpop_util::ParseError;
@@ -28,7 +32,9 @@ pub fn string_from_literal(literal: &str) -> std::result::Result<String, ParseSt
     let mut string = String::with_capacity(literal.len());
 
     let mut iter = literal.chars();
-    iter.next().filter(|&ch| ch == '"').ok_or(MissingOpenQuote)?;
+    iter.next()
+        .filter(|&ch| ch == '"')
+        .ok_or(MissingOpenQuote)?;
     while let Some(ch) = iter.next() {
         match ch {
             '\\' => {

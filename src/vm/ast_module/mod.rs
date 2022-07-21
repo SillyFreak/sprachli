@@ -5,11 +5,11 @@ use std::str::FromStr;
 
 pub use constants::ConstantTable;
 
-use crate::ast;
-use crate::grammar::string_from_literal;
-use super::{Error, InternalError, Result, Value};
 use super::instruction::{Instruction, InstructionSequence};
 use super::value;
+use super::{Error, InternalError, Result, Value};
+use crate::ast;
+use crate::grammar::string_from_literal;
 use constants::ConstantTableBuilder;
 
 #[derive(Debug, Clone)]
@@ -17,7 +17,6 @@ pub struct AstModule {
     pub constants: ConstantTable,
     pub global_scope: HashMap<String, Value>,
 }
-
 
 impl TryFrom<ast::SourceFile<'_>> for AstModule {
     type Error = Error;
@@ -42,7 +41,6 @@ impl AstModule {
         &self.global_scope
     }
 }
-
 
 #[derive(Default, Debug, Clone)]
 struct AstModuleBuilder {
@@ -157,7 +155,12 @@ impl AstModuleBuilder {
     ) -> Result<()> {
         use Instruction::*;
 
-        if let Some(local) = locals.iter().enumerate().rev().find_map(|(i, local)| (*local == name).then_some(i)) {
+        if let Some(local) = locals
+            .iter()
+            .enumerate()
+            .rev()
+            .find_map(|(i, local)| (*local == name).then_some(i))
+        {
             instructions.push(LoadLocal(local));
         } else {
             let name = self.constants.insert(name.to_string().into());
@@ -216,8 +219,8 @@ impl AstModuleBuilder {
         locals: &mut Vec<String>,
         block: ast::Block,
     ) -> Result<()> {
-        use Instruction::*;
         use super::instruction::InlineConstant;
+        use Instruction::*;
 
         for stmt in block.statements {
             self.visit_statement(instructions, locals, stmt)?;
@@ -236,8 +239,8 @@ impl AstModuleBuilder {
         locals: &mut Vec<String>,
         stmt: ast::Statement,
     ) -> Result<()> {
-        use Instruction::*;
         use ast::Statement::*;
+        use Instruction::*;
 
         match stmt {
             Declaration(_) => {
@@ -258,8 +261,8 @@ impl AstModuleBuilder {
         expr: ast::If,
     ) -> Result<()> {
         use super::instruction::InlineConstant;
-        use Instruction::*;
         use ast::UnaryOperator::*;
+        use Instruction::*;
 
         let mut end_jumps = Vec::new();
 

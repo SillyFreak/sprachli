@@ -1,8 +1,8 @@
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use crate::ast;
-use crate::vm::{InternalError, Result};
 use crate::vm::instruction::{InlineConstant, Instruction, Offset};
+use crate::vm::{InternalError, Result};
 
 #[derive(Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
@@ -47,8 +47,8 @@ pub enum BinaryOperator {
 
 impl From<BinaryOperator> for ast::BinaryOperator {
     fn from(op: BinaryOperator) -> Self {
-        use BinaryOperator as Op;
         use ast::BinaryOperator as Ast;
+        use BinaryOperator as Op;
 
         match op {
             Op::Equals => Ast::Equals,
@@ -67,8 +67,8 @@ impl From<BinaryOperator> for ast::BinaryOperator {
 
 impl From<ast::BinaryOperator> for BinaryOperator {
     fn from(op: ast::BinaryOperator) -> Self {
-        use BinaryOperator as Op;
         use ast::BinaryOperator as Ast;
+        use BinaryOperator as Op;
 
         match op {
             Ast::Equals => Op::Equals,
@@ -96,8 +96,8 @@ pub enum UnaryOperator {
 
 impl From<UnaryOperator> for ast::UnaryOperator {
     fn from(op: UnaryOperator) -> Self {
-        use UnaryOperator as Op;
         use ast::UnaryOperator as Ast;
+        use UnaryOperator as Op;
 
         match op {
             Op::Negate => Ast::Negate,
@@ -108,8 +108,8 @@ impl From<UnaryOperator> for ast::UnaryOperator {
 
 impl From<ast::UnaryOperator> for UnaryOperator {
     fn from(op: ast::UnaryOperator) -> Self {
-        use UnaryOperator as Op;
         use ast::UnaryOperator as Ast;
+        use UnaryOperator as Op;
 
         match op {
             Ast::Negate => Op::Negate,
@@ -151,7 +151,8 @@ impl<'a> Iter<'a> {
 
     fn opcode(&mut self) -> Option<Result<Opcode>> {
         self.0.next().copied().map(|opcode| -> Result<Opcode> {
-            let opcode = opcode.try_into()
+            let opcode = opcode
+                .try_into()
                 .map_err(|_| InternalError::InvalidBytecode)?;
 
             Ok(opcode)
@@ -188,9 +189,9 @@ impl Iterator for Iter<'_> {
     type Item = Result<Instruction>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        use Opcode as Op;
-        use Instruction as In;
         use InlineConstant as Inl;
+        use Instruction as In;
+        use Opcode as Op;
 
         self.opcode().map(|opcode| {
             opcode.and_then(|opcode| {
@@ -205,14 +206,14 @@ impl Iterator for Iter<'_> {
                     Op::Pop => In::Pop,
                     Op::Unary => {
                         let op = self.parameter()?;
-                        let op: UnaryOperator = op.try_into()
-                            .map_err(|_| InternalError::InvalidBytecode)?;
+                        let op: UnaryOperator =
+                            op.try_into().map_err(|_| InternalError::InvalidBytecode)?;
                         In::Unary(op.into())
                     }
                     Op::Binary => {
                         let op = self.parameter()?;
-                        let op: BinaryOperator = op.try_into()
-                            .map_err(|_| InternalError::InvalidBytecode)?;
+                        let op: BinaryOperator =
+                            op.try_into().map_err(|_| InternalError::InvalidBytecode)?;
                         In::Binary(op.into())
                     }
                     Op::LoadLocal => {
@@ -244,7 +245,7 @@ impl Iterator for Iter<'_> {
                         In::JumpIf(Offset::Backward(offset as usize))
                     }
                 };
-        
+
                 Ok(ins)
             })
         })

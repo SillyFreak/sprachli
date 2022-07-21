@@ -1,5 +1,5 @@
-use crate::ast::{BinaryOperator, UnaryOperator};
 use super::{InternalError, Result};
+use crate::ast::{BinaryOperator, UnaryOperator};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Instruction {

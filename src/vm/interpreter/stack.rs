@@ -18,7 +18,9 @@ impl Stack {
     }
 
     pub fn pop_multiple(&mut self, count: usize) -> Result<impl Iterator<Item = Value> + '_> {
-        let offset = self.len().checked_sub(count)
+        let offset = self
+            .len()
+            .checked_sub(count)
             .ok_or(InternalError::EmptyStack)?;
 
         Ok(self.0.drain(offset..))

@@ -2,10 +2,10 @@ mod stack;
 
 use bigdecimal::BigDecimal;
 
-use crate::ast::{UnaryOperator, BinaryOperator};
-use super::{Error, InternalError, Result, Value};
 use super::ast_module::AstModule;
 use super::instruction::{self, InlineConstant, Offset};
+use super::{Error, InternalError, Result, Value};
+use crate::ast::{BinaryOperator, UnaryOperator};
 use stack::Stack;
 
 #[derive(Debug, Clone)]
@@ -48,14 +48,18 @@ impl<'a> Interpreter<'a> {
     }
 
     fn load_local(&mut self, locals: &Vec<Value>, index: usize) -> Result<()> {
-        let value = locals.get(index)
+        let value = locals
+            .get(index)
             .ok_or(InternalError::InvalidLocal(index))?;
 
         self.stack.push(value.clone())
     }
 
     fn load_named(&mut self, index: usize) -> Result<()> {
-        let name = self.module.constants().get(index)?
+        let name = self
+            .module
+            .constants()
+            .get(index)?
             .as_string()
             .map_err(|_| InternalError::InvalidConstantType(index, "string"))?;
 
@@ -63,7 +67,10 @@ impl<'a> Interpreter<'a> {
     }
 
     fn do_load_named(&mut self, name: &str) -> Result<()> {
-        let value = self.module.global_scope().get(name)
+        let value = self
+            .module
+            .global_scope()
+            .get(name)
             .cloned()
             .ok_or_else(|| Error::NameError(name.to_string()))?;
 
@@ -84,9 +91,9 @@ impl<'a> Interpreter<'a> {
     }
 
     fn binary(&mut self, operator: BinaryOperator) -> Result<()> {
-        use BinaryOperator::*;
         use super::value::RawValue::*;
         use super::value::Value::*;
+        use BinaryOperator::*;
 
         let [left, right] = {
             let mut ops = self.stack.pop_multiple(2)?;
@@ -104,7 +111,7 @@ impl<'a> Interpreter<'a> {
                         // TODO functions?
                         _ => false,
                     }
-                },
+                }
                 _ => false,
             };
 
@@ -149,10 +156,7 @@ impl<'a> Interpreter<'a> {
         Ok(())
     }
 
-    fn call(
-        &mut self,
-        arity: usize,
-    ) -> Result<()> {
+    fn call(&mut self, arity: usize) -> Result<()> {
         use super::instruction::Instruction::*;
 
         let mut ops = self.stack.pop_multiple(arity + 1)?;

@@ -1,11 +1,11 @@
 use std::io::{Result, Write};
 
-use crate::vm::Value;
-use crate::vm::ast_module::{AstModule, ConstantTable};
-use crate::vm::instruction::{Instruction, InlineConstant, Offset};
-use crate::vm::value::{Function, RawValue};
-use super::{ConstantType, Number};
 use super::instructions;
+use super::{ConstantType, Number};
+use crate::vm::ast_module::{AstModule, ConstantTable};
+use crate::vm::instruction::{InlineConstant, Instruction, Offset};
+use crate::vm::value::{Function, RawValue};
+use crate::vm::Value;
 
 pub fn write_bytecode<W: Write>(w: &mut W, ast: &AstModule) -> Result<()> {
     header(w)?;
@@ -64,9 +64,9 @@ fn string<W: Write>(w: &mut W, value: &str) -> Result<()> {
 }
 
 fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
+    use instructions::{BinaryOperator, Opcode as Op, UnaryOperator};
     use InlineConstant as Inl;
     use Instruction as In;
-    use instructions::{BinaryOperator, Opcode as Op, UnaryOperator};
 
     let mut body = Vec::with_capacity(value.body().len());
     for ins in value.body() {
@@ -82,7 +82,7 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                     Inl::Bool(false) => Op::False,
                 };
                 body.push(opcode.into());
-            },
+            }
             In::Pop => {
                 body.push(Op::Pop.into());
             }
@@ -105,7 +105,7 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
             In::Call(arity) => {
                 body.push(Op::Call.into());
                 body.push(arity as u8);
-            },
+            }
             In::Jump(offset) => {
                 let (opcode, offset) = match offset {
                     Offset::Forward(offset) => (Op::JumpForward, offset),
@@ -113,7 +113,7 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 };
                 body.push(opcode.into());
                 body.push(offset as u8);
-            },
+            }
             In::JumpIf(offset) => {
                 let (opcode, offset) = match offset {
                     Offset::Forward(offset) => (Op::JumpForwardIf, offset),
@@ -121,14 +121,13 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 };
                 body.push(opcode.into());
                 body.push(offset as u8);
-            },
+            }
             In::Invalid => {
                 // TODO check this in a better way
                 assert!(Op::try_from(0).is_err());
                 body.push(0);
             }
         }
-
     }
 
     let arity = value.arity() as u16;

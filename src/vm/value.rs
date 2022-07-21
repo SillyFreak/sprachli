@@ -170,10 +170,7 @@ pub struct Function {
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("fn (")?;
-        for i in (0..self.arity)
-            .map(Some)
-            .intersperse(None)
-        {
+        for i in (0..self.arity).map(Some).intersperse(None) {
             match i {
                 Some(i) => write!(f, "_{}", i)?,
                 None => f.write_str(", ")?,
@@ -185,10 +182,7 @@ impl fmt::Debug for Function {
 
 impl Function {
     pub fn new(arity: usize, body: InstructionSequence) -> Self {
-        Self {
-            arity,
-            body,
-        }
+        Self { arity, body }
     }
 
     pub fn arity(&self) -> usize {
