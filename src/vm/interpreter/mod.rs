@@ -3,7 +3,7 @@ mod stack;
 use bigdecimal::BigDecimal;
 
 use crate::ast::{UnaryOperator, BinaryOperator};
-use super::{Error, InternalError, Result, Value, Vm};
+use super::{Error, InternalError, Result, Value};
 use super::ast_module::AstModule;
 use super::instruction::{self, InlineConstant, Offset};
 use stack::Stack;
@@ -49,7 +49,7 @@ impl<'a> Interpreter<'a> {
 
     fn load_local(&mut self, locals: &Vec<Value>, index: usize) -> Result<()> {
         let value = locals.get(index)
-            .ok_or_else(|| InternalError::InvalidLocal(index))?;
+            .ok_or(InternalError::InvalidLocal(index))?;
 
         self.stack.push(value.clone())
     }
