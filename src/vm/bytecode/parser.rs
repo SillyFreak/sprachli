@@ -19,7 +19,7 @@ pub fn parse_bytecode(i: &[u8]) -> Result<Module, ParseError<Input<'_>>> {
 fn bytecode(i: &[u8]) -> IResult<Module> {
     let (i, _version) = header(i)?;
     let (i, constants) = constants(i)?;
-    let (i, globals) = globals(i)?;
+    let (i, globals) = globals(i, &constants)?;
     Ok((i, Module::new(constants, globals)))
 }
 
@@ -83,14 +83,26 @@ fn function<'b>(i: &'b [u8]) -> IResult<'b, Function<'b>> {
     Ok((i, Function::new(arity as usize, body)))
 }
 
-fn globals(i: &[u8]) -> IResult<HashMap<usize, usize>> {
+fn globals<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, HashMap<&'b str, usize>> {
     let (i, len) = be_u16(i)?;
-    let (i, globals) = count(global, len as usize)(i)?;
+    let (i, globals) = count(|i| global(i, constants), len as usize)(i)?;
     Ok((i, HashMap::from_iter(globals)))
 }
 
-fn global(i: &[u8]) -> IResult<(usize, usize)> {
-    let (i, key) = be_u16(i)?;
+fn global<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str, usize)> {
+    let (i, name) = be_u16(i)?;
     let (i, value) = be_u16(i)?;
-    Ok((i, (key as usize, value as usize)))
+
+    let index = name as usize;
+    let name = constants
+        .get(index)
+        .ok_or(nom::Err::Error(ParseError::InvalidConstantRef(index, constants.len())))?;
+    let name = match name {
+        Constant::String(name) => *name,
+        _ => {
+            let error = ParseError::InvalidConstantRefType(index, "string");
+            Err(nom::Err::Error(error))?
+        }
+    };
+    Ok((i, (name, value as usize)))
 }

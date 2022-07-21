@@ -1,23 +1,23 @@
 use crate::vm::{InternalError, Result, Value};
 
 #[derive(Default, Debug, Clone)]
-pub struct Stack(Vec<Value>);
+pub struct Stack<'b>(Vec<Value<'b>>);
 
-impl Stack {
+impl<'b> Stack<'b> {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn push(&mut self, value: Value) -> Result<()> {
+    pub fn push(&mut self, value: Value<'b>) -> Result<()> {
         self.0.push(value);
         Ok(())
     }
 
-    pub fn pop(&mut self) -> Result<Value> {
+    pub fn pop(&mut self) -> Result<Value<'b>> {
         self.0.pop().ok_or_else(|| InternalError::EmptyStack.into())
     }
 
-    pub fn pop_multiple(&mut self, count: usize) -> Result<impl Iterator<Item = Value> + '_> {
+    pub fn pop_multiple(&mut self, count: usize) -> Result<impl Iterator<Item = Value<'b>> + '_> {
         let offset = self
             .len()
             .checked_sub(count)

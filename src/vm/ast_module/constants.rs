@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use super::{InternalError, Result, Value};
+use super::value::Value;
+use super::{InternalError, Result};
 
 #[derive(Debug, Clone)]
 pub struct ConstantTable {

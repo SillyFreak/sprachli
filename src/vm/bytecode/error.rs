@@ -8,6 +8,10 @@ pub enum ParseError<I> {
     InvalidStringConstant,
     #[error("Invalid constant pool entry: invalid number string")]
     InvalidNumberConstant,
+    #[error("Constant #{0} not in constant table of len {1}")]
+    InvalidConstantRef(usize, usize),
+    #[error("Constant #{0} was not a {1}")]
+    InvalidConstantRefType(usize, &'static str),
 }
 
 impl<I> nom::error::ParseError<I> for ParseError<I> {

@@ -4,7 +4,7 @@ use std::fs;
 use sprachli::grammar::SourceFileParser;
 use sprachli::vm::AstModule;
 // use sprachli::interpreter::Interpreter;
-// use sprachli::vm::Vm;
+use sprachli::vm::Vm;
 use sprachli::vm::bytecode::parser::parse_bytecode;
 use sprachli::vm::bytecode::writer::write_bytecode;
 
@@ -34,13 +34,13 @@ fn main() {
     // let interpreter = Interpreter::new();
     // let result = interpreter.visit_source_file(&ast).unwrap();
 
-    // let result = Vm::new(module).run().expect("execution error");
-
-    // println!("{result:?}");
-
     let mut bytes = Vec::new();
     write_bytecode(&mut bytes, &module).unwrap();
     println!("{bytes:?}");
     let module = parse_bytecode(&bytes).unwrap();
     println!("{module:#?}");
+
+    let result = Vm::new(module).run().expect("execution error");
+
+    println!("{result:?}");
 }

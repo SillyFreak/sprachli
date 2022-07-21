@@ -1,29 +1,33 @@
 mod stack;
+mod value;
 
 use bigdecimal::BigDecimal;
 
-use super::ast_module::AstModule;
-use super::instruction::{self, InlineConstant, Offset};
-use super::{Error, InternalError, Result, Value};
+use super::bytecode::instructions;
+use super::bytecode::Module;
+use super::instruction::{InlineConstant, Offset};
+use super::{Error, InternalError, Result};
 use crate::ast::{BinaryOperator, UnaryOperator};
 use stack::Stack;
 
+pub use value::Value;
+
 #[derive(Debug, Clone)]
-pub struct Interpreter<'a> {
-    stack: Stack,
-    module: &'a AstModule,
+pub struct Interpreter<'a, 'b> {
+    stack: Stack<'b>,
+    module: &'a Module<'b>,
 }
 
-impl<'a> Interpreter<'a> {
-    pub fn new(module: &'a AstModule) -> Self {
+impl<'a, 'b> Interpreter<'a, 'b> {
+    pub fn new(module: &'a Module<'b>) -> Self {
         Self {
             stack: Stack::new(),
             module,
         }
     }
 
-    pub fn main(&mut self) -> Result<Value> {
-        self.do_load_named("main")?;
+    pub fn main(&mut self) -> Result<Value<'b>> {
+        self.load_named_by_name("main")?;
         self.call(0)?;
 
         // the call opcode checks that only one value remains on the stack
@@ -31,23 +35,23 @@ impl<'a> Interpreter<'a> {
     }
 
     fn constant(&mut self, index: usize) -> Result<()> {
-        let value = self.module.constants().get(index)?;
+        let value = self.module.constant(index).cloned()?;
 
-        self.stack.push(value.clone())
+        self.stack.push(Value::constant(value))
     }
 
     fn inline_constant(&mut self, constant: InlineConstant) -> Result<()> {
         use InlineConstant::*;
 
         let value = match constant {
-            Unit => ().into(),
-            Bool(bool) => bool.into(),
+            Unit => Value::unit(),
+            Bool(bool) => Value::bool(bool),
         };
 
         self.stack.push(value)
     }
 
-    fn load_local(&mut self, locals: &Vec<Value>, index: usize) -> Result<()> {
+    fn load_local(&mut self, locals: &Vec<Value<'b>>, index: usize) -> Result<()> {
         let value = locals
             .get(index)
             .ok_or(InternalError::InvalidLocal(index))?;
@@ -56,25 +60,15 @@ impl<'a> Interpreter<'a> {
     }
 
     fn load_named(&mut self, index: usize) -> Result<()> {
-        let name = self
-            .module
-            .constants()
-            .get(index)?
-            .as_string()
-            .map_err(|_| InternalError::InvalidConstantType(index, "string"))?;
+        let value = self.module.global_by_constant(index).cloned()?;
 
-        self.do_load_named(name)
+        self.stack.push(Value::constant(value))
     }
 
-    fn do_load_named(&mut self, name: &str) -> Result<()> {
-        let value = self
-            .module
-            .global_scope()
-            .get(name)
-            .cloned()
-            .ok_or_else(|| Error::NameError(name.to_string()))?;
+    fn load_named_by_name(&mut self, name: &str) -> Result<()> {
+        let value = self.module.global(name).cloned()?;
 
-        self.stack.push(value)
+        self.stack.push(Value::constant(value))
     }
 
     fn unary(&mut self, operator: UnaryOperator) -> Result<()> {
@@ -83,17 +77,17 @@ impl<'a> Interpreter<'a> {
         let right = self.stack.pop()?;
 
         let value = match operator {
-            Negate => Value::from(-right.as_number()?),
-            Not => Value::from(!right.as_bool()?),
+            Negate => Value::number(-right.as_number()?.clone()),
+            Not => Value::bool(!right.as_bool()?),
         };
 
         self.stack.push(value)
     }
 
     fn binary(&mut self, operator: BinaryOperator) -> Result<()> {
-        use super::value::RawValue::*;
-        use super::value::Value::*;
+        use value::ValueRef::*;
         use BinaryOperator::*;
+        use Value::*;
 
         let [left, right] = {
             let mut ops = self.stack.pop_multiple(2)?;
@@ -104,28 +98,26 @@ impl<'a> Interpreter<'a> {
             let result = match (&left, &right) {
                 (Unit, Unit) => true,
                 (Bool(left), Bool(right)) => left == right,
-                (Boxed(left), Boxed(right)) => {
-                    match (left.as_ref(), right.as_ref()) {
-                        (Number(left), Number(right)) => left == right,
-                        (String(left), String(right)) => left == right,
-                        // TODO functions?
-                        _ => false,
-                    }
-                }
-                _ => false,
+                _ => match (left.get_ref().unwrap(), right.get_ref().unwrap()) {
+                    (Number(left), Number(right)) => left == right,
+                    (String(left), String(right)) => left == right,
+                    // functions are always constants, so two values referring to the same function contain the same reference
+                    (Function(left), Function(right)) => std::ptr::eq(left, right),
+                    _ => false,
+                },
             };
 
-            Ok(Value::from(result == eq))
+            Ok(Value::bool(result == eq))
         };
 
         let number_comparison = |op: fn(&BigDecimal, &BigDecimal) -> bool| {
             let result = op(left.as_number()?, right.as_number()?);
-            Ok(Value::from(result))
+            Ok(Value::bool(result))
         };
 
         let arithmetic = |op: fn(&BigDecimal, &BigDecimal) -> BigDecimal| {
             let result = op(left.as_number()?, right.as_number()?);
-            Ok(Value::from(result))
+            Ok(Value::number(result))
         };
 
         let value = match operator {
@@ -144,11 +136,11 @@ impl<'a> Interpreter<'a> {
         self.stack.push(value)
     }
 
-    fn jump(&mut self, iter: &mut instruction::Iter, offset: Offset) -> Result<()> {
+    fn jump(&mut self, iter: &mut instructions::Iter, offset: Offset) -> Result<()> {
         iter.jump(offset)
     }
 
-    fn jump_if(&mut self, iter: &mut instruction::Iter, offset: Offset) -> Result<()> {
+    fn jump_if(&mut self, iter: &mut instructions::Iter, offset: Offset) -> Result<()> {
         let condition = self.stack.pop()?.as_bool()?;
         if condition {
             iter.jump(offset)?;
@@ -163,7 +155,13 @@ impl<'a> Interpreter<'a> {
 
         let function = ops.next().unwrap();
         let function = function.as_function()?;
-        function.check_arity(arity)?;
+        if arity != function.arity() {
+            Err(Error::ValueError(format!(
+                "wrong parameter number; expected {}, got {}",
+                function.arity(),
+                arity,
+            )))?;
+        }
 
         let locals = ops.collect();
 
@@ -171,7 +169,7 @@ impl<'a> Interpreter<'a> {
 
         let mut instructions = function.body().iter();
         while let Some(ins) = instructions.next() {
-            match ins {
+            match ins? {
                 Constant(index) => self.constant(index)?,
                 InlineConstant(constant) => self.inline_constant(constant)?,
                 Pop => self.stack.pop().map(|_| ())?,
