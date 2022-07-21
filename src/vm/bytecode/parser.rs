@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use nom::bytes::complete::{tag, take};
 use nom::multi::count;
 use nom::number::complete::{be_u16, be_u8};
@@ -17,7 +19,8 @@ pub fn parse_bytecode(i: &[u8]) -> Result<Module, ParseError<Input<'_>>> {
 fn bytecode(i: &[u8]) -> IResult<Module> {
     let (i, _version) = header(i)?;
     let (i, constants) = constants(i)?;
-    Ok((i, Module::new(constants)))
+    let (i, globals) = globals(i)?;
+    Ok((i, Module::new(constants, globals)))
 }
 
 fn header(i: &[u8]) -> IResult<u16> {
@@ -27,19 +30,12 @@ fn header(i: &[u8]) -> IResult<u16> {
 }
 
 fn constants(i: &[u8]) -> IResult<Vec<Constant>> {
-    let (mut input, len) = be_u16(i)?;
-
-    let mut constants = Vec::with_capacity(len as usize);
-    for _ in 0..len {
-        let (i, constant) = constant(input, &constants)?;
-        constants.push(constant);
-        input = i;
-    }
-
-    Ok((input, constants))
+    let (i, len) = be_u16(i)?;
+    let (i, constants) = count(constant, len as usize)(i)?;
+    Ok((i, constants))
 }
 
-fn constant<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, Constant<'b>> {
+fn constant<'b>(i: &'b [u8]) -> IResult<'b, Constant<'b>> {
     use ConstantType::*;
 
     let (i, t) = be_u8(i)?;
@@ -56,7 +52,7 @@ fn constant<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, Constant
             Ok((i, Constant::String(constant)))
         }
         Function => {
-            let (i, constant) = function(i, constants)?;
+            let (i, constant) = function(i)?;
             Ok((i, Constant::Function(constant)))
         }
     }
@@ -78,24 +74,23 @@ fn string(i: &[u8]) -> IResult<&str> {
     Ok((i, value))
 }
 
-fn function<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, Function<'b>> {
+fn function<'b>(i: &'b [u8]) -> IResult<'b, Function<'b>> {
     let (i, arity) = be_u16(i)?;
-    let (i, formal_parameters) = count(
-        |i| {
-            let (i, index) = be_u8(i)?;
-            let constant = &constants[index as usize];
-            let name = match *constant {
-                Constant::String(name) => name,
-                _ => todo!(),
-            };
-            Ok((i, name))
-        },
-        arity as usize,
-    )(i)?;
-
     let (i, len) = be_u16(i)?;
     let (i, bytes) = take(len as usize)(i)?;
     let body = InstructionSequence::new(bytes);
 
-    Ok((i, Function::new(formal_parameters, body)))
+    Ok((i, Function::new(arity as usize, body)))
+}
+
+fn globals(i: &[u8]) -> IResult<HashMap<usize, usize>> {
+    let (i, len) = be_u16(i)?;
+    let (i, globals) = count(global, len as usize)(i)?;
+    Ok((i, HashMap::from_iter(globals)))
+}
+
+fn global(i: &[u8]) -> IResult<(usize, usize)> {
+    let (i, key) = be_u16(i)?;
+    let (i, value) = be_u16(i)?;
+    Ok((i, (key as usize, value as usize)))
 }

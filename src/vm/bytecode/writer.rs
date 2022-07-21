@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::{Result, Write};
 
 use super::instructions;
@@ -10,6 +11,7 @@ use crate::vm::Value;
 pub fn write_bytecode<W: Write>(w: &mut W, ast: &AstModule) -> Result<()> {
     header(w)?;
     constants(w, &ast.constants)?;
+    globals(w, &ast.global_scope)?;
 
     Ok(())
 }
@@ -135,8 +137,19 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
 
     w.write(&[ConstantType::Function.into()])?;
     w.write(&arity.to_be_bytes())?;
-    // TODO parameters
     w.write(&len.to_be_bytes())?;
+    // TODO jump offsets must be translated from instruction-wise to byte-wise
     w.write(&body)?;
+    Ok(())
+}
+
+fn globals<W: Write>(w: &mut W, globals: &HashMap<usize, usize>) -> Result<()> {
+    let len = globals.len() as u16;
+    w.write(&len.to_be_bytes())?;
+    for (key, value) in globals.iter() {
+        let (key, value) = (*key as u16, *value as u16);
+        w.write(&key.to_be_bytes())?;
+        w.write(&value.to_be_bytes())?;
+    }
     Ok(())
 }

@@ -15,7 +15,7 @@ use constants::ConstantTableBuilder;
 #[derive(Debug, Clone)]
 pub struct AstModule {
     pub constants: ConstantTable,
-    pub global_scope: HashMap<String, Value>,
+    pub global_scope: HashMap<usize, usize>,
 }
 
 impl TryFrom<ast::SourceFile<'_>> for AstModule {
@@ -37,7 +37,7 @@ impl AstModule {
         &self.constants
     }
 
-    pub fn global_scope(&self) -> &HashMap<String, Value> {
+    pub fn global_scope(&self) -> &HashMap<usize, usize> {
         &self.global_scope
     }
 }
@@ -45,7 +45,7 @@ impl AstModule {
 #[derive(Default, Debug, Clone)]
 struct AstModuleBuilder {
     constants: ConstantTableBuilder,
-    global_scope: HashMap<String, Value>,
+    global_scope: HashMap<usize, usize>,
 }
 
 impl AstModuleBuilder {
@@ -95,7 +95,11 @@ impl AstModuleBuilder {
         self.visit_block(&mut instructions, &mut locals, body)?;
 
         let function = value::Function::new(formal_parameters.len(), instructions);
-        self.global_scope.insert(name.to_string(), function.into());
+
+        let name = self.constants.insert(name.to_string().into());
+        let function = self.constants.insert(function.into());
+        self.global_scope.insert(name, function);
+
         Ok(())
     }
 

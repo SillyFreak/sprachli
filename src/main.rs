@@ -42,5 +42,5 @@ fn main() {
     write_bytecode(&mut bytes, &module).unwrap();
     println!("{bytes:?}");
     let module = parse_bytecode(&bytes).unwrap();
-    println!("{module:?}");
+    println!("{module:#?}");
 }

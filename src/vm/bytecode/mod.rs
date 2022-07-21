@@ -10,6 +10,8 @@ mod instructions;
 pub mod parser;
 pub mod writer;
 
+use std::collections::HashMap;
+
 use bigdecimal::BigDecimal;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
@@ -25,11 +27,12 @@ where
 #[derive(Debug, Clone)]
 pub struct Module<'b> {
     constants: Vec<Constant<'b>>,
+    globals: HashMap<usize, usize>,
 }
 
 impl<'b> Module<'b> {
-    pub fn new(constants: Vec<Constant<'b>>) -> Self {
-        Self { constants }
+    pub fn new(constants: Vec<Constant<'b>>, globals: HashMap<usize, usize>) -> Self {
+        Self { constants, globals }
     }
 }
 
@@ -50,15 +53,12 @@ pub enum Constant<'b> {
 
 #[derive(Debug, Clone)]
 pub struct Function<'b> {
-    formal_parameters: Vec<&'b str>,
+    arity: usize,
     body: InstructionSequence<'b>,
 }
 
 impl<'b> Function<'b> {
-    pub fn new(formal_parameters: Vec<&'b str>, body: InstructionSequence<'b>) -> Self {
-        Self {
-            formal_parameters,
-            body,
-        }
+    pub fn new(arity: usize, body: InstructionSequence<'b>) -> Self {
+        Self { arity, body }
     }
 }
