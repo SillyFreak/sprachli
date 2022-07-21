@@ -7,7 +7,7 @@ pub use constants::ConstantTable;
 
 use super::instruction::{Instruction, InstructionSequence};
 use super::value;
-use super::{Error, InternalError, Result, Value};
+use super::{Error, InternalError, Result};
 use crate::ast;
 use crate::grammar::string_from_literal;
 use constants::ConstantTableBuilder;
