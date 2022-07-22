@@ -1,12 +1,11 @@
-pub mod bytecode;
 mod error;
-mod instruction;
+pub mod instruction;
 mod interpreter;
 
 pub use error::*;
 pub use interpreter::Value;
 
-use bytecode::Module;
+use crate::bytecode::Module;
 use interpreter::Interpreter;
 
 #[derive(Debug, Clone)]

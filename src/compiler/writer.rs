@@ -4,8 +4,8 @@ use std::io::{Result, Write};
 use super::constant::{Constant, Function};
 use super::instruction::{InlineConstant, Instruction, Offset};
 use super::Module;
-use crate::vm::bytecode::instructions;
-use crate::vm::bytecode::{ConstantType, Number};
+use crate::bytecode::instruction;
+use crate::bytecode::{ConstantType, Number};
 
 pub fn write_bytecode<W: Write>(w: &mut W, module: &Module) -> Result<()> {
     header(w)?;
@@ -60,7 +60,7 @@ fn string<W: Write>(w: &mut W, value: &str) -> Result<()> {
 }
 
 fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
-    use instructions::{BinaryOperator, Opcode as Op, UnaryOperator};
+    use instruction::{BinaryOperator, Opcode as Op, UnaryOperator};
     use InlineConstant as Inl;
     use Instruction as In;
 

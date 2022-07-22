@@ -8,7 +8,7 @@
 use std::fmt;
 
 pub mod error;
-pub mod instructions;
+pub mod instruction;
 pub mod parser;
 
 use std::collections::HashMap;
@@ -16,10 +16,6 @@ use std::collections::HashMap;
 use bigdecimal::BigDecimal;
 use itertools::Itertools;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-
-pub use instructions::InstructionSequence;
-
-use super::{Error, InternalError, Result};
 
 pub type Number = BigDecimal;
 
@@ -43,31 +39,16 @@ impl<'b> Module<'b> {
         &self.constants
     }
 
-    pub fn constant(&self, index: usize) -> Result<&Constant<'b>> {
-        self.constants
-            .get(index)
-            .ok_or_else(|| InternalError::InvalidConstant(index, self.constants.len()).into())
+    pub fn constant(&self, index: usize) -> Option<&Constant<'b>> {
+        self.constants.get(index)
     }
 
     pub fn globals(&self) -> &HashMap<&'b str, usize> {
         &self.globals
     }
 
-    pub fn global_by_constant(&self, index: usize) -> Result<&Constant<'b>> {
-        let name = self.constant(index)?;
-        let name = match name {
-            Constant::String(name) => *name,
-            _ => Err(InternalError::InvalidConstantType(index, "string"))?,
-        };
-
-        self.global(name)
-    }
-
-    pub fn global(&self, name: &str) -> Result<&Constant<'b>> {
-        let index = *self
-            .globals
-            .get(name)
-            .ok_or_else(|| Error::NameError(name.to_string()))?;
+    pub fn global(&self, name: &str) -> Option<&Constant<'b>> {
+        let index = *self.globals.get(name)?;
         self.constant(index)
     }
 }
@@ -129,5 +110,18 @@ impl<'b> Function<'b> {
 
     pub fn body(&self) -> &InstructionSequence {
         &self.body
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct InstructionSequence<'b>(&'b [u8]);
+
+impl<'b> InstructionSequence<'b> {
+    pub fn new(instructions: &'b [u8]) -> Self {
+        Self(instructions)
+    }
+
+    pub fn get(&self) -> &'b [u8] {
+        self.0
     }
 }

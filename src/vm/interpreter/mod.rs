@@ -3,11 +3,10 @@ mod value;
 
 use bigdecimal::BigDecimal;
 
-use super::bytecode::instructions;
-use super::bytecode::Module;
-use super::instruction::{InlineConstant, Offset};
+use super::instruction::{InlineConstant, InstructionIter, Offset};
 use super::{Error, InternalError, Result};
 use crate::ast::{BinaryOperator, UnaryOperator};
+use crate::bytecode::{Constant, Module};
 use stack::Stack;
 
 pub use value::Value;
@@ -34,9 +33,24 @@ impl<'a, 'b> Interpreter<'a, 'b> {
         self.stack.pop()
     }
 
-    fn constant(&mut self, index: usize) -> Result<()> {
-        let value = self.module.constant(index).cloned()?;
+    fn get_constant(&self, index: usize) -> Result<&Constant<'b>> {
+        let constant = self
+            .module
+            .constant(index)
+            .ok_or_else(|| InternalError::InvalidConstant(index, self.module.constants().len()))?;
+        Ok(constant)
+    }
 
+    fn get_global(&self, name: &str) -> Result<&Constant<'b>> {
+        let value = self
+            .module
+            .global(name)
+            .ok_or_else(|| Error::NameError(name.to_string()))?;
+        Ok(value)
+    }
+
+    fn constant(&mut self, index: usize) -> Result<()> {
+        let value = self.get_constant(index).cloned()?;
         self.stack.push(Value::constant(value))
     }
 
@@ -60,14 +74,18 @@ impl<'a, 'b> Interpreter<'a, 'b> {
     }
 
     fn load_named(&mut self, index: usize) -> Result<()> {
-        let value = self.module.global_by_constant(index).cloned()?;
+        let name = self.get_constant(index)?;
+        let name = match name {
+            Constant::String(name) => *name,
+            _ => Err(InternalError::InvalidConstantType(index, "string"))?,
+        };
 
+        let value = self.get_global(name).cloned()?;
         self.stack.push(Value::constant(value))
     }
 
     fn load_named_by_name(&mut self, name: &str) -> Result<()> {
-        let value = self.module.global(name).cloned()?;
-
+        let value = self.get_global(name).cloned()?;
         self.stack.push(Value::constant(value))
     }
 
@@ -136,11 +154,11 @@ impl<'a, 'b> Interpreter<'a, 'b> {
         self.stack.push(value)
     }
 
-    fn jump(&mut self, iter: &mut instructions::Iter, offset: Offset) -> Result<()> {
+    fn jump(&mut self, iter: &mut InstructionIter, offset: Offset) -> Result<()> {
         iter.jump(offset)
     }
 
-    fn jump_if(&mut self, iter: &mut instructions::Iter, offset: Offset) -> Result<()> {
+    fn jump_if(&mut self, iter: &mut InstructionIter, offset: Offset) -> Result<()> {
         let condition = self.stack.pop()?.as_bool()?;
         if condition {
             iter.jump(offset)?;

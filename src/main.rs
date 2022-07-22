@@ -1,9 +1,9 @@
 use std::env;
 use std::fs;
 
+use sprachli::bytecode::parser::parse_bytecode;
 use sprachli::compiler::{self, write_bytecode};
 use sprachli::parser::parse_source_file;
-use sprachli::vm::bytecode::parser::parse_bytecode;
 use sprachli::vm::Vm;
 
 #[derive(thiserror::Error, Debug)]

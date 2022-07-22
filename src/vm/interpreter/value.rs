@@ -2,10 +2,10 @@ use std::{fmt, sync::Arc};
 
 use bigdecimal::BigDecimal;
 
-use crate::vm::bytecode::Constant;
+use crate::bytecode::Constant;
 use crate::vm::{Error, Result};
 
-pub use crate::vm::bytecode::Function;
+pub use crate::bytecode::Function;
 
 pub type Number = BigDecimal;
 
