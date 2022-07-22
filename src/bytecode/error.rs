@@ -1,9 +1,11 @@
+use std::fmt;
+
 use nom::error::ParseError;
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error<I> {
+pub enum Error {
     #[error("ParseError: {0}")]
-    ParseError(#[from] nom::error::Error<I>),
+    ParseError(String),
     #[error("Invalid constant pool entry: unknown type")]
     InvalidConstantType,
     #[error("Invalid constant pool entry: invalid utf8 string")]
@@ -16,7 +18,13 @@ pub enum Error<I> {
     InvalidConstantRefType(usize, &'static str),
 }
 
-impl<I> ParseError<I> for Error<I> {
+impl<I: fmt::Debug> From<nom::error::Error<I>> for Error {
+    fn from(error: nom::error::Error<I>) -> Self {
+        Self::ParseError(format!("{:?}", error))
+    }
+}
+
+impl<I: fmt::Debug> ParseError<I> for Error {
     fn from_error_kind(input: I, kind: nom::error::ErrorKind) -> Self {
         nom::error::Error::from_error_kind(input, kind).into()
     }

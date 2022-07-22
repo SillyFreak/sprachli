@@ -9,9 +9,9 @@ use super::{Constant, ConstantType, Error, Function, InstructionSequence, Module
 
 pub type Input<'a> = &'a [u8];
 
-pub type IResult<'a, O, E = Error<Input<'a>>> = nom::IResult<Input<'a>, O, E>;
+pub type IResult<'a, O, E = Error> = nom::IResult<Input<'a>, O, E>;
 
-pub fn parse_bytecode(i: &[u8]) -> Result<Module, Error<Input<'_>>> {
+pub fn parse_bytecode(i: &[u8]) -> Result<Module, Error> {
     bytecode(i).finish().map(|(_, bytecode)| bytecode)
 }
 
