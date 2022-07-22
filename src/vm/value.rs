@@ -1,13 +1,9 @@
 use std::{fmt, sync::Arc};
 
-use bigdecimal::BigDecimal;
-
+use super::{Error, Result};
 use crate::bytecode::Constant;
-use crate::vm::{Error, Result};
 
-pub use crate::bytecode::Function;
-
-pub type Number = BigDecimal;
+pub use crate::bytecode::{Function, Number};
 
 #[derive(Clone)]
 pub enum Value<'b> {

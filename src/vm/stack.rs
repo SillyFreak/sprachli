@@ -1,4 +1,4 @@
-use crate::vm::{InternalError, Result, Value};
+use super::{InternalError, Result, Value};
 
 #[derive(Default, Debug, Clone)]
 pub struct Stack<'b>(Vec<Value<'b>>);

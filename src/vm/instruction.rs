@@ -1,6 +1,5 @@
 use super::{InternalError, Result};
-use crate::ast::{BinaryOperator, UnaryOperator};
-use crate::bytecode::instruction::{self, Opcode};
+use crate::bytecode::instruction::{self, BinaryOperator, Opcode, UnaryOperator};
 use crate::bytecode::InstructionSequence;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
