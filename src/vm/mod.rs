@@ -51,6 +51,14 @@ impl<'b> Vm<'b> {
         Ok(value)
     }
 
+    fn get_local<'a>(&mut self, locals: &'a [Value<'b>], index: usize) -> Result<&'a Value<'b>> {
+        let value = locals
+            .get(index)
+            .ok_or(InternalError::InvalidLocal(index))?;
+
+        Ok(value)
+    }
+
     fn constant(&mut self, index: usize) -> Result<()> {
         let value = self.get_constant(index).cloned()?;
         self.stack.push(Value::constant(value))
@@ -67,11 +75,8 @@ impl<'b> Vm<'b> {
         self.stack.push(value)
     }
 
-    fn load_local(&mut self, locals: &Vec<Value<'b>>, index: usize) -> Result<()> {
-        let value = locals
-            .get(index)
-            .ok_or(InternalError::InvalidLocal(index))?;
-
+    fn load_local(&mut self, locals: &[Value<'b>], index: usize) -> Result<()> {
+        let value = self.get_local(locals, index)?;
         self.stack.push(value.clone())
     }
 
@@ -183,7 +188,7 @@ impl<'b> Vm<'b> {
             )))?;
         }
 
-        let locals = ops.collect();
+        let locals: Vec<_> = ops.collect();
 
         let offset = self.stack.len();
 

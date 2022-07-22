@@ -1,5 +1,5 @@
 use super::{InternalError, Result};
-use crate::bytecode::instruction::{self, BinaryOperator, Opcode, UnaryOperator};
+use crate::bytecode::instruction::{BinaryOperator, Opcode, UnaryOperator};
 use crate::bytecode::InstructionSequence;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -148,15 +148,13 @@ impl Iterator for InstructionIter<'_> {
                     Op::Pop => In::Pop,
                     Op::Unary => {
                         let op = self.parameter()?;
-                        let op = instruction::UnaryOperator::try_from(op)
-                            .map_err(|_| InternalError::InvalidBytecode)?;
-                        In::Unary(op.into())
+                        let op = op.try_into().map_err(|_| InternalError::InvalidBytecode)?;
+                        In::Unary(op)
                     }
                     Op::Binary => {
                         let op = self.parameter()?;
-                        let op = instruction::BinaryOperator::try_from(op)
-                            .map_err(|_| InternalError::InvalidBytecode)?;
-                        In::Binary(op.into())
+                        let op = op.try_into().map_err(|_| InternalError::InvalidBytecode)?;
+                        In::Binary(op)
                     }
                     Op::LoadLocal => {
                         let local = self.parameter()?;

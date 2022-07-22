@@ -60,7 +60,7 @@ fn string<W: Write>(w: &mut W, value: &str) -> Result<()> {
 }
 
 fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
-    use instruction::{BinaryOperator, Opcode as Op, UnaryOperator};
+    use instruction::Opcode as Op;
     use InlineConstant as Inl;
     use Instruction as In;
 
@@ -84,11 +84,11 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
             }
             In::Unary(op) => {
                 body.push(Op::Unary.into());
-                body.push(UnaryOperator::from(op).into());
+                body.push(op.into());
             }
             In::Binary(op) => {
                 body.push(Op::Binary.into());
-                body.push(BinaryOperator::from(op).into());
+                body.push(op.into());
             }
             In::LoadLocal(index) => {
                 body.push(Op::LoadLocal.into());
