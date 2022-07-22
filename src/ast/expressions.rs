@@ -1,5 +1,7 @@
 use std::fmt;
 
+use num_enum::{IntoPrimitive, TryFromPrimitive};
+
 use super::Statement;
 use crate::fmt::FormatterExt;
 
@@ -30,7 +32,8 @@ impl fmt::Debug for Expression<'_> {
     }
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum BinaryOperator {
     // equality
     Equals,
@@ -106,7 +109,8 @@ impl<'input> Binary<'input> {
     }
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum UnaryOperator {
     // negation
     Negate,
