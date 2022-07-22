@@ -2,8 +2,7 @@ use std::env;
 use std::fs;
 
 use sprachli::bytecode::{parser::parse_bytecode, Error as BytecodeError};
-use sprachli::compiler::{self, write_bytecode, Error as CompilerError};
-use sprachli::parser::parse_source_file;
+use sprachli::compiler::{compile_source_file, Error as CompilerError};
 use sprachli::vm::{Vm, Error as RuntimeError};
 
 #[derive(thiserror::Error, Debug)]
@@ -32,11 +31,8 @@ fn main() {
     
         let source = fs::read_to_string(filename).map_err(CompilerError::from)?;
     
-        let ast = parse_source_file(&source).map_err(CompilerError::from)?;
-        let module = compiler::Module::new(ast)?;
-    
         let mut bytes = Vec::new();
-        write_bytecode(&mut bytes, &module).map_err(CompilerError::from)?;
+        compile_source_file(&mut bytes, &source)?;
         println!("{bytes:?}");
     
         let module = parse_bytecode(&bytes)?;
