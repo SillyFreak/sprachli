@@ -9,7 +9,7 @@ pub use constants::ConstantTable;
 use super::instruction::{Instruction, InstructionSequence};
 use super::{Error, InternalError, Result};
 use crate::ast;
-use crate::grammar::string_from_literal;
+use crate::parser::string_from_literal;
 use constants::ConstantTableBuilder;
 
 #[derive(Debug, Clone)]

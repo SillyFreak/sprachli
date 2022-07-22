@@ -1,13 +1,11 @@
 lalrpop_mod!(
     #[allow(clippy::all)]
-    sprachli,
-    "/grammar/sprachli.rs"
+    pub grammar,
+    "/parser/sprachli.rs"
 );
 
 use lalrpop_util::lexer::Token;
 use lalrpop_util::ParseError;
-
-pub use self::sprachli::*;
 
 pub type Error<'a> = ParseError<usize, Token<'a>, &'static str>;
 pub type Result<'a, T> = std::result::Result<T, Error<'a>>;
@@ -67,6 +65,7 @@ pub fn string_from_literal(literal: &str) -> std::result::Result<String, ParseSt
 mod tests {
     use std::fmt;
 
+    use super::grammar::*;
     use super::*;
 
     trait ParsingFn<'input> {

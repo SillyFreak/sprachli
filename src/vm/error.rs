@@ -1,6 +1,6 @@
 use bigdecimal::ParseBigDecimalError;
 
-use crate::grammar::ParseStringError;
+use crate::parser::ParseStringError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
