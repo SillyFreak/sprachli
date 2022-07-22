@@ -7,12 +7,12 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::str::FromStr;
 
-use self::constant::{Constant, Function, Number};
-use self::instruction::{Instruction, Offset};
 use crate::ast;
 use crate::parser::{parse_source_file, string_from_literal};
+use constant::{Constant, Function, Number};
+use instruction::{Instruction, Offset};
 
-pub use error::*;
+pub use error::{Error, InternalError, Result};
 pub use writer::write_bytecode;
 
 pub fn compile_source_file<W: Write>(w: &mut W, source: &str) -> Result<()> {

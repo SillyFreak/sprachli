@@ -5,14 +5,13 @@ use nom::multi::count;
 use nom::number::complete::{be_u16, be_u8};
 use nom::Finish;
 
-use super::error::ParseError;
-use super::{Constant, ConstantType, Function, InstructionSequence, Module, Number};
+use super::{Constant, ConstantType, Error, Function, InstructionSequence, Module, Number};
 
 pub type Input<'a> = &'a [u8];
 
-pub type IResult<'a, O, E = ParseError<Input<'a>>> = nom::IResult<Input<'a>, O, E>;
+pub type IResult<'a, O, E = Error<Input<'a>>> = nom::IResult<Input<'a>, O, E>;
 
-pub fn parse_bytecode(i: &[u8]) -> Result<Module, ParseError<Input<'_>>> {
+pub fn parse_bytecode(i: &[u8]) -> Result<Module, Error<Input<'_>>> {
     bytecode(i).finish().map(|(_, bytecode)| bytecode)
 }
 
@@ -39,8 +38,7 @@ fn constant(i: &[u8]) -> IResult<Constant> {
     use ConstantType::*;
 
     let (i, t) = be_u8(i)?;
-    let t =
-        ConstantType::try_from(t).map_err(|_| nom::Err::Error(ParseError::InvalidConstantType))?;
+    let t = ConstantType::try_from(t).map_err(|_| nom::Err::Error(Error::InvalidConstantType))?;
 
     match t {
         Number => {
@@ -62,15 +60,15 @@ fn number(i: &[u8]) -> IResult<Number> {
     let (i, len) = be_u16(i)?;
     let (i, bytes) = take(len as usize)(i)?;
     let value =
-        Number::parse_bytes(bytes, 10).ok_or(nom::Err::Error(ParseError::InvalidNumberConstant))?;
+        Number::parse_bytes(bytes, 10).ok_or(nom::Err::Error(Error::InvalidNumberConstant))?;
     Ok((i, value))
 }
 
 fn string(i: &[u8]) -> IResult<&str> {
     let (i, len) = be_u16(i)?;
     let (i, bytes) = take(len as usize)(i)?;
-    let value = std::str::from_utf8(bytes)
-        .map_err(|_| nom::Err::Error(ParseError::InvalidStringConstant))?;
+    let value =
+        std::str::from_utf8(bytes).map_err(|_| nom::Err::Error(Error::InvalidStringConstant))?;
     Ok((i, value))
 }
 
@@ -96,14 +94,14 @@ fn global<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str, 
     let index = name as usize;
     let name = constants
         .get(index)
-        .ok_or(nom::Err::Error(ParseError::InvalidConstantRef(
+        .ok_or(nom::Err::Error(Error::InvalidConstantRef(
             index,
             constants.len(),
         )))?;
     let name = match name {
         Constant::String(name) => *name,
         _ => {
-            let error = ParseError::InvalidConstantRefType(index, "string");
+            let error = Error::InvalidConstantRefType(index, "string");
             Err(nom::Err::Error(error))?
         }
     };

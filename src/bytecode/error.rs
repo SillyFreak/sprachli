@@ -1,5 +1,7 @@
+use nom::error::ParseError;
+
 #[derive(thiserror::Error, Debug)]
-pub enum ParseError<I> {
+pub enum Error<I> {
     #[error("ParseError: {0}")]
     ParseError(#[from] nom::error::Error<I>),
     #[error("Invalid constant pool entry: unknown type")]
@@ -14,7 +16,7 @@ pub enum ParseError<I> {
     InvalidConstantRefType(usize, &'static str),
 }
 
-impl<I> nom::error::ParseError<I> for ParseError<I> {
+impl<I> ParseError<I> for Error<I> {
     fn from_error_kind(input: I, kind: nom::error::ErrorKind) -> Self {
         nom::error::Error::from_error_kind(input, kind).into()
     }

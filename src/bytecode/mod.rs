@@ -7,7 +7,7 @@
 
 use std::fmt;
 
-pub mod error;
+mod error;
 pub mod instruction;
 pub mod parser;
 
@@ -16,6 +16,9 @@ use std::collections::HashMap;
 use bigdecimal::BigDecimal;
 use itertools::Itertools;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+
+pub use error::*;
+pub use parser::parse_bytecode;
 
 pub type Number = BigDecimal;
 
