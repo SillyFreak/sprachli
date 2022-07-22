@@ -77,7 +77,7 @@ impl fmt::Debug for Constant<'_> {
 
         match self {
             Number(value) => fmt::Display::fmt(value, f),
-            String(value) => fmt::Display::fmt(value, f),
+            String(value) => value.fmt(f),
             Function(value) => value.fmt(f),
         }
     }
