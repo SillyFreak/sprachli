@@ -12,7 +12,7 @@ pub enum Instruction {
     Call(usize),
     Jump(Offset),
     JumpIf(Offset),
-    Invalid,
+    JumpPlaceholder,
 }
 
 impl Instruction {
@@ -30,7 +30,7 @@ impl Instruction {
             Call(arity) => -isize::try_from(arity).expect("illegal arity"),
             Jump(_) => 0,
             JumpIf(_) => -1,
-            Invalid => 0,
+            JumpPlaceholder => 0,
         }
     }
 
@@ -48,7 +48,7 @@ impl Instruction {
             Call(_) => 2,
             Jump(_) => 2,
             JumpIf(_) => 2,
-            Invalid => 1,
+            JumpPlaceholder => 2,
         }
     }
 }

@@ -10,7 +10,6 @@ use std::fmt;
 pub mod error;
 pub mod instructions;
 pub mod parser;
-pub mod writer;
 
 use std::collections::HashMap;
 

@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 use std::io::{Result, Write};
 
-use super::instructions;
-use super::{ConstantType, Number};
-use crate::vm::ast_module::value::{Function, RawValue, Value};
-use crate::vm::ast_module::{AstModule, ConstantTable};
-use crate::vm::instruction::{InlineConstant, Instruction, Offset};
+use super::constant::{Constant, Function};
+use super::instruction::{InlineConstant, Instruction, Offset};
+use super::Module;
+use crate::vm::bytecode::instructions;
+use crate::vm::bytecode::{ConstantType, Number};
 
-pub fn write_bytecode<W: Write>(w: &mut W, ast: &AstModule) -> Result<()> {
+pub fn write_bytecode<W: Write>(w: &mut W, module: &Module) -> Result<()> {
     header(w)?;
-    constants(w, &ast.constants)?;
-    globals(w, &ast.global_scope)?;
+    constants(w, module.constants())?;
+    globals(w, module.globals())?;
 
     Ok(())
 }
@@ -21,22 +21,17 @@ fn header<W: Write>(w: &mut W) -> Result<()> {
     Ok(())
 }
 
-fn constants<W: Write>(w: &mut W, constants: &ConstantTable) -> Result<()> {
-    let len = constants.table.len() as u16;
+fn constants<W: Write>(w: &mut W, constants: &[Constant]) -> Result<()> {
+    let len = constants.len() as u16;
     w.write_all(&len.to_be_bytes())?;
-    for value in &constants.table {
+    for value in constants {
         constant(w, value)?;
     }
     Ok(())
 }
 
-fn constant<W: Write>(w: &mut W, value: &Value) -> Result<()> {
-    use RawValue::*;
-
-    let value = match value {
-        Value::Boxed(value) => value.as_ref(),
-        _ => todo!(),
-    };
+fn constant<W: Write>(w: &mut W, value: &Constant) -> Result<()> {
+    use Constant::*;
 
     match value {
         Number(value) => number(w, value)?,
@@ -70,9 +65,8 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
     use Instruction as In;
 
     let mut body = Vec::with_capacity(value.body().len());
-    let mut instructions = value.body().iter();
-    while let Some(ins) = instructions.next() {
-        match ins {
+    for ins in value.body() {
+        match *ins {
             In::Constant(index) => {
                 body.push(Op::Constant.into());
                 body.push(index as u8);
@@ -109,7 +103,6 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 body.push(arity as u8);
             }
             In::Jump(offset) => {
-                let offset = instructions.byte_offset(offset).unwrap();
                 let (opcode, offset) = match offset {
                     Offset::Forward(offset) => (Op::JumpForward, offset),
                     Offset::Backward(offset) => (Op::JumpBackward, offset),
@@ -118,7 +111,6 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 body.push(offset as u8);
             }
             In::JumpIf(offset) => {
-                let offset = instructions.byte_offset(offset).unwrap();
                 let (opcode, offset) = match offset {
                     Offset::Forward(offset) => (Op::JumpForwardIf, offset),
                     Offset::Backward(offset) => (Op::JumpBackwardIf, offset),
@@ -126,9 +118,10 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 body.push(opcode.into());
                 body.push(offset as u8);
             }
-            In::Invalid => {
+            In::JumpPlaceholder => {
                 // TODO check this in a better way
                 assert!(Op::try_from(0).is_err());
+                body.push(0);
                 body.push(0);
             }
         }

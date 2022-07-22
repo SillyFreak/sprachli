@@ -1,4 +1,3 @@
-pub mod ast_module;
 pub mod bytecode;
 mod error;
 mod instruction;
