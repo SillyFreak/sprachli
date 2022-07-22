@@ -3,7 +3,6 @@ use std::fs;
 
 use sprachli::grammar::SourceFileParser;
 use sprachli::vm::ast_module::AstModule;
-// use sprachli::interpreter::Interpreter;
 use sprachli::vm::bytecode::parser::parse_bytecode;
 use sprachli::vm::bytecode::writer::write_bytecode;
 use sprachli::vm::Vm;
@@ -30,9 +29,6 @@ fn main() {
     let parser = SourceFileParser::new();
     let ast = parser.parse(&source).unwrap();
     let module = AstModule::new(ast).unwrap();
-
-    // let interpreter = Interpreter::new();
-    // let result = interpreter.visit_source_file(&ast).unwrap();
 
     let mut bytes = Vec::new();
     write_bytecode(&mut bytes, &module).unwrap();
