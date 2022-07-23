@@ -3,7 +3,7 @@ use std::fs;
 
 use sprachli::bytecode::{parser::parse_bytecode, Error as BytecodeError};
 use sprachli::compiler::{compile_source_file, Error as CompilerError};
-use sprachli::vm::{Vm, Error as RuntimeError};
+use sprachli::vm::{Error as RuntimeError, Vm};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -20,7 +20,7 @@ pub enum Error {
 fn main() {
     let result = || -> Result<(), Error> {
         let args: Vec<String> = env::args().collect();
-    
+
         let filename = match &args[..] {
             [_, filename] => filename,
             _ => {
@@ -28,20 +28,20 @@ fn main() {
                 Err(Error::Usage(msg.to_string()))?
             }
         };
-    
+
         let source = fs::read_to_string(filename).map_err(CompilerError::from)?;
-    
+
         let mut bytes = Vec::new();
         compile_source_file(&mut bytes, &source)?;
         println!("{bytes:?}");
-    
+
         let module = parse_bytecode(&bytes)?;
         println!("{module:#?}");
-    
+
         let result = Vm::new(module).run()?;
-    
+
         println!("{result:?}");
-    
+
         Ok(())
     }();
 

@@ -140,7 +140,12 @@ impl<'b> InstructionSequence<'b> {
 impl fmt::Debug for InstructionSequence<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if f.alternate() {
-            for ins in self.iter().with_offset().map(Some).intersperse_with(|| None) {
+            for ins in self
+                .iter()
+                .with_offset()
+                .map(Some)
+                .intersperse_with(|| None)
+            {
                 if let Some((offset, ins)) = ins {
                     match ins {
                         Ok(ins) => write!(f, "{offset:5} {ins:?}")?,
