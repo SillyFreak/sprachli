@@ -1,8 +1,10 @@
+use std::fmt;
+
 use super::{InternalError, Result};
 use crate::bytecode::instruction::{BinaryOperator, Opcode, UnaryOperator};
 use crate::bytecode::InstructionSequence;
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Instruction {
     Constant(usize),
     InlineConstant(InlineConstant),
@@ -15,6 +17,26 @@ pub enum Instruction {
     Jump(Offset),
     JumpIf(Offset),
     Invalid,
+}
+
+impl fmt::Debug for Instruction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Instruction::*;
+
+        match self {
+            Constant(index) => write!(f, "CONST #{index}"),
+            InlineConstant(value) => write!(f, "CONST {value:?}"),
+            Pop => write!(f, "POP"),
+            Unary(op) => write!(f, "UNARY {op:?}"),
+            Binary(op) => write!(f, "BINARY {op:?}"),
+            LoadLocal(local) => write!(f, "LOAD {local}"),
+            LoadNamed(index) => write!(f, "LOAD #{index}"),
+            Call(arity) => write!(f, "CALL {arity}"),
+            Jump(offset) => write!(f, "JUMP {offset:?}"),
+            JumpIf(offset) => write!(f, "JUMP_IF {offset:?}"),
+            Invalid => write!(f, "INVALID"),
+        }
+    }
 }
 
 impl Instruction {
@@ -61,10 +83,21 @@ pub enum InlineConstant {
     Bool(bool),
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Offset {
     Forward(usize),
     Backward(usize),
+}
+
+impl fmt::Debug for Offset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Offset::*;
+
+        match self {
+            Forward(offset) => write!(f, "+{offset}"),
+            Backward(offset) => write!(f, "-{offset}"),
+        }
+    }
 }
 
 impl<'a> IntoIterator for &'a InstructionSequence<'_> {
@@ -84,15 +117,29 @@ impl<'b> InstructionSequence<'b> {
 }
 
 #[derive(Debug, Clone)]
-pub struct InstructionIter<'b>(std::slice::Iter<'b, u8>);
+pub struct InstructionIter<'b>(usize, std::slice::Iter<'b, u8>);
 
 impl<'b> InstructionIter<'b> {
     fn new(instructions: &InstructionSequence<'b>) -> Self {
-        Self(instructions.get().iter())
+        Self(0, instructions.get().iter())
+    }
+
+    pub fn offset(&self) -> usize {
+        self.0
+    }
+
+    pub fn with_offset(self) -> OffsetInstructionIter<'b> {
+        OffsetInstructionIter::new(self)
+    }
+
+    fn advance(&mut self) -> Option<u8> {
+        let item = self.1.next().copied()?;
+        self.0 += 1;
+        Some(item)
     }
 
     fn opcode(&mut self) -> Option<Result<Opcode>> {
-        self.0.next().copied().map(|opcode| -> Result<Opcode> {
+        self.advance().map(|opcode| -> Result<Opcode> {
             let opcode = opcode
                 .try_into()
                 .map_err(|_| InternalError::InvalidBytecode)?;
@@ -102,7 +149,7 @@ impl<'b> InstructionIter<'b> {
     }
 
     fn parameter(&mut self) -> Result<u8> {
-        let parameter = *self.0.next().ok_or(InternalError::InvalidBytecode)?;
+        let parameter = self.advance().ok_or(InternalError::InvalidBytecode)?;
         Ok(parameter)
     }
 
@@ -112,13 +159,15 @@ impl<'b> InstructionIter<'b> {
 
         match offset {
             Forward(offset) => {
+                self.0 += offset;
                 if offset > 0 {
-                    self.0.nth(offset - 1).ok_or(InvalidJump)?;
+                    self.1.nth(offset - 1).ok_or(InvalidJump)?;
                 }
             }
             Backward(offset) => {
+                self.0 -= offset;
                 if offset > 0 {
-                    self.0.nth_back(offset - 1).ok_or(InvalidJump)?;
+                    self.1.nth_back(offset - 1).ok_or(InvalidJump)?;
                 }
             }
         }
@@ -189,5 +238,32 @@ impl Iterator for InstructionIter<'_> {
                 Ok(ins)
             })
         })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct OffsetInstructionIter<'b>(InstructionIter<'b>);
+
+impl<'b> OffsetInstructionIter<'b> {
+    fn new(iter: InstructionIter<'b>) -> Self {
+        Self(iter)
+    }
+
+    pub fn offset(&self) -> usize {
+        self.0.offset()
+    }
+
+    pub fn jump(&mut self, offset: Offset) -> Result<()> {
+        self.0.jump(offset)
+    }
+}
+
+impl Iterator for OffsetInstructionIter<'_> {
+    type Item = (usize, Result<Instruction>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let offset = self.offset();
+        let ins = self.0.next()?;
+        Some((offset, ins))
     }
 }

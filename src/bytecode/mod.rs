@@ -98,7 +98,15 @@ impl fmt::Debug for Function<'_> {
                 None => f.write_str(", ")?,
             }
         }
-        f.write_str(") { ... }")
+
+        if f.alternate() {
+            f.write_str(") {\n")?;
+            self.body.fmt(f)?;
+            f.write_str("\n}")?;
+        } else {
+            f.write_str(") { ... }")?;
+        }
+        Ok(())
     }
 }
 
@@ -116,7 +124,7 @@ impl<'b> Function<'b> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct InstructionSequence<'b>(&'b [u8]);
 
 impl<'b> InstructionSequence<'b> {
@@ -126,5 +134,25 @@ impl<'b> InstructionSequence<'b> {
 
     pub fn get(&self) -> &'b [u8] {
         self.0
+    }
+}
+
+impl fmt::Debug for InstructionSequence<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if f.alternate() {
+            for ins in self.iter().with_offset().map(Some).intersperse_with(|| None) {
+                if let Some((offset, ins)) = ins {
+                    match ins {
+                        Ok(ins) => write!(f, "{offset:5} {ins:?}")?,
+                        Err(_error) => write!(f, "{offset:5} ...")?,
+                    }
+                } else {
+                    f.write_str("\n")?;
+                }
+            }
+            Ok(())
+        } else {
+            self.0.fmt(f)
+        }
     }
 }
