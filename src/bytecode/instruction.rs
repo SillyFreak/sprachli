@@ -54,7 +54,7 @@ impl fmt::Debug for Instruction {
             Pop => write!(f, "POP"),
             Unary(op) => write!(f, "UNARY {op:?}"),
             Binary(op) => write!(f, "BINARY {op:?}"),
-            LoadLocal(local) => write!(f, "LOAD {local}"),
+            LoadLocal(local) => write!(f, "LOAD _{local}"),
             LoadNamed(index) => write!(f, "LOAD #{index}"),
             Call(arity) => write!(f, "CALL {arity}"),
             Jump(offset) => write!(f, "JUMP {offset:?}"),

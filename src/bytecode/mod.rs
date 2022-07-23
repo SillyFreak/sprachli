@@ -8,6 +8,7 @@
 use std::fmt;
 
 mod error;
+mod fmt_helpers;
 pub mod instruction;
 pub mod parser;
 
@@ -17,6 +18,7 @@ use bigdecimal::BigDecimal;
 use itertools::Itertools;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
+use fmt_helpers::*;
 use instruction::{InlineConstant, Instruction, Offset, Opcode};
 
 pub use error::*;
@@ -31,21 +33,22 @@ where
 
 #[derive(Debug, Clone)]
 pub struct Module<'b> {
-    constants: Vec<Constant<'b>>,
+    constants: Constants<'b>,
     globals: HashMap<&'b str, usize>,
 }
 
 impl<'b> Module<'b> {
     pub fn new(constants: Vec<Constant<'b>>, globals: HashMap<&'b str, usize>) -> Self {
+        let constants = Constants::new(constants);
         Self { constants, globals }
     }
 
     pub fn constants(&self) -> &Vec<Constant<'b>> {
-        &self.constants
+        &self.constants.0
     }
 
     pub fn constant(&self, index: usize) -> Option<&Constant<'b>> {
-        self.constants.get(index)
+        self.constants.0.get(index)
     }
 
     pub fn globals(&self) -> &HashMap<&'b str, usize> {
@@ -55,6 +58,37 @@ impl<'b> Module<'b> {
     pub fn global(&self, name: &str) -> Option<&Constant<'b>> {
         let index = *self.globals.get(name)?;
         self.constant(index)
+    }
+}
+
+#[derive(Clone)]
+struct Constants<'b>(Vec<Constant<'b>>);
+
+impl fmt::Debug for Constants<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if f.alternate() {
+            f.write_str("[\n")?;
+            for constant in self.0.iter().enumerate().map(Some).intersperse(None) {
+                match constant {
+                    Some((i, constant)) => {
+                        let constant = FmtConstant::new(&self.0, constant);
+                        write!(f, "{i:5} ")?;
+                        constant.fmt(f)?;
+                    }
+                    None => f.write_str("\n")?,
+                }
+            }
+            f.write_str("\n]")?;
+            Ok(())
+        } else {
+            self.0.fmt(f)
+        }
+    }
+}
+
+impl<'b> Constants<'b> {
+    pub fn new(items: Vec<Constant<'b>>) -> Self {
+        Self(items)
     }
 }
 
