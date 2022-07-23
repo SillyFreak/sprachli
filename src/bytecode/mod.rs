@@ -17,6 +17,8 @@ use bigdecimal::BigDecimal;
 use itertools::Itertools;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
+use instruction::{InlineConstant, Instruction, Offset, Opcode};
+
 pub use error::*;
 pub use parser::parse_bytecode;
 
@@ -135,6 +137,11 @@ impl<'b> InstructionSequence<'b> {
     pub fn get(&self) -> &'b [u8] {
         self.0
     }
+
+    #[inline]
+    pub fn iter(&self) -> InstructionIter<'_> {
+        InstructionIter::new(self)
+    }
 }
 
 impl fmt::Debug for InstructionSequence<'_> {
@@ -159,5 +166,169 @@ impl fmt::Debug for InstructionSequence<'_> {
         } else {
             self.0.fmt(f)
         }
+    }
+}
+
+impl<'a> IntoIterator for &'a InstructionSequence<'_> {
+    type Item = Result<Instruction>;
+    type IntoIter = InstructionIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct InstructionIter<'b>(usize, std::slice::Iter<'b, u8>);
+
+impl<'b> InstructionIter<'b> {
+    fn new(instructions: &InstructionSequence<'b>) -> Self {
+        Self(0, instructions.get().iter())
+    }
+
+    pub fn offset(&self) -> usize {
+        self.0
+    }
+
+    pub fn with_offset(self) -> OffsetInstructionIter<'b> {
+        OffsetInstructionIter::new(self)
+    }
+
+    fn advance(&mut self) -> Option<u8> {
+        let item = self.1.next().copied()?;
+        self.0 += 1;
+        Some(item)
+    }
+
+    fn opcode(&mut self) -> Option<Result<Opcode>> {
+        self.advance().map(|opcode| -> Result<Opcode> {
+            let opcode = opcode
+                .try_into()
+                .map_err(|_| Error::InvalidOpcode(opcode))?;
+
+            Ok(opcode)
+        })
+    }
+
+    fn parameter(&mut self, opcode: Opcode) -> Result<u8> {
+        let parameter = self.advance().ok_or(Error::IncompleteInstruction(opcode))?;
+        Ok(parameter)
+    }
+
+    pub(crate) fn raw_jump(&mut self, offset: Offset) -> std::result::Result<(), ()> {
+        use Offset::*;
+
+        match offset {
+            Forward(offset) => {
+                self.0 += offset;
+                if offset > 0 {
+                    self.1.nth(offset - 1).ok_or(())?;
+                }
+            }
+            Backward(offset) => {
+                self.0 -= offset;
+                if offset > 0 {
+                    self.1.nth_back(offset - 1).ok_or(())?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl Iterator for InstructionIter<'_> {
+    type Item = Result<Instruction>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use InlineConstant as Inl;
+        use Instruction as In;
+        use Opcode as Op;
+
+        self.opcode().map(|opcode| {
+            opcode.and_then(|opcode| {
+                let ins = match opcode {
+                    Op::Constant => {
+                        let constant = self.parameter(opcode)?;
+                        In::Constant(constant as usize)
+                    }
+                    Op::Unit => In::InlineConstant(Inl::Unit),
+                    Op::True => In::InlineConstant(Inl::Bool(true)),
+                    Op::False => In::InlineConstant(Inl::Bool(false)),
+                    Op::Pop => In::Pop,
+                    Op::Unary => {
+                        let op = self.parameter(opcode)?;
+                        let op = op
+                            .try_into()
+                            .map_err(|_| Error::InvalidInstruction(opcode))?;
+                        In::Unary(op)
+                    }
+                    Op::Binary => {
+                        let op = self.parameter(opcode)?;
+                        let op = op
+                            .try_into()
+                            .map_err(|_| Error::InvalidInstruction(opcode))?;
+                        In::Binary(op)
+                    }
+                    Op::LoadLocal => {
+                        let local = self.parameter(opcode)?;
+                        In::LoadLocal(local as usize)
+                    }
+                    Op::LoadNamed => {
+                        let constant = self.parameter(opcode)?;
+                        In::LoadNamed(constant as usize)
+                    }
+                    Op::Call => {
+                        let arity = self.parameter(opcode)?;
+                        In::Call(arity as usize)
+                    }
+                    Op::JumpForward => {
+                        let offset = self.parameter(opcode)?;
+                        In::Jump(Offset::Forward(offset as usize))
+                    }
+                    Op::JumpBackward => {
+                        let offset = self.parameter(opcode)?;
+                        In::Jump(Offset::Backward(offset as usize))
+                    }
+                    Op::JumpForwardIf => {
+                        let offset = self.parameter(opcode)?;
+                        In::JumpIf(Offset::Forward(offset as usize))
+                    }
+                    Op::JumpBackwardIf => {
+                        let offset = self.parameter(opcode)?;
+                        In::JumpIf(Offset::Backward(offset as usize))
+                    }
+                };
+
+                Ok(ins)
+            })
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct OffsetInstructionIter<'b>(InstructionIter<'b>);
+
+impl<'b> OffsetInstructionIter<'b> {
+    fn new(iter: InstructionIter<'b>) -> Self {
+        Self(iter)
+    }
+
+    pub fn offset(&self) -> usize {
+        self.0.offset()
+    }
+
+    pub(crate) fn raw_jump(&mut self, offset: Offset) -> std::result::Result<(), ()> {
+        self.0.raw_jump(offset)
+    }
+}
+
+impl Iterator for OffsetInstructionIter<'_> {
+    type Item = (usize, Result<Instruction>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let offset = self.offset();
+        let ins = self.0.next()?;
+        Some((offset, ins))
     }
 }

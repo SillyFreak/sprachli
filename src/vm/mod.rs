@@ -1,13 +1,12 @@
 mod error;
-mod instruction;
 mod stack;
 mod value;
 
 use bigdecimal::BigDecimal;
 
 use crate::ast::{BinaryOperator, UnaryOperator};
-use crate::bytecode::{Constant, Module};
-use instruction::{InlineConstant, InstructionIter, Offset};
+use crate::bytecode::instruction::{InlineConstant, Instruction, Offset};
+use crate::bytecode::{Constant, InstructionIter, Module};
 use stack::Stack;
 
 pub use error::*;
@@ -174,7 +173,7 @@ impl<'b> Vm<'b> {
     }
 
     fn call(&mut self, arity: usize) -> Result<()> {
-        use instruction::Instruction::*;
+        use Instruction::*;
 
         let mut ops = self.stack.pop_multiple(arity + 1)?;
 
@@ -194,7 +193,7 @@ impl<'b> Vm<'b> {
 
         let mut instructions = function.body().iter();
         while let Some(ins) = instructions.next() {
-            match ins? {
+            match ins.map_err(InternalError::from)? {
                 Constant(index) => self.constant(index)?,
                 InlineConstant(constant) => self.inline_constant(constant)?,
                 Pop => self.stack.pop().map(|_| ())?,
@@ -205,12 +204,19 @@ impl<'b> Vm<'b> {
                 Call(arity) => self.call(arity)?,
                 Jump(offset) => self.jump(&mut instructions, offset)?,
                 JumpIf(offset) => self.jump_if(&mut instructions, offset)?,
-                Invalid => Err(InternalError::InvalidInstruction)?,
             }
         }
 
         assert_eq!(self.stack.len(), offset + 1);
 
         Ok(())
+    }
+}
+
+impl<'b> InstructionIter<'b> {
+    pub fn jump(&mut self, offset: Offset) -> Result<()> {
+        use InternalError::*;
+
+        self.raw_jump(offset).map_err(|_| InvalidJump.into())
     }
 }

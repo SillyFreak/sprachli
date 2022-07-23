@@ -2,6 +2,8 @@ use std::fmt;
 
 use nom::error::ParseError;
 
+use super::instruction::Opcode;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("ParseError: {0}")]
@@ -12,6 +14,12 @@ pub enum Error {
     InvalidStringConstant,
     #[error("Invalid constant pool entry: invalid number string")]
     InvalidNumberConstant,
+    #[error("Invalid opcode: {0}")]
+    InvalidOpcode(u8),
+    #[error("Incomplete instruction: {0:?}")]
+    IncompleteInstruction(Opcode),
+    #[error("Invalid Instruction: {0:?}")]
+    InvalidInstruction(Opcode),
     #[error("Constant #{0} not in constant table of len {1}")]
     InvalidConstantRef(usize, usize),
     #[error("Constant #{0} was not a {1}")]
@@ -33,3 +41,5 @@ impl<I: fmt::Debug> ParseError<I> for Error {
         other
     }
 }
+
+pub type Result<T> = std::result::Result<T, Error>;

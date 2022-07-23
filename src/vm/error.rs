@@ -1,5 +1,6 @@
 use bigdecimal::ParseBigDecimalError;
 
+use crate::bytecode::Error as BytecodeError;
 use crate::parser::ParseStringError;
 
 #[derive(thiserror::Error, Debug)]
@@ -34,10 +35,8 @@ pub enum InternalError {
     EmptyStack,
     #[error("Tried to mutate a binding in the global scope")]
     WriteGlobalScope,
-    #[error("Tried read an invalid bytecode sequence")]
-    InvalidBytecode,
-    #[error("Tried to execute an invalid instruction")]
-    InvalidInstruction,
+    #[error("Invalid bytecode sequence: {0}")]
+    InvalidBytecode(#[from] BytecodeError),
     #[error("Tried to jump to nonexistent instruction")]
     InvalidJump,
 }
