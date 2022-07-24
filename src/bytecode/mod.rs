@@ -80,7 +80,7 @@ impl fmt::Debug for Module<'_> {
             f.write_str("    constants: [\n")?;
             for (i, constant) in self.constants.iter().enumerate() {
                 write!(f, "    {i:5}: ")?;
-                constant.fmt_with(f, self)?;
+                constant.fmt_with(f, Some(self))?;
                 f.write_str("\n")?;
             }
             f.write_str("    ],\n")?;
@@ -120,7 +120,7 @@ pub enum Constant<'b> {
 }
 
 impl<'b> Constant<'b> {
-    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: &Module<'b>) -> fmt::Result {
+    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
         use fmt::Debug;
         use Constant::*;
 
@@ -134,13 +134,7 @@ impl<'b> Constant<'b> {
 
 impl fmt::Debug for Constant<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Constant::*;
-
-        match self {
-            Number(value) => fmt::Display::fmt(value, f),
-            String(value) => value.fmt(f),
-            Function(value) => value.fmt(f),
-        }
+        self.fmt_with(f, None)
     }
 }
 
@@ -163,7 +157,7 @@ impl<'b> Function<'b> {
         &self.body
     }
 
-    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: &Module<'b>) -> fmt::Result {
+    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
         f.write_str("fn (")?;
         for i in (0..self.arity).map(Some).intersperse(None) {
             match i {
@@ -185,22 +179,7 @@ impl<'b> Function<'b> {
 
 impl fmt::Debug for Function<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("fn (")?;
-        for i in (0..self.arity).map(Some).intersperse(None) {
-            match i {
-                Some(i) => write!(f, "_{}", i)?,
-                None => f.write_str(", ")?,
-            }
-        }
-
-        if f.alternate() {
-            f.write_str(") {\n")?;
-            self.body.fmt(f)?;
-            f.write_str("\n}")?;
-        } else {
-            f.write_str(") { ... }")?;
-        }
-        Ok(())
+        self.fmt_with(f, None)
     }
 }
 
@@ -232,7 +211,7 @@ impl<'a> IntoIterator for &'a InstructionSequence<'_> {
 }
 
 impl<'b> InstructionSequence<'b> {
-    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: &Module<'b>) -> fmt::Result {
+    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
         use fmt::Debug;
 
         if f.alternate() {
@@ -263,26 +242,7 @@ impl<'b> InstructionSequence<'b> {
 
 impl fmt::Debug for InstructionSequence<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            for ins in self
-                .iter()
-                .with_offset()
-                .map(Some)
-                .intersperse_with(|| None)
-            {
-                if let Some((offset, ins)) = ins {
-                    match ins {
-                        Ok(ins) => write!(f, "{offset:5} {ins:?}")?,
-                        Err(_error) => write!(f, "{offset:5} ...")?,
-                    }
-                } else {
-                    f.write_str("\n")?;
-                }
-            }
-            Ok(())
-        } else {
-            self.0.fmt(f)
-        }
+        self.fmt_with(f, None)
     }
 }
 
