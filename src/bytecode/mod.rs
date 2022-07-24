@@ -8,7 +8,6 @@
 use std::fmt;
 
 mod error;
-mod fmt_helpers;
 pub mod instruction;
 pub mod parser;
 
@@ -18,7 +17,6 @@ use bigdecimal::BigDecimal;
 use itertools::Itertools;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
-use fmt_helpers::*;
 use instruction::{InlineConstant, Instruction, Offset, Opcode};
 
 pub use error::*;
@@ -31,24 +29,23 @@ pub struct Bytecode<B>(B)
 where
     B: AsRef<[u8]>;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Module<'b> {
-    constants: Constants<'b>,
+    constants: Vec<Constant<'b>>,
     globals: HashMap<&'b str, usize>,
 }
 
 impl<'b> Module<'b> {
     pub fn new(constants: Vec<Constant<'b>>, globals: HashMap<&'b str, usize>) -> Self {
-        let constants = Constants::new(constants);
         Self { constants, globals }
     }
 
     pub fn constants(&self) -> &Vec<Constant<'b>> {
-        &self.constants.0
+        &self.constants
     }
 
     pub fn constant(&self, index: usize) -> Option<&Constant<'b>> {
-        self.constants.0.get(index)
+        self.constants.get(index)
     }
 
     pub fn globals(&self) -> &HashMap<&'b str, usize> {
@@ -59,35 +56,50 @@ impl<'b> Module<'b> {
         let index = *self.globals.get(name)?;
         self.constant(index)
     }
-}
 
-#[derive(Clone)]
-struct Constants<'b>(Vec<Constant<'b>>);
+    pub(crate) fn fmt_constant(&self, f: &mut fmt::Formatter<'_>, index: usize) -> fmt::Result {
+        match self.constant(index) {
+            Some(constant) => write!(f, "{constant:?}"),
+            _ => f.write_str("illegal constant"),
+        }
+    }
 
-impl<'b> Constants<'b> {
-    pub fn new(items: Vec<Constant<'b>>) -> Self {
-        Self(items)
+    pub(crate) fn fmt_constant_ident(&self, f: &mut fmt::Formatter<'_>, index: usize) -> fmt::Result {
+        match self.constant(index) {
+            Some(Constant::String(value)) => f.write_str(value),
+            Some(constant) => write!(f, "{constant:?} (invalid identifier)"),
+            _ => f.write_str("illegal constant"),
+        }
     }
 }
 
-impl fmt::Debug for Constants<'_> {
+impl fmt::Debug for Module<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if f.alternate() {
-            f.write_str("[\n")?;
-            for constant in self.0.iter().enumerate().map(Some).intersperse(None) {
-                match constant {
-                    Some((i, constant)) => {
-                        let constant = FmtConstant::new(&self.0, constant);
-                        write!(f, "{i:5} ")?;
-                        constant.fmt(f)?;
-                    }
-                    None => f.write_str("\n")?,
-                }
+            f.write_str("Module {\n")?;
+            f.write_str("    constants: [\n")?;
+            for (i, constant) in self.constants.iter().enumerate() {
+                write!(f, "    {i:5}: ")?;
+                constant.fmt_with(f, self)?;
+                f.write_str("\n")?;
             }
-            f.write_str("\n]")?;
+            f.write_str("    ],\n")?;
+            f.write_str("    globals: {\n")?;
+            for (name, index) in &self.globals {
+                f.write_str("        ")?;
+                f.write_str(name)?;
+                write!(f, ": {index:<0$} -- ", 9usize.saturating_sub(name.len()))?;
+                self.fmt_constant(f, *index)?;
+                f.write_str("\n")?;
+            }
+            f.write_str("    },\n")?;
+            f.write_str("}")?;
             Ok(())
         } else {
-            self.0.fmt(f)
+            f.debug_struct("Module")
+                .field("constants", &self.constants)
+                .field("globals", &self.globals)
+                .finish()
         }
     }
 }
@@ -105,6 +117,19 @@ pub enum Constant<'b> {
     Number(Number),
     String(&'b str),
     Function(Function<'b>),
+}
+
+impl<'b> Constant<'b> {
+    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: &Module<'b>) -> fmt::Result {
+        use fmt::Debug;
+        use Constant::*;
+
+        match self {
+            Number(value) => fmt::Display::fmt(value, f),
+            String(value) => value.fmt(f),
+            Function(value) => value.fmt_with(f, module),
+        }
+    }
 }
 
 impl fmt::Debug for Constant<'_> {
@@ -136,6 +161,25 @@ impl<'b> Function<'b> {
 
     pub fn body(&self) -> &InstructionSequence {
         &self.body
+    }
+
+    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: &Module<'b>) -> fmt::Result {
+        f.write_str("fn (")?;
+        for i in (0..self.arity).map(Some).intersperse(None) {
+            match i {
+                Some(i) => write!(f, "_{}", i)?,
+                None => f.write_str(", ")?,
+            }
+        }
+
+        if f.alternate() {
+            f.write_str(") {\n")?;
+            self.body.fmt_with(f, module)?;
+            f.write_str("\n           }")?;
+        } else {
+            f.write_str(") { ... }")?;
+        }
+        Ok(())
     }
 }
 
@@ -184,6 +228,36 @@ impl<'a> IntoIterator for &'a InstructionSequence<'_> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+impl<'b> InstructionSequence<'b> {
+    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: &Module<'b>) -> fmt::Result {
+        use fmt::Debug;
+
+        if f.alternate() {
+            for ins in self
+                .iter()
+                .with_offset()
+                .map(Some)
+                .intersperse_with(|| None)
+            {
+                if let Some((offset, ins)) = ins {
+                    match ins {
+                        Ok(ins) => {
+                            write!(f, "           {offset:5}  ")?;
+                            ins.fmt_with(f, module)?;
+                        }
+                        Err(_error) => write!(f, "           {offset:5}  ...")?,
+                    }
+                } else {
+                    f.write_str("\n")?;
+                }
+            }
+            Ok(())
+        } else {
+            self.0.fmt(f)
+        }
     }
 }
 

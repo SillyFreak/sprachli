@@ -3,6 +3,7 @@ use std::fmt;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use crate::ast;
+use super::Module;
 
 pub use ast::{BinaryOperator, UnaryOperator};
 
@@ -76,6 +77,31 @@ impl Instruction {
             Call(_) => 2,
             Jump(_) => 2,
             JumpIf(_) => 2,
+        }
+    }
+
+    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: &Module) -> fmt::Result {
+        use Instruction::*;
+
+        match self {
+            Constant(index) => {
+                write!(f, "CONST #{index:<3} -- ")?;
+                module.fmt_constant(f, *index)?;
+                Ok(())
+            }
+            InlineConstant(value) => write!(f, "CONST {value:?}"),
+            Pop => write!(f, "POP"),
+            Unary(op) => write!(f, "UNARY {op:?}"),
+            Binary(op) => write!(f, "BINARY {op:?}"),
+            LoadLocal(local) => write!(f, "LOAD _{local}"),
+            LoadNamed(index) => {
+                write!(f, "LOAD #{index:<4} -- ")?;
+                module.fmt_constant_ident(f, *index)?;
+                Ok(())
+            }
+            Call(arity) => write!(f, "CALL {arity}"),
+            Jump(offset) => write!(f, "JUMP {offset:?}"),
+            JumpIf(offset) => write!(f, "JUMP_IF {offset:?}"),
         }
     }
 }
