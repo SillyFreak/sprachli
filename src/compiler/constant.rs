@@ -4,6 +4,7 @@ use bigdecimal::BigDecimal;
 use itertools::Itertools;
 
 use super::instruction::Instruction;
+use super::Module;
 
 pub type Number = BigDecimal;
 
@@ -32,15 +33,22 @@ impl From<Function> for Constant {
     }
 }
 
-impl fmt::Debug for Constant {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Constant {
+    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
+        use fmt::Debug;
         use Constant::*;
 
         match self {
             Number(value) => fmt::Display::fmt(value, f),
-            String(value) => fmt::Display::fmt(value, f),
-            Function(value) => value.fmt(f),
+            String(value) => value.fmt(f),
+            Function(value) => value.fmt_with(f, module),
         }
+    }
+}
+
+impl fmt::Debug for Constant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.fmt_with(f, None)
     }
 }
 
@@ -62,10 +70,8 @@ impl Function {
     pub fn body(&self) -> &[Instruction] {
         &self.body
     }
-}
 
-impl fmt::Debug for Function {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
         f.write_str("fn (")?;
         for i in (0..self.arity).map(Some).intersperse(None) {
             match i {
@@ -73,6 +79,45 @@ impl fmt::Debug for Function {
                 None => f.write_str(", ")?,
             }
         }
-        f.write_str(") { ... }")
+
+        if f.alternate() {
+            f.write_str(") {\n")?;
+            self.fmt_body_with(f, module)?;
+            f.write_str("\n           }")?;
+        } else {
+            f.write_str(") { ... }")?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn fmt_body_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
+        use fmt::Debug;
+
+        let mut offset = 0;
+        if f.alternate() {
+            for ins in self
+                .body
+                .iter()
+                .map(Some)
+                .intersperse_with(|| None)
+            {
+                if let Some(ins) = ins {
+                    offset += ins.encoded_len();
+                    write!(f, "           {offset:5}  ")?;
+                    ins.fmt_with(f, module)?;
+                } else {
+                    f.write_str("\n")?;
+                }
+            }
+            Ok(())
+        } else {
+            self.body.fmt(f)
+        }
+    }
+}
+
+impl fmt::Debug for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.fmt_with(f, None)
     }
 }

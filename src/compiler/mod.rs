@@ -4,6 +4,7 @@ mod instruction;
 mod writer;
 
 use std::collections::HashMap;
+use std::fmt;
 use std::io::Write;
 use std::str::FromStr;
 
@@ -26,7 +27,7 @@ pub fn compile_ast<W: Write>(w: &mut W, ast: ast::SourceFile) -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Module {
     constants: Vec<Constant>,
     globals: HashMap<usize, usize>,
@@ -62,6 +63,61 @@ impl From<Compiler> for Module {
             constants, globals, ..
         } = compiler;
         Self { constants, globals }
+    }
+}
+
+impl Module {
+    pub(crate) fn fmt_constant(&self, f: &mut fmt::Formatter<'_>, index: usize) -> fmt::Result {
+        match self.constants.get(index) {
+            Some(constant) => write!(f, "{constant:?}"),
+            _ => f.write_str("illegal constant"),
+        }
+    }
+
+    pub(crate) fn fmt_constant_ident(&self, f: &mut fmt::Formatter<'_>, index: usize) -> std::result::Result<Option<&str>, fmt::Error> {
+        match self.constants.get(index) {
+            Some(Constant::String(value)) => {
+                f.write_str(value)?;
+                return Ok(Some(value))
+            }
+            Some(constant) => write!(f, "{constant:?} (invalid identifier)")?,
+            _ => f.write_str("illegal constant")?,
+        }
+        Ok(None)
+    }
+}
+
+impl fmt::Debug for Module {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if f.alternate() {
+            f.write_str("Module {\n")?;
+            f.write_str("    constants: [\n")?;
+            for (i, constant) in self.constants.iter().enumerate() {
+                write!(f, "    {i:5}: ")?;
+                constant.fmt_with(f, Some(self))?;
+                f.write_str("\n")?;
+            }
+            f.write_str("    ],\n")?;
+            f.write_str("    globals: {\n")?;
+            for (name, index) in &self.globals {
+                f.write_str("        ")?;
+                let name = self.fmt_constant_ident(f, *name)?;
+                match name {
+                    Some(name) => write!(f, ": {index:<0$} -- ", 9usize.saturating_sub(name.len()))?,
+                    None => write!(f, ": {index} -- ")?,
+                }
+                self.fmt_constant(f, *index)?;
+                f.write_str("\n")?;
+            }
+            f.write_str("    },\n")?;
+            f.write_str("}")?;
+            Ok(())
+        } else {
+            f.debug_struct("Module")
+                .field("constants", &self.constants)
+                .field("globals", &self.globals)
+                .finish()
+        }
     }
 }
 
