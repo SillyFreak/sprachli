@@ -15,7 +15,10 @@ where
     'a: 'b,
 {
     pub fn new(constants: &'a [Constant<'b>], constant: &'a Constant<'b>) -> Self {
-        Self { constants, constant }
+        Self {
+            constants,
+            constant,
+        }
     }
 }
 
@@ -47,7 +50,10 @@ where
     'a: 'b,
 {
     pub fn new(constants: &'a [Constant<'b>], function: &'a Function<'b>) -> Self {
-        Self { constants, function }
+        Self {
+            constants,
+            function,
+        }
     }
 }
 
@@ -86,7 +92,10 @@ where
     'a: 'b,
 {
     pub fn new(constants: &'a [Constant<'b>], instructions: &'a InstructionSequence<'b>) -> Self {
-        Self { constants, instructions }
+        Self {
+            constants,
+            instructions,
+        }
     }
 }
 
@@ -131,7 +140,10 @@ where
     'a: 'b,
 {
     pub fn new(constants: &'a [Constant<'b>], instruction: Instruction) -> Self {
-        Self { constants, instruction }
+        Self {
+            constants,
+            instruction,
+        }
     }
 }
 
