@@ -142,13 +142,3 @@ impl fmt::Debug for BoxedValue {
         }
     }
 }
-
-// pub fn check_arity(&self, actual_parameter_count: usize) -> Result<()> {
-//     if actual_parameter_count != self.arity {
-//         Err(Error::ValueError(format!(
-//             "wrong parameter number; expected {}, got {}",
-//             self.arity, actual_parameter_count,
-//         )))?;
-//     }
-//     Ok(())
-// }
