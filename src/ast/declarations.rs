@@ -57,7 +57,7 @@ impl Visibility {
             Self::Public => {
                 f.name("pub");
             }
-            _ => {}
+            Self::Private => {}
         }
     }
 }
