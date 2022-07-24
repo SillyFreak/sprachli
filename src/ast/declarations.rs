@@ -79,18 +79,6 @@ pub struct Fn<'input> {
     pub body: Block<'input>,
 }
 
-impl fmt::Debug for Fn<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_prefixed();
-        f.name("fn");
-        self.visibility.fmt(&mut f);
-        f.name(self.name)
-            .names(&self.formal_parameters)
-            .item(&self.body)
-            .finish()
-    }
-}
-
 impl<'input> Fn<'input> {
     pub fn new(
         visibility: Visibility,
@@ -116,21 +104,23 @@ impl<'input> Fn<'input> {
     }
 }
 
+impl fmt::Debug for Fn<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut f = f.debug_prefixed();
+        f.name("fn");
+        self.visibility.fmt(&mut f);
+        f.name(self.name)
+            .names(&self.formal_parameters)
+            .item(&self.body)
+            .finish()
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct Struct<'input> {
     pub visibility: Visibility,
     pub name: &'input str,
     pub members: StructMembers<'input>,
-}
-
-impl fmt::Debug for Struct<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_prefixed();
-        f.name("struct");
-        self.visibility.fmt(&mut f);
-        self.members.fmt(&mut f, self.name);
-        f.finish()
-    }
 }
 
 impl<'input> Struct<'input> {
@@ -148,6 +138,16 @@ impl<'input> Struct<'input> {
         members: StructMembers<'input>,
     ) -> Declaration<'input> {
         Declaration::Struct(Self::new(visibility, name, members))
+    }
+}
+
+impl fmt::Debug for Struct<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut f = f.debug_prefixed();
+        f.name("struct");
+        self.visibility.fmt(&mut f);
+        self.members.fmt(&mut f, self.name);
+        f.finish()
     }
 }
 

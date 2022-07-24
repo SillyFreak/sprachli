@@ -75,16 +75,6 @@ pub struct Binary<'input> {
     pub right: Box<Expression<'input>>,
 }
 
-impl fmt::Debug for Binary<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_prefixed()
-            .item(&self.operator)
-            .item(&self.left)
-            .item(&self.right)
-            .finish()
-    }
-}
-
 impl<'input> Binary<'input> {
     pub fn new(
         left: Expression<'input>,
@@ -106,6 +96,16 @@ impl<'input> Binary<'input> {
         right: Expression<'input>,
     ) -> Expression<'input> {
         Expression::Binary(Self::new(left, operator, right))
+    }
+}
+
+impl fmt::Debug for Binary<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_prefixed()
+            .item(&self.operator)
+            .item(&self.left)
+            .item(&self.right)
+            .finish()
     }
 }
 
@@ -133,15 +133,6 @@ pub struct Unary<'input> {
     pub right: Box<Expression<'input>>,
 }
 
-impl fmt::Debug for Unary<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_prefixed()
-            .item(&self.operator)
-            .item(&self.right)
-            .finish()
-    }
-}
-
 impl<'input> Unary<'input> {
     pub fn new(operator: UnaryOperator, right: Expression<'input>) -> Self {
         let right = Box::new(right);
@@ -156,20 +147,19 @@ impl<'input> Unary<'input> {
     }
 }
 
+impl fmt::Debug for Unary<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_prefixed()
+            .item(&self.operator)
+            .item(&self.right)
+            .finish()
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct Call<'input> {
     pub function: Box<Expression<'input>>,
     pub actual_parameters: Vec<Expression<'input>>,
-}
-
-impl fmt::Debug for Call<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_prefixed()
-            .name("call")
-            .item(&self.function)
-            .items(&self.actual_parameters)
-            .finish()
-    }
 }
 
 impl<'input> Call<'input> {
@@ -189,23 +179,20 @@ impl<'input> Call<'input> {
     }
 }
 
+impl fmt::Debug for Call<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_prefixed()
+            .name("call")
+            .item(&self.function)
+            .items(&self.actual_parameters)
+            .finish()
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct Block<'input> {
     pub statements: Vec<Statement<'input>>,
     pub expression: Option<Box<Expression<'input>>>,
-}
-
-impl fmt::Debug for Block<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_prefixed();
-        f.name("block").items(&self.statements);
-        if let Some(expression) = &self.expression {
-            f.item(&expression);
-        } else {
-            f.item(&());
-        }
-        f.finish()
-    }
 }
 
 impl<'input> Block<'input> {
@@ -225,23 +212,23 @@ impl<'input> Block<'input> {
     }
 }
 
+impl fmt::Debug for Block<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut f = f.debug_prefixed();
+        f.name("block").items(&self.statements);
+        if let Some(expression) = &self.expression {
+            f.item(&expression);
+        } else {
+            f.item(&());
+        }
+        f.finish()
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct If<'input> {
     pub then_branches: Vec<(Expression<'input>, Block<'input>)>,
     pub else_branch: Option<Block<'input>>,
-}
-
-impl fmt::Debug for If<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_prefixed();
-        for (condition, block) in &self.then_branches {
-            f.name("if").item(condition).item(block);
-        }
-        if let Some(else_branch) = &self.else_branch {
-            f.name("else").item(&else_branch);
-        }
-        f.finish()
-    }
 }
 
 impl<'input> If<'input> {
@@ -260,5 +247,18 @@ impl<'input> If<'input> {
         else_branch: Option<Block<'input>>,
     ) -> Expression<'input> {
         Expression::If(Self::new(then_branches, else_branch))
+    }
+}
+
+impl fmt::Debug for If<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut f = f.debug_prefixed();
+        for (condition, block) in &self.then_branches {
+            f.name("if").item(condition).item(block);
+        }
+        if let Some(else_branch) = &self.else_branch {
+            f.name("else").item(&else_branch);
+        }
+        f.finish()
     }
 }

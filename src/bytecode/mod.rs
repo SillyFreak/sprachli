@@ -64,6 +64,12 @@ impl<'b> Module<'b> {
 #[derive(Clone)]
 struct Constants<'b>(Vec<Constant<'b>>);
 
+impl<'b> Constants<'b> {
+    pub fn new(items: Vec<Constant<'b>>) -> Self {
+        Self(items)
+    }
+}
+
 impl fmt::Debug for Constants<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if f.alternate() {
@@ -83,12 +89,6 @@ impl fmt::Debug for Constants<'_> {
         } else {
             self.0.fmt(f)
         }
-    }
-}
-
-impl<'b> Constants<'b> {
-    pub fn new(items: Vec<Constant<'b>>) -> Self {
-        Self(items)
     }
 }
 
@@ -125,6 +125,20 @@ pub struct Function<'b> {
     body: InstructionSequence<'b>,
 }
 
+impl<'b> Function<'b> {
+    pub fn new(arity: usize, body: InstructionSequence<'b>) -> Self {
+        Self { arity, body }
+    }
+
+    pub fn arity(&self) -> usize {
+        self.arity
+    }
+
+    pub fn body(&self) -> &InstructionSequence {
+        &self.body
+    }
+}
+
 impl fmt::Debug for Function<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("fn (")?;
@@ -146,20 +160,6 @@ impl fmt::Debug for Function<'_> {
     }
 }
 
-impl<'b> Function<'b> {
-    pub fn new(arity: usize, body: InstructionSequence<'b>) -> Self {
-        Self { arity, body }
-    }
-
-    pub fn arity(&self) -> usize {
-        self.arity
-    }
-
-    pub fn body(&self) -> &InstructionSequence {
-        &self.body
-    }
-}
-
 #[derive(Clone)]
 pub struct InstructionSequence<'b>(&'b [u8]);
 
@@ -175,6 +175,15 @@ impl<'b> InstructionSequence<'b> {
     #[inline]
     pub fn iter(&self) -> InstructionIter<'_> {
         InstructionIter::new(self)
+    }
+}
+
+impl<'a> IntoIterator for &'a InstructionSequence<'_> {
+    type Item = Result<Instruction>;
+    type IntoIter = InstructionIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 
@@ -200,15 +209,6 @@ impl fmt::Debug for InstructionSequence<'_> {
         } else {
             self.0.fmt(f)
         }
-    }
-}
-
-impl<'a> IntoIterator for &'a InstructionSequence<'_> {
-    type Item = Result<Instruction>;
-    type IntoIter = InstructionIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
     }
 }
 

@@ -14,18 +14,6 @@ pub enum Constant {
     Function(Function),
 }
 
-impl fmt::Debug for Constant {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Constant::*;
-
-        match self {
-            Number(value) => fmt::Display::fmt(value, f),
-            String(value) => fmt::Display::fmt(value, f),
-            Function(value) => value.fmt(f),
-        }
-    }
-}
-
 impl From<Number> for Constant {
     fn from(value: Number) -> Self {
         Self::Number(value)
@@ -44,23 +32,22 @@ impl From<Function> for Constant {
     }
 }
 
+impl fmt::Debug for Constant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Constant::*;
+
+        match self {
+            Number(value) => fmt::Display::fmt(value, f),
+            String(value) => fmt::Display::fmt(value, f),
+            Function(value) => value.fmt(f),
+        }
+    }
+}
+
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub struct Function {
     arity: usize,
     body: Vec<Instruction>,
-}
-
-impl fmt::Debug for Function {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("fn (")?;
-        for i in (0..self.arity).map(Some).intersperse(None) {
-            match i {
-                Some(i) => write!(f, "_{}", i)?,
-                None => f.write_str(", ")?,
-            }
-        }
-        f.write_str(") { ... }")
-    }
 }
 
 impl Function {
@@ -74,5 +61,18 @@ impl Function {
 
     pub fn body(&self) -> &[Instruction] {
         &self.body
+    }
+}
+
+impl fmt::Debug for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("fn (")?;
+        for i in (0..self.arity).map(Some).intersperse(None) {
+            match i {
+                Some(i) => write!(f, "_{}", i)?,
+                None => f.write_str(", ")?,
+            }
+        }
+        f.write_str(") { ... }")
     }
 }

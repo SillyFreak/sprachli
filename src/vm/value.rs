@@ -26,30 +26,6 @@ pub enum ValueRef<'a, 'b> {
     Function(&'a Function<'b>),
 }
 
-impl fmt::Debug for Value<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Value::*;
-
-        match self {
-            Unit => f.write_str("unit"),
-            Bool(value) => fmt::Display::fmt(value, f),
-            Constant(value) => value.fmt(f),
-            Boxed(value) => value.fmt(f),
-        }
-    }
-}
-
-impl fmt::Debug for BoxedValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use BoxedValue::*;
-
-        match self {
-            Number(value) => fmt::Display::fmt(value, f),
-            String(value) => fmt::Display::fmt(value, f),
-        }
-    }
-}
-
 impl<'b> Value<'b> {
     pub fn unit() -> Self {
         Self::Unit
@@ -139,6 +115,30 @@ impl<'b> Value<'b> {
             Ok(value)
         } else {
             Err(Error::TypeError("function".to_string()))
+        }
+    }
+}
+
+impl fmt::Debug for Value<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Value::*;
+
+        match self {
+            Unit => f.write_str("unit"),
+            Bool(value) => fmt::Display::fmt(value, f),
+            Constant(value) => value.fmt(f),
+            Boxed(value) => value.fmt(f),
+        }
+    }
+}
+
+impl fmt::Debug for BoxedValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use BoxedValue::*;
+
+        match self {
+            Number(value) => fmt::Display::fmt(value, f),
+            String(value) => fmt::Display::fmt(value, f),
         }
     }
 }

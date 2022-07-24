@@ -44,25 +44,6 @@ pub enum Instruction {
     JumpIf(Offset),
 }
 
-impl fmt::Debug for Instruction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Instruction::*;
-
-        match self {
-            Constant(index) => write!(f, "CONST #{index}"),
-            InlineConstant(value) => write!(f, "CONST {value:?}"),
-            Pop => write!(f, "POP"),
-            Unary(op) => write!(f, "UNARY {op:?}"),
-            Binary(op) => write!(f, "BINARY {op:?}"),
-            LoadLocal(local) => write!(f, "LOAD _{local}"),
-            LoadNamed(index) => write!(f, "LOAD #{index}"),
-            Call(arity) => write!(f, "CALL {arity}"),
-            Jump(offset) => write!(f, "JUMP {offset:?}"),
-            JumpIf(offset) => write!(f, "JUMP_IF {offset:?}"),
-        }
-    }
-}
-
 impl Instruction {
     pub fn stack_effect(self) -> isize {
         use Instruction::*;
@@ -95,6 +76,25 @@ impl Instruction {
             Call(_) => 2,
             Jump(_) => 2,
             JumpIf(_) => 2,
+        }
+    }
+}
+
+impl fmt::Debug for Instruction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Instruction::*;
+
+        match self {
+            Constant(index) => write!(f, "CONST #{index}"),
+            InlineConstant(value) => write!(f, "CONST {value:?}"),
+            Pop => write!(f, "POP"),
+            Unary(op) => write!(f, "UNARY {op:?}"),
+            Binary(op) => write!(f, "BINARY {op:?}"),
+            LoadLocal(local) => write!(f, "LOAD _{local}"),
+            LoadNamed(index) => write!(f, "LOAD #{index}"),
+            Call(arity) => write!(f, "CALL {arity}"),
+            Jump(offset) => write!(f, "JUMP {offset:?}"),
+            JumpIf(offset) => write!(f, "JUMP_IF {offset:?}"),
         }
     }
 }
