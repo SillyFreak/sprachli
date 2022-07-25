@@ -57,7 +57,7 @@ pub Expression: ast::Expression<'input> = {
 }
 
 pub Equality: ast::Expression<'input> = {
-	<left:Equality> <operator:EqualityOp> <right:Comparison> => ast::Binary::new_expression(<>),
+	<left:Equality> <operator:EqualityOp> <right:Comparison> => ast::Binary::new(<>).into(),
 	Comparison,
 }
 
@@ -67,7 +67,7 @@ EqualityOp: ast::BinaryOperator = {
 }
 
 pub Comparison: ast::Expression<'input> = {
-	<left:Comparison> <operator:ComparisonOp> <right:Additive> => ast::Binary::new_expression(<>),
+	<left:Comparison> <operator:ComparisonOp> <right:Additive> => ast::Binary::new(<>).into(),
 	Additive,
 }
 
@@ -79,7 +79,7 @@ ComparisonOp: ast::BinaryOperator = {
 }
 
 pub Additive: ast::Expression<'input> = {
-	<left:Additive> <operator:AdditiveOp> <right:Multiplicative> => ast::Binary::new_expression(<>),
+	<left:Additive> <operator:AdditiveOp> <right:Multiplicative> => ast::Binary::new(<>).into(),
 	Multiplicative,
 }
 
@@ -89,7 +89,7 @@ AdditiveOp: ast::BinaryOperator = {
 }
 
 pub Multiplicative: ast::Expression<'input> = {
-	<left:Multiplicative> <operator:MultiplicativeOp> <right:Unary> => ast::Binary::new_expression(<>),
+	<left:Multiplicative> <operator:MultiplicativeOp> <right:Unary> => ast::Binary::new(<>).into(),
 	Unary,
 }
 
@@ -99,7 +99,7 @@ MultiplicativeOp: ast::BinaryOperator = {
 }
 
 pub Unary: ast::Expression<'input> = {
-	<operator:UnaryOp> <right:Unary> => ast::Unary::new_expression(<>),
+	<operator:UnaryOp> <right:Unary> => ast::Unary::new(<>).into(),
 	Call,
 }
 
@@ -109,7 +109,7 @@ UnaryOp: ast::UnaryOperator = {
 }
 
 pub Call: ast::Expression<'input> = {
-	<function:Atomic> "(" <actual_parameters:CommaSeparated<Expression>> ")" => ast::Call::new_expression(<>),
+	<function:Atomic> "(" <actual_parameters:CommaSeparated<Expression>> ")" => ast::Call::new(<>).into(),
 	Atomic,
 }
 

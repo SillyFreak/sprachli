@@ -89,13 +89,11 @@ impl<'input> Binary<'input> {
             right,
         }
     }
+}
 
-    pub fn new_expression(
-        left: Expression<'input>,
-        operator: BinaryOperator,
-        right: Expression<'input>,
-    ) -> Expression<'input> {
-        Expression::Binary(Self::new(left, operator, right))
+impl<'input> From<Binary<'input>> for Expression<'input> {
+    fn from(value: Binary<'input>) -> Self {
+        Expression::Binary(value)
     }
 }
 
@@ -138,12 +136,11 @@ impl<'input> Unary<'input> {
         let right = Box::new(right);
         Self { operator, right }
     }
+}
 
-    pub fn new_expression(
-        operator: UnaryOperator,
-        right: Expression<'input>,
-    ) -> Expression<'input> {
-        Expression::Unary(Self::new(operator, right))
+impl<'input> From<Unary<'input>> for Expression<'input> {
+    fn from(value: Unary<'input>) -> Self {
+        Expression::Unary(value)
     }
 }
 
@@ -170,12 +167,11 @@ impl<'input> Call<'input> {
             actual_parameters,
         }
     }
+}
 
-    pub fn new_expression(
-        function: Expression<'input>,
-        actual_parameters: Vec<Expression<'input>>,
-    ) -> Expression<'input> {
-        Expression::Call(Self::new(function, actual_parameters))
+impl<'input> From<Call<'input>> for Expression<'input> {
+    fn from(value: Call<'input>) -> Self {
+        Expression::Call(value)
     }
 }
 
@@ -203,12 +199,11 @@ impl<'input> Block<'input> {
             expression,
         }
     }
+}
 
-    pub fn new_expression(
-        statements: Vec<Statement<'input>>,
-        expression: Option<Expression<'input>>,
-    ) -> Expression<'input> {
-        Expression::Block(Self::new(statements, expression))
+impl<'input> From<Block<'input>> for Expression<'input> {
+    fn from(value: Block<'input>) -> Self {
+        Expression::Block(value)
     }
 }
 
@@ -241,12 +236,11 @@ impl<'input> If<'input> {
             else_branch,
         }
     }
+}
 
-    pub fn new_expression(
-        then_branches: Vec<(Expression<'input>, Block<'input>)>,
-        else_branch: Option<Block<'input>>,
-    ) -> Expression<'input> {
-        Expression::If(Self::new(then_branches, else_branch))
+impl<'input> From<If<'input>> for Expression<'input> {
+    fn from(value: If<'input>) -> Self {
+        Expression::If(value)
     }
 }
 
