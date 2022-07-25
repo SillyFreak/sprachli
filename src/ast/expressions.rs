@@ -10,6 +10,7 @@ pub enum Expression<'input> {
     Number(&'input str),
     String(&'input str),
     Identifier(&'input str),
+    Jump(Jump<'input>),
     Binary(Binary<'input>),
     Unary(Unary<'input>),
     Call(Call<'input>),
@@ -23,11 +24,43 @@ impl fmt::Debug for Expression<'_> {
             Self::Number(value) => fmt::Display::fmt(value, f),
             Self::String(value) => fmt::Display::fmt(value, f),
             Self::Identifier(name) => f.write_str(name),
+            Self::Jump(expr) => expr.fmt(f),
             Self::Binary(expr) => expr.fmt(f),
             Self::Unary(expr) => expr.fmt(f),
             Self::Call(expr) => expr.fmt(f),
             Self::Block(expr) => expr.fmt(f),
             Self::If(expr) => expr.fmt(f),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub enum Jump<'input> {
+    Return(Option<Box<Expression<'input>>>),
+}
+
+impl<'input> Jump<'input> {
+    pub fn new_return(right: Option<Expression<'input>>) -> Self {
+        let right = right.map(Box::new);
+        Self::Return(right)
+    }
+}
+
+impl<'input> From<Jump<'input>> for Expression<'input> {
+    fn from(value: Jump<'input>) -> Self {
+        Expression::Jump(value)
+    }
+}
+impl fmt::Debug for Jump<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Jump::*;
+
+        match self {
+            Return(expr) => f
+                .debug_prefixed()
+                .name("return")
+                .items(expr.iter())
+                .finish(),
         }
     }
 }

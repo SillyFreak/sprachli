@@ -53,6 +53,11 @@ pub Statement: ast::Statement<'input> = {
 // expressions
 
 pub Expression: ast::Expression<'input> = {
+	Jump,
+}
+
+pub Jump: ast::Expression<'input> = {
+	"return" <right:Equality> => ast::Jump::new_return(Some(<>)).into(),
 	Equality,
 }
 
@@ -164,7 +169,7 @@ pub String: &'input str = {
 
 match {
 	// keywords must have priority over identifiers
-	"pub", "fn", "struct", "if", "else",
+	"pub", "fn", "struct", "return", "if", "else",
 } else {
 	r"[_a-zA-Z][_a-zA-Z0-9]*" => IDENTIFIER,
 	r"[0-9]+" => NUMBER,

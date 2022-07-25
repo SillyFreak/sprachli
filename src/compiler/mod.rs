@@ -251,6 +251,7 @@ impl<'a> InstructionCompiler<'a> {
             Number(literal) => self.visit_number(literal),
             String(literal) => self.visit_string(literal),
             Identifier(name) => self.visit_identifier(name),
+            Jump(_expr) => todo!(),
             Binary(expr) => self.visit_binary(expr),
             Unary(expr) => self.visit_unary(expr),
             Call(call) => self.visit_call(call),
