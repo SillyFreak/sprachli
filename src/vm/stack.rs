@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use super::{InternalError, Result, Value};
 
 #[derive(Default, Debug, Clone)]
@@ -13,8 +15,21 @@ impl<'b> Stack<'b> {
         Ok(())
     }
 
+    pub fn get(&mut self, index: usize) -> Option<&Value<'b>> {
+        self.0.get(index)
+    }
+
     pub fn pop(&mut self) -> Result<Value<'b>> {
         self.0.pop().ok_or_else(|| InternalError::EmptyStack.into())
+    }
+
+    pub fn pop_deep(&mut self, offset: NonZeroUsize) -> Result<Value<'b>> {
+        let index = self
+            .len()
+            .checked_sub(offset.get())
+            .ok_or(InternalError::EmptyStack)?;
+
+        Ok(self.0.remove(index))
     }
 
     pub fn pop_multiple(&mut self, count: usize) -> Result<impl Iterator<Item = Value<'b>> + '_> {
@@ -24,6 +39,15 @@ impl<'b> Stack<'b> {
             .ok_or(InternalError::EmptyStack)?;
 
         Ok(self.0.drain(offset..))
+    }
+
+    pub fn pop_multiple_under(&mut self, offset: NonZeroUsize) -> Result<impl Iterator<Item = Value<'b>> + '_> {
+        let len = self.len();
+        let offset = len
+            .checked_sub(offset.get())
+            .ok_or(InternalError::EmptyStack)?;
+
+        Ok(self.0.drain(offset..len - 1))
     }
 
     pub fn len(&self) -> usize {

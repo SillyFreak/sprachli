@@ -2,6 +2,8 @@ mod error;
 mod stack;
 mod value;
 
+use std::num::NonZeroUsize;
+
 use bigdecimal::BigDecimal;
 
 use crate::ast::{BinaryOperator, UnaryOperator};
@@ -50,12 +52,11 @@ impl<'b> Vm<'b> {
         Ok(value)
     }
 
-    fn get_local<'a>(&mut self, locals: &'a [Value<'b>], index: usize) -> Result<&'a Value<'b>> {
-        let value = locals
-            .get(index)
-            .ok_or(InternalError::InvalidLocal(index))?;
+    fn get_local(&mut self, offset: usize, index: usize) -> Result<Value<'b>> {
+        let value = self.stack.get(offset + index)
+            .ok_or_else(|| InternalError::InvalidLocal(index))?;
 
-        Ok(value)
+        Ok(value.clone())
     }
 
     fn constant(&mut self, index: usize) -> Result<()> {
@@ -74,9 +75,9 @@ impl<'b> Vm<'b> {
         self.stack.push(value)
     }
 
-    fn load_local(&mut self, locals: &[Value<'b>], index: usize) -> Result<()> {
-        let value = self.get_local(locals, index)?;
-        self.stack.push(value.clone())
+    fn load_local(&mut self, offset: usize, index: usize) -> Result<()> {
+        let value = self.get_local(offset, index)?;
+        self.stack.push(value)
     }
 
     fn load_named(&mut self, index: usize) -> Result<()> {
@@ -175,9 +176,7 @@ impl<'b> Vm<'b> {
     fn call(&mut self, arity: usize) -> Result<()> {
         use Instruction::*;
 
-        let mut ops = self.stack.pop_multiple(arity + 1)?;
-
-        let function = ops.next().unwrap();
+        let function = self.stack.pop_deep(NonZeroUsize::new(arity + 1).unwrap())?;
         let function = function.as_function()?;
         if arity != function.arity() {
             Err(Error::ValueError(format!(
@@ -187,9 +186,9 @@ impl<'b> Vm<'b> {
             )))?;
         }
 
-        let locals: Vec<_> = ops.collect();
-
-        let offset = self.stack.len();
+        // the function has been removed, the parameters are still on top of the stack
+        // find the offset where this stack frame begins
+        let offset = self.stack.len() - arity;
 
         let mut instructions = function.body().iter();
         while let Some(ins) = instructions.next() {
@@ -199,7 +198,7 @@ impl<'b> Vm<'b> {
                 Pop => self.stack.pop().map(|_| ())?,
                 Unary(operator) => self.unary(operator)?,
                 Binary(operator) => self.binary(operator)?,
-                LoadLocal(index) => self.load_local(&locals, index)?,
+                LoadLocal(index) => self.load_local(offset, index)?,
                 LoadNamed(index) => self.load_named(index)?,
                 Call(arity) => self.call(arity)?,
                 Jump(offset) => self.jump(&mut instructions, offset)?,
@@ -207,7 +206,12 @@ impl<'b> Vm<'b> {
             }
         }
 
-        assert_eq!(self.stack.len(), offset + 1);
+        // here the body block has finished, meaning all local variables
+        // except for parameters are gone, and only the result is on top
+        assert_eq!(self.stack.len(), offset + arity + 1);
+
+        // pop the parameters from under the return value
+        drop(self.stack.pop_multiple_under(NonZeroUsize::new(arity + 1).unwrap())?);
 
         Ok(())
     }

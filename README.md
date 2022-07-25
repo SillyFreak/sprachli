@@ -2,7 +2,6 @@
 
 ## tasks
 
-- locals on stack
 - loops, break/continue/return
 - variables
 - structs
