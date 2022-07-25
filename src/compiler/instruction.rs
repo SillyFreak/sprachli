@@ -1,7 +1,7 @@
 use std::fmt;
 
-use crate::ast::{BinaryOperator, UnaryOperator};
 use super::Module;
+use crate::ast::{BinaryOperator, UnaryOperator};
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Instruction {
@@ -55,7 +55,11 @@ impl Instruction {
         }
     }
 
-    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
+    pub(crate) fn fmt_with(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        module: Option<&Module>,
+    ) -> fmt::Result {
         use Instruction::*;
 
         match self {

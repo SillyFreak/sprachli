@@ -41,7 +41,10 @@ impl<'b> Stack<'b> {
         Ok(self.0.drain(offset..))
     }
 
-    pub fn pop_multiple_under(&mut self, offset: NonZeroUsize) -> Result<impl Iterator<Item = Value<'b>> + '_> {
+    pub fn pop_multiple_under(
+        &mut self,
+        offset: NonZeroUsize,
+    ) -> Result<impl Iterator<Item = Value<'b>> + '_> {
         let len = self.len();
         let offset = len
             .checked_sub(offset.get())

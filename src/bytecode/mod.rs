@@ -64,7 +64,11 @@ impl<'b> Module<'b> {
         }
     }
 
-    pub(crate) fn fmt_constant_ident(&self, f: &mut fmt::Formatter<'_>, index: usize) -> fmt::Result {
+    pub(crate) fn fmt_constant_ident(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        index: usize,
+    ) -> fmt::Result {
         match self.constant(index) {
             Some(Constant::String(value)) => f.write_str(value),
             Some(constant) => write!(f, "{constant:?} (invalid identifier)"),
@@ -120,7 +124,11 @@ pub enum Constant<'b> {
 }
 
 impl<'b> Constant<'b> {
-    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
+    pub(crate) fn fmt_with(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        module: Option<&Module>,
+    ) -> fmt::Result {
         use fmt::Debug;
         use Constant::*;
 
@@ -157,7 +165,11 @@ impl<'b> Function<'b> {
         &self.body
     }
 
-    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
+    pub(crate) fn fmt_with(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        module: Option<&Module>,
+    ) -> fmt::Result {
         f.write_str("fn (")?;
         for i in (0..self.arity).map(Some).intersperse(None) {
             match i {
@@ -211,7 +223,11 @@ impl<'a> IntoIterator for &'a InstructionSequence<'_> {
 }
 
 impl<'b> InstructionSequence<'b> {
-    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
+    pub(crate) fn fmt_with(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        module: Option<&Module>,
+    ) -> fmt::Result {
         use fmt::Debug;
 
         if f.alternate() {

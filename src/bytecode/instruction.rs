@@ -2,8 +2,8 @@ use std::fmt;
 
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
-use crate::ast;
 use super::Module;
+use crate::ast;
 
 pub use ast::{BinaryOperator, UnaryOperator};
 
@@ -80,7 +80,11 @@ impl Instruction {
         }
     }
 
-    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
+    pub(crate) fn fmt_with(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        module: Option<&Module>,
+    ) -> fmt::Result {
         use Instruction::*;
 
         match self {

@@ -34,7 +34,11 @@ impl From<Function> for Constant {
 }
 
 impl Constant {
-    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
+    pub(crate) fn fmt_with(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        module: Option<&Module>,
+    ) -> fmt::Result {
         use fmt::Debug;
         use Constant::*;
 
@@ -71,7 +75,11 @@ impl Function {
         &self.body
     }
 
-    pub(crate) fn fmt_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
+    pub(crate) fn fmt_with(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        module: Option<&Module>,
+    ) -> fmt::Result {
         f.write_str("fn (")?;
         for i in (0..self.arity).map(Some).intersperse(None) {
             match i {
@@ -90,17 +98,16 @@ impl Function {
         Ok(())
     }
 
-    pub(crate) fn fmt_body_with(&self, f: &mut fmt::Formatter<'_>, module: Option<&Module>) -> fmt::Result {
+    pub(crate) fn fmt_body_with(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        module: Option<&Module>,
+    ) -> fmt::Result {
         use fmt::Debug;
 
         let mut offset = 0;
         if f.alternate() {
-            for ins in self
-                .body
-                .iter()
-                .map(Some)
-                .intersperse_with(|| None)
-            {
+            for ins in self.body.iter().map(Some).intersperse_with(|| None) {
                 if let Some(ins) = ins {
                     offset += ins.encoded_len();
                     write!(f, "           {offset:5}  ")?;

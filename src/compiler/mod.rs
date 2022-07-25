@@ -74,11 +74,15 @@ impl Module {
         }
     }
 
-    pub(crate) fn fmt_constant_ident(&self, f: &mut fmt::Formatter<'_>, index: usize) -> std::result::Result<Option<&str>, fmt::Error> {
+    pub(crate) fn fmt_constant_ident(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        index: usize,
+    ) -> std::result::Result<Option<&str>, fmt::Error> {
         match self.constants.get(index) {
             Some(Constant::String(value)) => {
                 f.write_str(value)?;
-                return Ok(Some(value))
+                return Ok(Some(value));
             }
             Some(constant) => write!(f, "{constant:?} (invalid identifier)")?,
             _ => f.write_str("illegal constant")?,
@@ -103,7 +107,9 @@ impl fmt::Debug for Module {
                 f.write_str("        ")?;
                 let name = self.fmt_constant_ident(f, *name)?;
                 match name {
-                    Some(name) => write!(f, ": {index:<0$} -- ", 9usize.saturating_sub(name.len()))?,
+                    Some(name) => {
+                        write!(f, ": {index:<0$} -- ", 9usize.saturating_sub(name.len()))?
+                    }
                     None => write!(f, ": {index} -- ")?,
                 }
                 self.fmt_constant(f, *index)?;

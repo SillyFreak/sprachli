@@ -53,7 +53,9 @@ impl<'b> Vm<'b> {
     }
 
     fn get_local(&mut self, offset: usize, index: usize) -> Result<Value<'b>> {
-        let value = self.stack.get(offset + index)
+        let value = self
+            .stack
+            .get(offset + index)
             .ok_or_else(|| InternalError::InvalidLocal(index))?;
 
         Ok(value.clone())
@@ -211,7 +213,10 @@ impl<'b> Vm<'b> {
         assert_eq!(self.stack.len(), offset + arity + 1);
 
         // pop the parameters from under the return value
-        drop(self.stack.pop_multiple_under(NonZeroUsize::new(arity + 1).unwrap())?);
+        drop(
+            self.stack
+                .pop_multiple_under(NonZeroUsize::new(arity + 1).unwrap())?,
+        );
 
         Ok(())
     }
