@@ -56,7 +56,7 @@ impl<'b> Vm<'b> {
         let value = self
             .stack
             .get(offset + index)
-            .ok_or_else(|| InternalError::InvalidLocal(index))?;
+            .ok_or(InternalError::InvalidLocal(index))?;
 
         Ok(value.clone())
     }

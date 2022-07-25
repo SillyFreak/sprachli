@@ -3,7 +3,7 @@ use std::fs;
 
 use sprachli::bytecode::{parser::parse_bytecode, Error as BytecodeError};
 use sprachli::compiler::write_bytecode;
-use sprachli::compiler::{compile_source_file, Error as CompilerError, Module};
+use sprachli::compiler::{Error as CompilerError, Module};
 use sprachli::parser::parse_source_file;
 use sprachli::vm::{Error as RuntimeError, Vm};
 
