@@ -257,7 +257,7 @@ impl<'a> InstructionCompiler<'a> {
             Call(call) => self.visit_call(call),
             Block(block) => self.visit_block(block),
             If(expr) => self.visit_if(expr),
-            Loop(_expr) => todo!(),
+            Loop(expr) => self.visit_loop(expr),
         }
     }
 
@@ -406,6 +406,16 @@ impl<'a> InstructionCompiler<'a> {
         }
         Ok(())
     }
+
+    fn visit_loop(&mut self, expr: ast::Loop) -> Result<()> {
+        use Instruction::*;
+
+        let start = self.instructions.len();
+        self.visit_block(expr.body)?;
+        self.push(Pop);
+        self.push_placeholder(Jump).fill_to(self, start);
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -418,6 +428,16 @@ where
     pub fn fill(self, instructions: &mut InstructionCompiler) {
         let Placeholder(index, f) = self;
         let instruction = f(instructions.offset_from(index + 1));
+        assert_eq!(
+            instructions.instructions[index],
+            Instruction::JumpPlaceholder,
+        );
+        instructions.instructions[index] = instruction;
+    }
+
+    pub fn fill_to(self, instructions: &mut InstructionCompiler, to_index: usize) {
+        let Placeholder(index, f) = self;
+        let instruction = f(instructions.offset_to(to_index));
         assert_eq!(
             instructions.instructions[index],
             Instruction::JumpPlaceholder,
