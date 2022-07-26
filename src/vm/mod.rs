@@ -223,7 +223,7 @@ impl<'b> Vm<'b> {
     }
 }
 
-impl<'b> InstructionIter<'b> {
+impl InstructionIter<'_, '_> {
     pub fn jump(&mut self, offset: Offset) -> Result<()> {
         use InternalError::*;
 

@@ -208,14 +208,17 @@ impl<'b> InstructionSequence<'b> {
     }
 
     #[inline]
-    pub fn iter(&self) -> InstructionIter<'_> {
+    pub fn iter(&self) -> InstructionIter<'_, '_> {
         InstructionIter::new(self)
     }
 }
 
-impl<'a> IntoIterator for &'a InstructionSequence<'_> {
+impl<'a, 'b> IntoIterator for &'a InstructionSequence<'b>
+where
+    'a: 'b,
+{
     type Item = Result<Instruction>;
-    type IntoIter = InstructionIter<'a>;
+    type IntoIter = InstructionIter<'a, 'b>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -263,24 +266,35 @@ impl fmt::Debug for InstructionSequence<'_> {
 }
 
 #[derive(Debug, Clone)]
-pub struct InstructionIter<'b>(usize, std::slice::Iter<'b, u8>);
+pub struct InstructionIter<'a, 'b>
+where
+    'a: 'b,
+{
+    instructions: &'a InstructionSequence<'b>,
+    offset: usize,
+    iter: std::slice::Iter<'b, u8>,
+}
 
-impl<'b> InstructionIter<'b> {
-    fn new(instructions: &InstructionSequence<'b>) -> Self {
-        Self(0, instructions.get().iter())
+impl<'a, 'b> InstructionIter<'a, 'b> {
+    fn new(instructions: &'a InstructionSequence<'b>) -> Self {
+        Self {
+            instructions,
+            offset: 0,
+            iter: instructions.get().iter(),
+        }
     }
 
     pub fn offset(&self) -> usize {
-        self.0
+        self.offset
     }
 
-    pub fn with_offset(self) -> OffsetInstructionIter<'b> {
+    pub fn with_offset(self) -> OffsetInstructionIter<'a, 'b> {
         OffsetInstructionIter::new(self)
     }
 
     fn advance(&mut self) -> Option<u8> {
-        let item = self.1.next().copied()?;
-        self.0 += 1;
+        let item = self.iter.next().copied()?;
+        self.offset += 1;
         Some(item)
     }
 
@@ -303,25 +317,16 @@ impl<'b> InstructionIter<'b> {
         use Offset::*;
 
         match offset {
-            Forward(offset) => {
-                self.0 += offset;
-                if offset > 0 {
-                    self.1.nth(offset - 1).ok_or(())?;
-                }
-            }
-            Backward(offset) => {
-                self.0 -= offset;
-                if offset > 0 {
-                    self.1.nth_back(offset - 1).ok_or(())?;
-                }
-            }
+            Forward(offset) => self.offset += offset,
+            Backward(offset) => self.offset -= offset,
         }
+        self.iter = self.instructions.get()[self.offset..].iter();
 
         Ok(())
     }
 }
 
-impl Iterator for InstructionIter<'_> {
+impl Iterator for InstructionIter<'_, '_> {
     type Item = Result<Instruction>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -392,10 +397,10 @@ impl Iterator for InstructionIter<'_> {
 }
 
 #[derive(Debug, Clone)]
-pub struct OffsetInstructionIter<'b>(InstructionIter<'b>);
+pub struct OffsetInstructionIter<'a, 'b>(InstructionIter<'a, 'b>);
 
-impl<'b> OffsetInstructionIter<'b> {
-    fn new(iter: InstructionIter<'b>) -> Self {
+impl<'a, 'b> OffsetInstructionIter<'a, 'b> {
+    fn new(iter: InstructionIter<'a, 'b>) -> Self {
         Self(iter)
     }
 
@@ -408,7 +413,7 @@ impl<'b> OffsetInstructionIter<'b> {
     }
 }
 
-impl Iterator for OffsetInstructionIter<'_> {
+impl Iterator for OffsetInstructionIter<'_, '_> {
     type Item = (usize, Result<Instruction>);
 
     fn next(&mut self) -> Option<Self::Item> {
