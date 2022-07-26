@@ -13,6 +13,7 @@ pub enum Instruction {
     LoadLocal(usize),
     LoadNamed(usize),
     Call(usize),
+    Return,
     Jump(Offset),
     JumpIf(Offset),
     JumpPlaceholder,
@@ -31,6 +32,7 @@ impl Instruction {
             LoadLocal(_) => 1,
             LoadNamed(_) => 1,
             Call(arity) => -isize::try_from(arity).expect("illegal arity"),
+            Return => todo!(),
             Jump(_) => 0,
             JumpIf(_) => -1,
             JumpPlaceholder => 0,
@@ -49,6 +51,7 @@ impl Instruction {
             LoadLocal(_) => 2,
             LoadNamed(_) => 2,
             Call(_) => 2,
+            Return => 1,
             Jump(_) => 2,
             JumpIf(_) => 2,
             JumpPlaceholder => 2,
@@ -87,6 +90,7 @@ impl Instruction {
                 Ok(())
             }
             Call(arity) => write!(f, "CALL {arity}"),
+            Return => write!(f, "RETURN"),
             Jump(offset) => write!(f, "JUMP {offset:?}"),
             JumpIf(offset) => write!(f, "JUMP_IF {offset:?}"),
             JumpPlaceholder => write!(f, "INVALID  "),

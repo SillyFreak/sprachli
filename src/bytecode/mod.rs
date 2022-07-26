@@ -366,6 +366,7 @@ impl Iterator for InstructionIter<'_> {
                         let arity = self.parameter(opcode)?;
                         In::Call(arity as usize)
                     }
+                    Op::Return => In::Return,
                     Op::JumpForward => {
                         let offset = self.parameter(opcode)?;
                         In::Jump(Offset::Forward(offset as usize))

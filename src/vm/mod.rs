@@ -203,6 +203,7 @@ impl<'b> Vm<'b> {
                 LoadLocal(index) => self.load_local(offset, index)?,
                 LoadNamed(index) => self.load_named(index)?,
                 Call(arity) => self.call(arity)?,
+                Return => todo!(),
                 Jump(offset) => self.jump(&mut instructions, offset)?,
                 JumpIf(offset) => self.jump_if(&mut instructions, offset)?,
             }

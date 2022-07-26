@@ -102,6 +102,9 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 body.push(Op::Call.into());
                 body.push(arity as u8);
             }
+            In::Return => {
+                body.push(Op::Return.into());
+            }
             In::Jump(offset) => {
                 let (opcode, offset) = match offset {
                     Offset::Forward(offset) => (Op::JumpForward, offset),

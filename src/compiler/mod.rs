@@ -251,13 +251,25 @@ impl<'a> InstructionCompiler<'a> {
             Number(literal) => self.visit_number(literal),
             String(literal) => self.visit_string(literal),
             Identifier(name) => self.visit_identifier(name),
-            Jump(_expr) => todo!(),
+            Jump(expr) => self.visit_jump(expr),
             Binary(expr) => self.visit_binary(expr),
             Unary(expr) => self.visit_unary(expr),
             Call(call) => self.visit_call(call),
             Block(block) => self.visit_block(block),
             If(expr) => self.visit_if(expr),
         }
+    }
+
+    fn visit_optional(&mut self, expr: Option<ast::Expression>) -> Result<()> {
+        use instruction::InlineConstant;
+        use Instruction::*;
+
+        if let Some(expr) = expr {
+            self.visit_expression(expr)?;
+        } else {
+            self.push(InlineConstant(InlineConstant::Unit));
+        }
+        Ok(())
     }
 
     fn visit_number(&mut self, literal: &str) -> Result<()> {
@@ -293,6 +305,20 @@ impl<'a> InstructionCompiler<'a> {
             let name = self.compiler.add_constant(name.to_string());
             self.push(LoadNamed(name));
         }
+        Ok(())
+    }
+
+    fn visit_jump(&mut self, expr: ast::Jump) -> Result<()> {
+        use ast::Jump::*;
+
+        match expr {
+            Return(expr) => {
+                let expr = expr.map(|expr| *expr);
+                self.visit_optional(expr)?;
+                self.push(Instruction::Return);
+            }
+        }
+
         Ok(())
     }
 
@@ -358,7 +384,6 @@ impl<'a> InstructionCompiler<'a> {
 
     fn visit_if(&mut self, expr: ast::If) -> Result<()> {
         use ast::UnaryOperator::*;
-        use instruction::InlineConstant;
         use Instruction::*;
 
         let mut end_jumps = Vec::new();
@@ -373,11 +398,8 @@ impl<'a> InstructionCompiler<'a> {
             end_jumps.push(self.push_placeholder(Jump));
             cond.fill(self);
         }
-        if let Some(else_branch) = expr.else_branch {
-            self.visit_block(else_branch)?;
-        } else {
-            self.push(InlineConstant(InlineConstant::Unit));
-        }
+        let else_branch = expr.else_branch.map(ast::Expression::Block);
+        self.visit_optional(else_branch)?;
         for end_jump in end_jumps {
             end_jump.fill(self);
         }
