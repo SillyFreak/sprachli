@@ -47,6 +47,7 @@ StructMembers: ast::StructMembers<'input> = {
 pub Statement: ast::Statement<'input> = {
 	Declaration => ast::Statement::Declaration(<>),
 	<Expression> ";" => ast::Statement::Expression(<>),
+	<Jump> ";" => ast::Statement::Expression(<>),
 }
 
 //////
@@ -82,9 +83,10 @@ pub Expression: ast::Expression<'input> = {
 	#[precedence(level="7")]
 	#[assoc(side="left")]
 	<left:Expression> <operator:EqualityOp> <right:Expression> => ast::Binary::new(<>).into(),
+}
 
-	#[precedence(level="8")]
-	"return" <right:Expression> => ast::Jump::new_return(Some(<>)).into(),
+pub Jump: ast::Expression<'input> = {
+	"return" <right:Expression?> => ast::Jump::new_return(<>).into(),
 }
 
 EqualityOp: ast::BinaryOperator = {
