@@ -110,8 +110,19 @@ pub enum InlineConstant {
     Bool(bool),
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Offset {
     Forward(usize),
     Backward(usize),
+}
+
+impl fmt::Debug for Offset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Offset::*;
+
+        match self {
+            Forward(offset) => write!(f, "+{offset}"),
+            Backward(offset) => write!(f, "-{offset}"),
+        }
+    }
 }

@@ -109,9 +109,9 @@ impl Function {
         if f.alternate() {
             for ins in self.body.iter().map(Some).intersperse_with(|| None) {
                 if let Some(ins) = ins {
-                    offset += ins.encoded_len();
                     write!(f, "           {offset:5}  ")?;
                     ins.fmt_with(f, module)?;
+                    offset += ins.encoded_len();
                 } else {
                     f.write_str("\n")?;
                 }
