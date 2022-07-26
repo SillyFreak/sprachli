@@ -58,9 +58,9 @@ pub Expression: ast::Expression<'input> = {
 	Number => ast::Expression::Number(<>),
 	String => ast::Expression::String(<>),
 	Identifier => ast::Expression::Identifier(<>),
-	Group,
 	Block => ast::Expression::Block(<>),
-	If => ast::Expression::If(<>),
+	Group,
+	If,
 
 	#[precedence(level="2")]
 	<function:Expression> "(" <actual_parameters:CommaSeparated<Expression>> ")" => ast::Call::new(<>).into(),
@@ -117,21 +117,21 @@ UnaryOp: ast::UnaryOperator = {
 	"!" => ast::UnaryOperator::Not,
 }
 
-pub Group: ast::Expression<'input> = {
-	"(" <Expression> ")",
-}
-
 pub Block: ast::Block<'input> = {
 	"{" <statements:Statement*> <expression:Expression?> "}" => ast::Block::new(<>),
 }
 
-pub If: ast::If<'input> = {
+pub Group: ast::Expression<'input> = {
+	"(" <Expression> ")",
+}
+
+pub If: ast::Expression<'input> = {
 	<mut then_branches:(<ThenBranch> "else")*>
 	<last_then_branch:ThenBranch>
 	<else_branch:("else" <Block>)?>
 	=> {
 		then_branches.push(last_then_branch);
-		ast::If::new(then_branches, else_branch)
+		ast::If::new(then_branches, else_branch).into()
 	},
 }
 
