@@ -53,27 +53,43 @@ pub Statement: ast::Statement<'input> = {
 // expressions
 
 pub Expression: ast::Expression<'input> = {
-	Jump,
-}
+	#[precedence(level="1")]
+	Number => ast::Expression::Number(<>),
+	String => ast::Expression::String(<>),
+	Identifier => ast::Expression::Identifier(<>),
+	Group,
+	Block => ast::Expression::Block(<>),
+	If => ast::Expression::If(<>),
 
-pub Jump: ast::Expression<'input> = {
-	"return" <right:Equality> => ast::Jump::new_return(Some(<>)).into(),
-	Equality,
-}
+	#[precedence(level="2")]
+	<function:Expression> "(" <actual_parameters:CommaSeparated<Expression>> ")" => ast::Call::new(<>).into(),
 
-pub Equality: ast::Expression<'input> = {
-	<left:Equality> <operator:EqualityOp> <right:Comparison> => ast::Binary::new(<>).into(),
-	Comparison,
+	#[precedence(level="3")]
+	<operator:UnaryOp> <right:Expression> => ast::Unary::new(<>).into(),
+	
+	#[precedence(level="4")]
+	#[assoc(side="left")]
+	<left:Expression> <operator:MultiplicativeOp> <right:Expression> => ast::Binary::new(<>).into(),
+
+	#[precedence(level="5")]
+	#[assoc(side="left")]
+	<left:Expression> <operator:AdditiveOp> <right:Expression> => ast::Binary::new(<>).into(),
+
+	#[precedence(level="6")]
+	#[assoc(side="left")]
+	<left:Expression> <operator:ComparisonOp> <right:Expression> => ast::Binary::new(<>).into(),
+
+	#[precedence(level="7")]
+	#[assoc(side="left")]
+	<left:Expression> <operator:EqualityOp> <right:Expression> => ast::Binary::new(<>).into(),
+
+	#[precedence(level="8")]
+	"return" <right:Expression> => ast::Jump::new_return(Some(<>)).into(),
 }
 
 EqualityOp: ast::BinaryOperator = {
 	"==" => ast::BinaryOperator::Equals,
 	"!=" => ast::BinaryOperator::NotEquals,
-}
-
-pub Comparison: ast::Expression<'input> = {
-	<left:Comparison> <operator:ComparisonOp> <right:Additive> => ast::Binary::new(<>).into(),
-	Additive,
 }
 
 ComparisonOp: ast::BinaryOperator = {
@@ -83,29 +99,15 @@ ComparisonOp: ast::BinaryOperator = {
 	"<=" => ast::BinaryOperator::LessEquals,
 }
 
-pub Additive: ast::Expression<'input> = {
-	<left:Additive> <operator:AdditiveOp> <right:Multiplicative> => ast::Binary::new(<>).into(),
-	Multiplicative,
-}
-
 AdditiveOp: ast::BinaryOperator = {
 	"+" => ast::BinaryOperator::Add,
 	"-" => ast::BinaryOperator::Subtract,
 }
 
-pub Multiplicative: ast::Expression<'input> = {
-	<left:Multiplicative> <operator:MultiplicativeOp> <right:Unary> => ast::Binary::new(<>).into(),
-	Unary,
-}
-
 MultiplicativeOp: ast::BinaryOperator = {
+	#[precedence(level="1")]
 	"*" => ast::BinaryOperator::Multiply,
 	"/" => ast::BinaryOperator::Divide,
-}
-
-pub Unary: ast::Expression<'input> = {
-	<operator:UnaryOp> <right:Unary> => ast::Unary::new(<>).into(),
-	Call,
 }
 
 UnaryOp: ast::UnaryOperator = {
@@ -113,17 +115,7 @@ UnaryOp: ast::UnaryOperator = {
 	"!" => ast::UnaryOperator::Not,
 }
 
-pub Call: ast::Expression<'input> = {
-	<function:Atomic> "(" <actual_parameters:CommaSeparated<Expression>> ")" => ast::Call::new(<>).into(),
-	Atomic,
-}
-
-pub Atomic: ast::Expression<'input> = {
-	Number => ast::Expression::Number(<>),
-	String => ast::Expression::String(<>),
-	Identifier => ast::Expression::Identifier(<>),
-	Block => ast::Expression::Block(<>),
-	If => ast::Expression::If(<>),
+pub Group: ast::Expression<'input> = {
 	"(" <Expression> ")",
 }
 
