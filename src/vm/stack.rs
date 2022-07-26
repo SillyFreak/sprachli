@@ -1,5 +1,3 @@
-use std::num::NonZeroUsize;
-
 use super::{InternalError, Result, Value};
 
 #[derive(Default, Debug, Clone)]
@@ -15,6 +13,12 @@ impl<'b> Stack<'b> {
         Ok(())
     }
 
+    pub fn checked_index(&mut self, index: Option<usize>) -> Result<usize> {
+        index
+            .filter(|index| *index < self.len())
+            .ok_or(InternalError::EmptyStack.into())
+    }
+
     pub fn get(&mut self, index: usize) -> Option<&Value<'b>> {
         self.0.get(index)
     }
@@ -23,12 +27,8 @@ impl<'b> Stack<'b> {
         self.0.pop().ok_or_else(|| InternalError::EmptyStack.into())
     }
 
-    pub fn pop_deep(&mut self, offset: NonZeroUsize) -> Result<Value<'b>> {
-        let index = self
-            .len()
-            .checked_sub(offset.get())
-            .ok_or(InternalError::EmptyStack)?;
-
+    pub fn pop_deep(&mut self, index: usize) -> Result<Value<'b>> {
+        let index = self.checked_index(Some(index))?;
         Ok(self.0.remove(index))
     }
 
@@ -41,16 +41,13 @@ impl<'b> Stack<'b> {
         Ok(self.0.drain(offset..))
     }
 
-    pub fn pop_multiple_under(
+    pub fn pop_all_under(
         &mut self,
-        offset: NonZeroUsize,
+        index: usize,
     ) -> Result<impl Iterator<Item = Value<'b>> + '_> {
+        let index = self.checked_index(Some(index))?;
         let len = self.len();
-        let offset = len
-            .checked_sub(offset.get())
-            .ok_or(InternalError::EmptyStack)?;
-
-        Ok(self.0.drain(offset..len - 1))
+        Ok(self.0.drain(index..len - 1))
     }
 
     pub fn len(&self) -> usize {

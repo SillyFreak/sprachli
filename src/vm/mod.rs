@@ -178,7 +178,11 @@ impl<'b> Vm<'b> {
     fn call(&mut self, arity: usize) -> Result<()> {
         use Instruction::*;
 
-        let function = self.stack.pop_deep(NonZeroUsize::new(arity + 1).unwrap())?;
+        // the function & parameters are still on top of the stack
+        // find the offset where this stack frame begins
+        let offset = self.stack.checked_index(self.stack.len().checked_sub(arity + 1))?;
+
+        let function = self.stack.pop_deep(offset)?;
         let function = function.as_function()?;
         if arity != function.arity() {
             Err(Error::ValueError(format!(
@@ -187,10 +191,6 @@ impl<'b> Vm<'b> {
                 arity,
             )))?;
         }
-
-        // the function has been removed, the parameters are still on top of the stack
-        // find the offset where this stack frame begins
-        let offset = self.stack.len() - arity;
 
         let mut instructions = function.body().iter();
         while let Some(ins) = instructions.next() {
@@ -214,10 +214,7 @@ impl<'b> Vm<'b> {
         assert_eq!(self.stack.len(), offset + arity + 1);
 
         // pop the parameters from under the return value
-        drop(
-            self.stack
-                .pop_multiple_under(NonZeroUsize::new(arity + 1).unwrap())?,
-        );
+        drop(self.stack.pop_all_under(offset)?);
 
         Ok(())
     }
