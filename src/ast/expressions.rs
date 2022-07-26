@@ -16,6 +16,7 @@ pub enum Expression<'input> {
     Call(Call<'input>),
     Block(Block<'input>),
     If(If<'input>),
+    Loop(Loop<'input>),
 }
 
 impl fmt::Debug for Expression<'_> {
@@ -30,6 +31,7 @@ impl fmt::Debug for Expression<'_> {
             Self::Call(expr) => expr.fmt(f),
             Self::Block(expr) => expr.fmt(f),
             Self::If(expr) => expr.fmt(f),
+            Self::Loop(expr) => expr.fmt(f),
         }
     }
 }
@@ -287,5 +289,30 @@ impl fmt::Debug for If<'_> {
             f.name("else").item(&else_branch);
         }
         f.finish()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct Loop<'input> {
+    pub body: Block<'input>,
+}
+
+impl<'input> Loop<'input> {
+    pub fn new(body: Block<'input>) -> Self {
+        Self { body }
+    }
+}
+
+impl<'input> From<Loop<'input>> for Expression<'input> {
+    fn from(value: Loop<'input>) -> Self {
+        Expression::Loop(value)
+    }
+}
+
+impl fmt::Debug for Loop<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_prefixed()
+            .name("loop").item(&self.body)
+            .finish()
     }
 }

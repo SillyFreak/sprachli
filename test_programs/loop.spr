@@ -1,0 +1,5 @@
+fn main() {
+	loop {
+		return 42;
+	}
+}

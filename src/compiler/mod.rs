@@ -257,6 +257,7 @@ impl<'a> InstructionCompiler<'a> {
             Call(call) => self.visit_call(call),
             Block(block) => self.visit_block(block),
             If(expr) => self.visit_if(expr),
+            Loop(_expr) => todo!(),
         }
     }
 
