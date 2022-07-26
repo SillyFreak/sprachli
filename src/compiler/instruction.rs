@@ -44,7 +44,7 @@ impl Instruction {
 
         match self {
             Constant(_) => 2,
-            InlineConstant(_) => 2,
+            InlineConstant(_) => 1,
             Pop => 1,
             Unary(_) => 2,
             Binary(_) => 2,
