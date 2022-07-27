@@ -56,7 +56,10 @@ pub Jump: ast::Statement<'input> = {
 }
 
 pub VariableDeclaration: ast::Statement<'input> = {
-	"let" <Identifier> <("=" <Expression>)?> => ast::VariableDeclaration::new(<>).into(),
+	"let" <mutable:"mut"?> <name:Identifier> <initializer:("=" <Expression>)?> => {
+		let mutable = mutable.is_some();
+		ast::VariableDeclaration::new(mutable, name, initializer).into()
+	},
 }
 
 //////
@@ -173,7 +176,7 @@ pub String: &'input str = {
 
 match {
 	// keywords must have priority over identifiers
-	"pub", "fn", "struct", "return", "let", "if", "else", "loop",
+	"pub", "fn", "struct", "return", "let", "mut", "if", "else", "loop",
 } else {
 	r"[_a-zA-Z][_a-zA-Z0-9]*" => IDENTIFIER,
 	r"[0-9]+" => NUMBER,
