@@ -8,6 +8,17 @@ pub enum Statement<'input> {
     Expression(Expression<'input>),
 }
 
+impl Statement<'_> {
+    pub(super) fn is_simple(&self) -> bool {
+        use Statement::*;
+
+        match self {
+            Expression(expr) => expr.is_simple(),
+            _ => false,
+        }
+    }
+}
+
 impl fmt::Debug for Statement<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

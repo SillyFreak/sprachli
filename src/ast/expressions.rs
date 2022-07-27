@@ -19,6 +19,14 @@ pub enum Expression<'input> {
     Loop(Loop<'input>),
 }
 
+impl Expression<'_> {
+    pub(super) fn is_simple(&self) -> bool {
+        use Expression::*;
+
+        matches!(self, Number(_) | String(_) | Identifier(_))
+    }
+}
+
 impl fmt::Debug for Expression<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -53,12 +61,19 @@ impl<'input> From<Jump<'input>> for Expression<'input> {
         Expression::Jump(value)
     }
 }
+
 impl fmt::Debug for Jump<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Jump::*;
 
         match self {
-            Return(expr) => f.debug_sexpr().name("return").items(expr.iter()).finish(),
+            Return(expr) => {
+                let compact = expr.as_deref().map_or(true, Expression::is_simple);
+                f.debug_sexpr_compact(compact)
+                    .name("return")
+                    .items(expr.iter())
+                    .finish()
+            }
         }
     }
 }
@@ -130,7 +145,8 @@ impl<'input> From<Binary<'input>> for Expression<'input> {
 
 impl fmt::Debug for Binary<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_sexpr()
+        let compact = self.left.is_simple() && self.right.is_simple();
+        f.debug_sexpr_compact(compact)
             .item(&self.operator)
             .item(&self.left)
             .item(&self.right)
@@ -177,7 +193,8 @@ impl<'input> From<Unary<'input>> for Expression<'input> {
 
 impl fmt::Debug for Unary<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_sexpr()
+        let compact = self.right.is_simple();
+        f.debug_sexpr_compact(compact)
             .item(&self.operator)
             .item(&self.right)
             .finish()
@@ -208,7 +225,9 @@ impl<'input> From<Call<'input>> for Expression<'input> {
 
 impl fmt::Debug for Call<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_sexpr()
+        let compact =
+            self.function.is_simple() && self.actual_parameters.iter().all(Expression::is_simple);
+        f.debug_sexpr_compact(compact)
             .name("call")
             .item(&self.function)
             .items(&self.actual_parameters)
@@ -240,7 +259,12 @@ impl<'input> From<Block<'input>> for Expression<'input> {
 
 impl fmt::Debug for Block<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_sexpr();
+        let compact = self.statements.iter().all(Statement::is_simple)
+            && self
+                .expression
+                .as_deref()
+                .map_or(true, Expression::is_simple);
+        let mut f = f.debug_sexpr_compact(compact);
         f.name("block").items(&self.statements);
         if let Some(expression) = &self.expression {
             f.item(&expression);

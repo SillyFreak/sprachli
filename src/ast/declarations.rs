@@ -55,7 +55,7 @@ impl Visibility {
     fn fmt(&self, f: &mut DebugSexpr<'_, '_>) {
         match self {
             Self::Public => {
-                f.name("pub");
+                f.compact_name("pub");
             }
             Self::Private => {}
         }
@@ -109,8 +109,8 @@ impl fmt::Debug for Fn<'_> {
         let mut f = f.debug_sexpr();
         f.name("fn");
         self.visibility.fmt(&mut f);
-        f.name(self.name)
-            .names(&self.formal_parameters)
+        f.compact_name(self.name)
+            .compact_names(&self.formal_parameters)
             .item(&self.body)
             .finish()
     }
@@ -160,19 +160,19 @@ pub enum StructMembers<'input> {
 
 impl StructMembers<'_> {
     fn fmt(&self, f: &mut DebugSexpr<'_, '_>, name: &str) {
-        f.name(match self {
+        f.compact_name(match self {
             Self::Empty => "empty",
             Self::Positional(_) => "positional",
             Self::Named(_) => "named",
         });
-        f.name(name);
+        f.compact_name(name);
         match self {
             Self::Empty => {}
             Self::Positional(members) => {
-                f.names(members);
+                f.compact_names(members);
             }
             Self::Named(members) => {
-                f.names(members);
+                f.compact_names(members);
             }
         }
     }
