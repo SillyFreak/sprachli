@@ -238,7 +238,7 @@ impl<'a> InstructionCompiler<'a> {
             ..
         } = function;
 
-        self.locals = formal_parameters.iter().map(ToString::to_string).collect();
+        self.locals.extend(formal_parameters.iter().map(ToString::to_string));
         self.visit_block(body)?;
 
         Ok(Function::new(formal_parameters.len(), self.instructions))
