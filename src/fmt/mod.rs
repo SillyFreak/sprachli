@@ -25,16 +25,23 @@ impl<'a, 'b: 'a> DebugPrefixed<'a, 'b> {
         }
     }
 
-    pub fn name(&mut self, name: &str) -> &mut Self {
+    pub fn raw_item<F>(&mut self, f: F) -> &mut Self
+    where
+        F: FnOnce(&mut fmt::Formatter<'_>) -> fmt::Result,
+    {
         self.result = self.result.and_then(|_| {
             if !self.first {
                 self.fmt.write_str(" ")?;
             }
-            self.fmt.write_str(name)
+            f(&mut self.fmt)
         });
 
         self.first = false;
         self
+    }
+    
+    pub fn name(&mut self, name: &str) -> &mut Self {
+        self.raw_item(|f| f.write_str(name))
     }
 
     pub fn names<I>(&mut self, values: I) -> &mut Self
@@ -49,15 +56,7 @@ impl<'a, 'b: 'a> DebugPrefixed<'a, 'b> {
     }
 
     pub fn item(&mut self, value: &dyn fmt::Debug) -> &mut Self {
-        self.result = self.result.and_then(|_| {
-            if !self.first {
-                self.fmt.write_str(" ")?;
-            }
-            value.fmt(self.fmt)
-        });
-
-        self.first = false;
-        self
+        self.raw_item(|f| value.fmt(f))
     }
 
     pub fn items<I>(&mut self, values: I) -> &mut Self
