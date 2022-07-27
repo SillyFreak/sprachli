@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, Write};
 
 pub trait FormatterExt<'a> {
     fn debug_sexpr<'b>(&'b mut self) -> DebugSexpr<'b, 'a>;
@@ -9,6 +9,7 @@ impl<'a> FormatterExt<'a> for fmt::Formatter<'a> {
         DebugSexpr::new(self)
     }
 }
+
 pub struct DebugSexpr<'a, 'b: 'a> {
     fmt: &'a mut fmt::Formatter<'b>,
     result: fmt::Result,
@@ -27,13 +28,21 @@ impl<'a, 'b: 'a> DebugSexpr<'a, 'b> {
 
     pub fn raw_item<F>(&mut self, f: F) -> &mut Self
     where
-        F: FnOnce(&mut fmt::Formatter<'_>) -> fmt::Result,
+        F: FnOnce(&mut dyn fmt::Write) -> fmt::Result,
     {
         self.result = self.result.and_then(|_| {
-            if !self.first {
-                self.fmt.write_str(" ")?;
+            if self.is_pretty() {
+                let mut write = SexprPad::new(self.fmt);
+                if !self.first {
+                    write.write_str("\n")?;
+                }
+                f(&mut write)
+            } else {
+                if !self.first {
+                    self.fmt.write_str(" ")?;
+                }
+                f(self.fmt)
             }
-            f(self.fmt)
         });
 
         self.first = false;
@@ -56,7 +65,14 @@ impl<'a, 'b: 'a> DebugSexpr<'a, 'b> {
     }
 
     pub fn item(&mut self, value: &dyn fmt::Debug) -> &mut Self {
-        self.raw_item(|f| value.fmt(f))
+        let alternate = self.fmt.alternate();
+        self.raw_item(|f| {
+            if alternate {
+                f.write_fmt(format_args!("{value:#?}"))
+            } else {
+                f.write_fmt(format_args!("{value:?}"))
+            }
+        })
     }
 
     pub fn items<I>(&mut self, values: I) -> &mut Self
@@ -77,5 +93,44 @@ impl<'a, 'b: 'a> DebugSexpr<'a, 'b> {
 
     fn is_pretty(&self) -> bool {
         self.fmt.alternate()
+    }
+}
+
+struct SexprPad<'a, 'b> {
+    fmt: &'a mut fmt::Formatter<'b>,
+    on_newline: bool,
+}
+
+impl<'a, 'b> SexprPad<'a, 'b> {
+    fn new(fmt: &'a mut fmt::Formatter<'b>) -> Self {
+        Self {
+            fmt,
+            on_newline: false,
+        }
+    }
+}
+
+impl fmt::Write for SexprPad<'_, '_> {
+    fn write_str(&mut self, mut s: &str) -> fmt::Result {
+        while !s.is_empty() {
+            if self.on_newline {
+                self.fmt.write_str(" ")?;
+            }
+
+            let split = match s.find('\n') {
+                Some(pos) => {
+                    self.on_newline = true;
+                    pos + 1
+                }
+                None => {
+                    self.on_newline = false;
+                    s.len()
+                }
+            };
+            self.fmt.write_str(&s[..split])?;
+            s = &s[split..];
+        }
+
+        Ok(())
     }
 }
