@@ -1,21 +1,21 @@
 use std::fmt;
 
 pub trait FormatterExt<'a> {
-    fn debug_prefixed<'b>(&'b mut self) -> DebugPrefixed<'b, 'a>;
+    fn debug_sexpr<'b>(&'b mut self) -> DebugSexpr<'b, 'a>;
 }
 
 impl<'a> FormatterExt<'a> for fmt::Formatter<'a> {
-    fn debug_prefixed<'b>(&'b mut self) -> DebugPrefixed<'b, 'a> {
-        DebugPrefixed::new(self)
+    fn debug_sexpr<'b>(&'b mut self) -> DebugSexpr<'b, 'a> {
+        DebugSexpr::new(self)
     }
 }
-pub struct DebugPrefixed<'a, 'b: 'a> {
+pub struct DebugSexpr<'a, 'b: 'a> {
     fmt: &'a mut fmt::Formatter<'b>,
     result: fmt::Result,
     first: bool,
 }
 
-impl<'a, 'b: 'a> DebugPrefixed<'a, 'b> {
+impl<'a, 'b: 'a> DebugSexpr<'a, 'b> {
     fn new(fmt: &'a mut fmt::Formatter<'b>) -> Self {
         let result = fmt.write_str("(");
         Self {

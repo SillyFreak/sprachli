@@ -34,9 +34,9 @@ fn main() {
         let source = fs::read_to_string(filename).map_err(CompilerError::from)?;
 
         let ast = parse_source_file(&source).map_err(CompilerError::from)?;
-        let module = Module::new(ast)?;
+        println!("{ast:#?}");
 
-        println!("{module:?}");
+        let module = Module::new(ast)?;
         println!("{module:#?}");
 
         let mut bytes = Vec::new();
@@ -44,6 +44,7 @@ fn main() {
         println!("{bytes:?}");
 
         let module = parse_bytecode(&bytes)?;
+        println!("{module:#?}");
 
         let result = Vm::new(module).run()?;
 

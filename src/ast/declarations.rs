@@ -1,7 +1,7 @@
 use std::fmt;
 
 use super::Block;
-use crate::fmt::{DebugPrefixed, FormatterExt};
+use crate::fmt::{DebugSexpr, FormatterExt};
 
 /// Declarations are the individual constructs that can go (among other places)
 /// directly in a sprachli file. The most typical declarations are [functions](Fn)
@@ -52,7 +52,7 @@ pub enum Visibility {
 }
 
 impl Visibility {
-    fn fmt(&self, f: &mut DebugPrefixed<'_, '_>) {
+    fn fmt(&self, f: &mut DebugSexpr<'_, '_>) {
         match self {
             Self::Public => {
                 f.name("pub");
@@ -106,7 +106,7 @@ impl<'input> Fn<'input> {
 
 impl fmt::Debug for Fn<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_prefixed();
+        let mut f = f.debug_sexpr();
         f.name("fn");
         self.visibility.fmt(&mut f);
         f.name(self.name)
@@ -143,7 +143,7 @@ impl<'input> Struct<'input> {
 
 impl fmt::Debug for Struct<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_prefixed();
+        let mut f = f.debug_sexpr();
         f.name("struct");
         self.visibility.fmt(&mut f);
         self.members.fmt(&mut f, self.name);
@@ -159,7 +159,7 @@ pub enum StructMembers<'input> {
 }
 
 impl StructMembers<'_> {
-    fn fmt(&self, f: &mut DebugPrefixed<'_, '_>, name: &str) {
+    fn fmt(&self, f: &mut DebugSexpr<'_, '_>, name: &str) {
         f.name(match self {
             Self::Empty => "empty",
             Self::Positional(_) => "positional",

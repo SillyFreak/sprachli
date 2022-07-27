@@ -59,7 +59,7 @@ impl fmt::Debug for Jump<'_> {
 
         match self {
             Return(expr) => f
-                .debug_prefixed()
+                .debug_sexpr()
                 .name("return")
                 .items(expr.iter())
                 .finish(),
@@ -134,7 +134,7 @@ impl<'input> From<Binary<'input>> for Expression<'input> {
 
 impl fmt::Debug for Binary<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_prefixed()
+        f.debug_sexpr()
             .item(&self.operator)
             .item(&self.left)
             .item(&self.right)
@@ -181,7 +181,7 @@ impl<'input> From<Unary<'input>> for Expression<'input> {
 
 impl fmt::Debug for Unary<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_prefixed()
+        f.debug_sexpr()
             .item(&self.operator)
             .item(&self.right)
             .finish()
@@ -212,7 +212,7 @@ impl<'input> From<Call<'input>> for Expression<'input> {
 
 impl fmt::Debug for Call<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_prefixed()
+        f.debug_sexpr()
             .name("call")
             .item(&self.function)
             .items(&self.actual_parameters)
@@ -244,7 +244,7 @@ impl<'input> From<Block<'input>> for Expression<'input> {
 
 impl fmt::Debug for Block<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_prefixed();
+        let mut f = f.debug_sexpr();
         f.name("block").items(&self.statements);
         if let Some(expression) = &self.expression {
             f.item(&expression);
@@ -281,7 +281,7 @@ impl<'input> From<If<'input>> for Expression<'input> {
 
 impl fmt::Debug for If<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut f = f.debug_prefixed();
+        let mut f = f.debug_sexpr();
         for (condition, block) in &self.then_branches {
             f.name("if").item(condition).item(block);
         }
@@ -311,7 +311,7 @@ impl<'input> From<Loop<'input>> for Expression<'input> {
 
 impl fmt::Debug for Loop<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_prefixed()
+        f.debug_sexpr()
             .name("loop").item(&self.body)
             .finish()
     }
