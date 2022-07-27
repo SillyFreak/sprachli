@@ -58,11 +58,7 @@ impl fmt::Debug for Jump<'_> {
         use Jump::*;
 
         match self {
-            Return(expr) => f
-                .debug_sexpr()
-                .name("return")
-                .items(expr.iter())
-                .finish(),
+            Return(expr) => f.debug_sexpr().name("return").items(expr.iter()).finish(),
         }
     }
 }
@@ -311,8 +307,6 @@ impl<'input> From<Loop<'input>> for Expression<'input> {
 
 impl fmt::Debug for Loop<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_sexpr()
-            .name("loop").item(&self.body)
-            .finish()
+        f.debug_sexpr().name("loop").item(&self.body).finish()
     }
 }

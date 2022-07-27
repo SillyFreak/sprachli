@@ -33,13 +33,13 @@ impl<'a, 'b: 'a> DebugSexpr<'a, 'b> {
             if !self.first {
                 self.fmt.write_str(" ")?;
             }
-            f(&mut self.fmt)
+            f(self.fmt)
         });
 
         self.first = false;
         self
     }
-    
+
     pub fn name(&mut self, name: &str) -> &mut Self {
         self.raw_item(|f| f.write_str(name))
     }

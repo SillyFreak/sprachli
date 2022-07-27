@@ -2,8 +2,6 @@ mod error;
 mod stack;
 mod value;
 
-use std::num::NonZeroUsize;
-
 use bigdecimal::BigDecimal;
 
 use crate::ast::{BinaryOperator, UnaryOperator};
@@ -180,7 +178,8 @@ impl<'b> Vm<'b> {
 
         // the function & parameters are still on top of the stack
         // find the offset where this stack frame begins
-        let offset = self.stack.checked_index(self.stack.len().checked_sub(arity + 1))?;
+        let offset = self.stack.len().checked_sub(arity + 1);
+        let offset = self.stack.checked_index(offset)?;
 
         let function = self.stack.pop_deep(offset)?;
         let function = function.as_function()?;

@@ -16,7 +16,7 @@ impl<'b> Stack<'b> {
     pub fn checked_index(&mut self, index: Option<usize>) -> Result<usize> {
         index
             .filter(|index| *index < self.len())
-            .ok_or(InternalError::EmptyStack.into())
+            .ok_or_else(|| InternalError::EmptyStack.into())
     }
 
     pub fn get(&mut self, index: usize) -> Option<&Value<'b>> {
@@ -41,10 +41,7 @@ impl<'b> Stack<'b> {
         Ok(self.0.drain(offset..))
     }
 
-    pub fn pop_all_under(
-        &mut self,
-        index: usize,
-    ) -> Result<impl Iterator<Item = Value<'b>> + '_> {
+    pub fn pop_all_under(&mut self, index: usize) -> Result<impl Iterator<Item = Value<'b>> + '_> {
         let index = self.checked_index(Some(index))?;
         let len = self.len();
         Ok(self.0.drain(index..len - 1))
