@@ -8,6 +8,7 @@ pub enum Statement<'input> {
     Declaration(Declaration<'input>),
     Expression(Expression<'input>),
     Jump(Jump<'input>),
+    VariableDeclaration(VariableDeclaration<'input>),
 }
 
 impl Statement<'_> {
@@ -27,6 +28,7 @@ impl fmt::Debug for Statement<'_> {
             Self::Declaration(stmt) => stmt.fmt(f),
             Self::Expression(stmt) => stmt.fmt(f),
             Self::Jump(stmt) => stmt.fmt(f),
+            Self::VariableDeclaration(stmt) => stmt.fmt(f),
         }
     }
 }
@@ -62,5 +64,34 @@ impl fmt::Debug for Jump<'_> {
                     .finish()
             }
         }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct VariableDeclaration<'input> {
+    pub name: &'input str,
+    pub initializer: Option<Expression<'input>>,
+}
+
+impl<'input> VariableDeclaration<'input> {
+    pub fn new(name: &'input str, initializer: Option<Expression<'input>>) -> Self {
+        Self { name, initializer }
+    }
+}
+
+impl<'input> From<VariableDeclaration<'input>> for Statement<'input> {
+    fn from(value: VariableDeclaration<'input>) -> Self {
+        Statement::VariableDeclaration(value)
+    }
+}
+
+impl fmt::Debug for VariableDeclaration<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let compact = self.initializer.as_ref().map_or(true, Expression::is_simple);
+        f.debug_sexpr_compact(compact)
+            .name("let")
+            .compact_name(self.name)
+            .items(self.initializer.iter())
+            .finish()
     }
 }

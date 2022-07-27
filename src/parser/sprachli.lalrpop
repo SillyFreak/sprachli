@@ -48,10 +48,15 @@ pub Statement: ast::Statement<'input> = {
 	Declaration => ast::Statement::Declaration(<>),
 	<Expression> ";" => ast::Statement::Expression(<>),
 	<Jump> ";",
+	<VariableDeclaration> ";",
 }
 
 pub Jump: ast::Statement<'input> = {
 	"return" <Expression?> => ast::Jump::new_return(<>).into(),
+}
+
+pub VariableDeclaration: ast::Statement<'input> = {
+	"let" <Identifier> <("=" <Expression>)?> => ast::VariableDeclaration::new(<>).into(),
 }
 
 //////
@@ -168,7 +173,7 @@ pub String: &'input str = {
 
 match {
 	// keywords must have priority over identifiers
-	"pub", "fn", "struct", "return", "if", "else", "loop",
+	"pub", "fn", "struct", "return", "let", "if", "else", "loop",
 } else {
 	r"[_a-zA-Z][_a-zA-Z0-9]*" => IDENTIFIER,
 	r"[0-9]+" => NUMBER,

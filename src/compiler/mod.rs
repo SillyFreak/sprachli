@@ -379,6 +379,7 @@ impl<'a> InstructionCompiler<'a> {
                 Ok(())
             }
             Jump(stmt) => self.visit_jump(stmt),
+            VariableDeclaration(_stmt) => todo!(),
         }
     }
 
