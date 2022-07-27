@@ -76,7 +76,7 @@ pub Expression: ast::Expression<'input> = {
 	Loop,
 
 	#[precedence(level="2")]
-	<function:Expression> "(" <actual_parameters:CommaSeparated<Expression>> ")" => ast::Call::new(<>).into(),
+	<function:Expression> "(" <actual_parameters:ActualParameters> ")" => ast::Call::new(<>).into(),
 
 	#[precedence(level="3")]
 	<operator:UnaryOp> <right:Expression> => ast::Unary::new(<>).into(),
@@ -96,6 +96,10 @@ pub Expression: ast::Expression<'input> = {
 	#[precedence(level="7")]
 	#[assoc(side="left")]
 	<left:Expression> <operator:EqualityOp> <right:Expression> => ast::Binary::new(<>).into(),
+}
+
+ActualParameters: Vec<ast::Expression<'input>> = {
+	CommaSeparated<Expression>
 }
 
 EqualityOp: ast::BinaryOperator = {
