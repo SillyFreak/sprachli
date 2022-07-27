@@ -76,7 +76,11 @@ pub struct VariableDeclaration<'input> {
 
 impl<'input> VariableDeclaration<'input> {
     pub fn new(mutable: bool, name: &'input str, initializer: Option<Expression<'input>>) -> Self {
-        Self { mutable, name, initializer }
+        Self {
+            mutable,
+            name,
+            initializer,
+        }
     }
 }
 
@@ -88,14 +92,16 @@ impl<'input> From<VariableDeclaration<'input>> for Statement<'input> {
 
 impl fmt::Debug for VariableDeclaration<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let compact = self.initializer.as_ref().map_or(true, Expression::is_simple);
+        let compact = self
+            .initializer
+            .as_ref()
+            .map_or(true, Expression::is_simple);
         let mut f = f.debug_sexpr_compact(compact);
         f.name("let");
         if self.mutable {
             f.compact_name("mut");
         }
-        f
-            .compact_name(self.name)
+        f.compact_name(self.name)
             .items(self.initializer.iter())
             .finish()
     }
