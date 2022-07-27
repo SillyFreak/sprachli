@@ -1,5 +1,5 @@
 fn main() {
 	loop {
-		//return 42;
+		return 42;
 	}
 }

@@ -1,0 +1,12 @@
+fn add(a, b) {
+	let result = a + b;
+	result
+}
+
+fn main() {
+	let x = 20;
+	{
+		let y = 22;
+		add(x, y)
+	}
+}

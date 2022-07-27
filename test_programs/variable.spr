@@ -1,8 +1,0 @@
-fn add(a, b) {
-	a + b
-}
-
-fn main() {
-	let x = 1;
-	add(x, 2)
-}
