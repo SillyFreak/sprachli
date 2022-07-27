@@ -251,7 +251,6 @@ impl<'a> InstructionCompiler<'a> {
             Number(literal) => self.visit_number(literal),
             String(literal) => self.visit_string(literal),
             Identifier(name) => self.visit_identifier(name),
-            Jump(expr) => self.visit_jump(expr),
             Binary(expr) => self.visit_binary(expr),
             Unary(expr) => self.visit_unary(expr),
             Call(call) => self.visit_call(call),
@@ -369,7 +368,6 @@ impl<'a> InstructionCompiler<'a> {
 
     fn visit_statement(&mut self, stmt: ast::Statement) -> Result<()> {
         use ast::Statement::*;
-        use Instruction::*;
 
         match stmt {
             Declaration(_) => {
@@ -377,9 +375,10 @@ impl<'a> InstructionCompiler<'a> {
             }
             Expression(expr) => {
                 self.visit_expression(expr)?;
-                self.push(Pop);
+                self.push(Instruction::Pop);
                 Ok(())
             }
+            Jump(stmt) => self.visit_jump(stmt),
         }
     }
 
