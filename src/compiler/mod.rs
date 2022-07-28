@@ -225,7 +225,23 @@ impl<'a> InstructionCompiler<'a> {
     }
 
     fn push(&mut self, instruction: Instruction) -> Result<()> {
-        self.apply_stack_effect(instruction.stack_effect())?;
+        use Instruction::*;
+
+        if let Some(effect) = instruction.stack_effect() {
+            self.apply_stack_effect(effect)?;
+        } else {
+            match instruction {
+                PopScope(depth) => {
+                    let end = self
+                        .stack
+                        .len()
+                        .checked_sub(1)
+                        .ok_or(InternalError::InvalidStackEffect)?;
+                    self.stack.drain(depth..end);
+                }
+                _ => unreachable!(),
+            }
+        }
         self.instructions.push(instruction);
         Ok(())
     }
@@ -234,7 +250,7 @@ impl<'a> InstructionCompiler<'a> {
     where
         F: FnOnce(Offset) -> Instruction,
     {
-        self.apply_stack_effect(dummy.stack_effect())?;
+        self.apply_stack_effect(dummy.stack_effect().unwrap())?;
         let index = self.instructions.len();
         self.instructions.push(Instruction::JumpPlaceholder);
         Ok(Placeholder(index, f))
@@ -358,6 +374,13 @@ impl<'a> InstructionCompiler<'a> {
         Ok(())
     }
 
+    fn visit_variable_declaration(&mut self, stmt: ast::VariableDeclaration) -> Result<()> {
+        self.visit_optional(stmt.initializer)?;
+        let name = self.stack.last_mut().unwrap();
+        *name = stmt.name.to_string();
+        Ok(())
+    }
+
     fn visit_binary(&mut self, expr: ast::Binary) -> Result<()> {
         use Instruction::*;
 
@@ -391,7 +414,13 @@ impl<'a> InstructionCompiler<'a> {
         use instruction::InlineConstant;
         use Instruction::*;
 
+        let depth = self.stack.len();
+        let mut locals = 0;
+
         for stmt in block.statements {
+            if matches!(stmt, ast::Statement::VariableDeclaration(_)) {
+                locals += 1;
+            }
             self.visit_statement(stmt)?;
         }
         if let Some(expr) = block.expression {
@@ -399,6 +428,18 @@ impl<'a> InstructionCompiler<'a> {
         } else {
             self.push(InlineConstant(InlineConstant::Unit))?;
         }
+
+        // there should be locals + 1 extra values on the stack,
+        // and all but the top one should be named variables
+        assert!(self.stack.len() == depth + locals + 1);
+        assert!(self.stack[depth..depth + locals]
+            .iter()
+            .all(|local| local != ""));
+        assert!(self.stack[depth + locals] == "");
+
+        // drop the local variables
+        self.push(PopScope(depth))?;
+
         Ok(())
     }
 
@@ -415,7 +456,7 @@ impl<'a> InstructionCompiler<'a> {
                 Ok(())
             }
             Jump(stmt) => self.visit_jump(stmt),
-            VariableDeclaration(_stmt) => todo!(),
+            VariableDeclaration(stmt) => self.visit_variable_declaration(stmt),
         }
     }
 
