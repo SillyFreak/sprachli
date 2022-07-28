@@ -192,13 +192,13 @@ impl Compiler {
 }
 
 #[derive(Debug)]
-struct InstructionCompiler<'a> {
+struct InstructionCompiler<'a, 'input> {
     compiler: &'a mut Compiler,
-    stack: Vec<String>,
+    stack: Vec<&'input str>,
     instructions: Vec<Instruction>,
 }
 
-impl<'a> InstructionCompiler<'a> {
+impl<'a, 'input> InstructionCompiler<'a, 'input> {
     pub fn new(compiler: &'a mut Compiler) -> Self {
         Self {
             compiler,
@@ -209,7 +209,7 @@ impl<'a> InstructionCompiler<'a> {
 
     fn apply_stack_effect(&mut self, effect: isize) -> Result<()> {
         if let Ok(effect) = usize::try_from(effect) {
-            let empty_vars = iter::repeat("".to_string());
+            let empty_vars = iter::repeat("");
             self.stack.extend(empty_vars.take(effect));
         } else if let Ok(effect) = usize::try_from(-effect) {
             let len = self
@@ -282,7 +282,7 @@ impl<'a> InstructionCompiler<'a> {
         Offset::Backward(offset)
     }
 
-    pub fn visit_fn(mut self, function: ast::Fn) -> Result<Function> {
+    pub fn visit_fn(mut self, function: ast::Fn<'input>) -> Result<Function> {
         let ast::Fn {
             formal_parameters,
             body,
@@ -290,13 +290,13 @@ impl<'a> InstructionCompiler<'a> {
         } = function;
 
         self.stack
-            .extend(formal_parameters.iter().map(ToString::to_string));
+            .extend(&formal_parameters);
         self.visit_block(body)?;
 
         Ok(Function::new(formal_parameters.len(), self.instructions))
     }
 
-    fn visit_expression(&mut self, expr: ast::Expression) -> Result<()> {
+    fn visit_expression(&mut self, expr: ast::Expression<'input>) -> Result<()> {
         use ast::Expression::*;
 
         match expr {
@@ -312,7 +312,7 @@ impl<'a> InstructionCompiler<'a> {
         }
     }
 
-    fn visit_optional(&mut self, expr: Option<ast::Expression>) -> Result<()> {
+    fn visit_optional(&mut self, expr: Option<ast::Expression<'input>>) -> Result<()> {
         use instruction::InlineConstant;
         use Instruction::*;
 
@@ -360,7 +360,7 @@ impl<'a> InstructionCompiler<'a> {
         Ok(())
     }
 
-    fn visit_jump(&mut self, stmt: ast::Jump) -> Result<()> {
+    fn visit_jump(&mut self, stmt: ast::Jump<'input>) -> Result<()> {
         use ast::Jump::*;
 
         match stmt {
@@ -374,14 +374,14 @@ impl<'a> InstructionCompiler<'a> {
         Ok(())
     }
 
-    fn visit_variable_declaration(&mut self, stmt: ast::VariableDeclaration) -> Result<()> {
+    fn visit_variable_declaration(&mut self, stmt: ast::VariableDeclaration<'input>) -> Result<()> {
         self.visit_optional(stmt.initializer)?;
         let name = self.stack.last_mut().unwrap();
-        *name = stmt.name.to_string();
+        *name = stmt.name;
         Ok(())
     }
 
-    fn visit_binary(&mut self, expr: ast::Binary) -> Result<()> {
+    fn visit_binary(&mut self, expr: ast::Binary<'input>) -> Result<()> {
         use Instruction::*;
 
         self.visit_expression(*expr.left)?;
@@ -390,7 +390,7 @@ impl<'a> InstructionCompiler<'a> {
         Ok(())
     }
 
-    fn visit_unary(&mut self, expr: ast::Unary) -> Result<()> {
+    fn visit_unary(&mut self, expr: ast::Unary<'input>) -> Result<()> {
         use Instruction::*;
 
         self.visit_expression(*expr.right)?;
@@ -398,7 +398,7 @@ impl<'a> InstructionCompiler<'a> {
         Ok(())
     }
 
-    fn visit_call(&mut self, call: ast::Call) -> Result<()> {
+    fn visit_call(&mut self, call: ast::Call<'input>) -> Result<()> {
         use Instruction::*;
 
         self.visit_expression(*call.function)?;
@@ -410,7 +410,7 @@ impl<'a> InstructionCompiler<'a> {
         Ok(())
     }
 
-    fn visit_block(&mut self, block: ast::Block) -> Result<()> {
+    fn visit_block(&mut self, block: ast::Block<'input>) -> Result<()> {
         use instruction::InlineConstant;
         use Instruction::*;
 
@@ -434,6 +434,7 @@ impl<'a> InstructionCompiler<'a> {
         assert!(self.stack.len() == depth + locals + 1);
         assert!(self.stack[depth..depth + locals]
             .iter()
+            .copied()
             .all(|local| local != ""));
         assert!(self.stack[depth + locals] == "");
 
@@ -443,7 +444,7 @@ impl<'a> InstructionCompiler<'a> {
         Ok(())
     }
 
-    fn visit_statement(&mut self, stmt: ast::Statement) -> Result<()> {
+    fn visit_statement(&mut self, stmt: ast::Statement<'input>) -> Result<()> {
         use ast::Statement::*;
 
         match stmt {
@@ -460,7 +461,7 @@ impl<'a> InstructionCompiler<'a> {
         }
     }
 
-    fn visit_if(&mut self, expr: ast::If) -> Result<()> {
+    fn visit_if(&mut self, expr: ast::If<'input>) -> Result<()> {
         use ast::UnaryOperator::*;
         use Instruction::*;
 
@@ -497,7 +498,7 @@ impl<'a> InstructionCompiler<'a> {
         Ok(())
     }
 
-    fn visit_loop(&mut self, expr: ast::Loop) -> Result<()> {
+    fn visit_loop(&mut self, expr: ast::Loop<'input>) -> Result<()> {
         use Instruction::*;
 
         let start = self.instructions.len();
