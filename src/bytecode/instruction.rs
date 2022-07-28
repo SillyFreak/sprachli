@@ -61,7 +61,7 @@ impl Instruction {
             Binary(_) => -1,
             LoadLocal(_) => 1,
             LoadNamed(_) => 1,
-            PopScope(depth) => return None,
+            PopScope(_depth) => return None,
             Call(arity) => -isize::try_from(arity).expect("illegal arity"),
             // Return diverges, but it (conceptually) pops one value off the stack before the function ends
             Return => -1,

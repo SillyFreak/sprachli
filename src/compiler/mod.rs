@@ -289,8 +289,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             ..
         } = function;
 
-        self.stack
-            .extend(&formal_parameters);
+        self.stack.extend(&formal_parameters);
         self.visit_block(body)?;
 
         Ok(Function::new(formal_parameters.len(), self.instructions))
@@ -434,9 +433,8 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         assert!(self.stack.len() == depth + locals + 1);
         assert!(self.stack[depth..depth + locals]
             .iter()
-            .copied()
-            .all(|local| local != ""));
-        assert!(self.stack[depth + locals] == "");
+            .all(|local| !local.is_empty()));
+        assert!(self.stack[depth + locals].is_empty());
 
         // drop the local variables
         self.push(PopScope(depth))?;
@@ -488,7 +486,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             assert!(self.stack.len() == depth + 1);
             let name = self.stack.pop().unwrap();
             // this is an expression result, so it can't have a name
-            assert!(name == "");
+            assert!(name.is_empty());
         }
         let else_branch = expr.else_branch.map(ast::Expression::Block);
         self.visit_optional(else_branch)?;
