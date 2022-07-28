@@ -60,7 +60,8 @@ impl Instruction {
             LoadLocal(_) => 1,
             LoadNamed(_) => 1,
             Call(arity) => -isize::try_from(arity).expect("illegal arity"),
-            Return => todo!(),
+            // Return diverges, but it (conceptually) pops one value off the stack before the function ends
+            Return => -1,
             Jump(_) => 0,
             JumpIf(_) => -1,
         }
@@ -71,7 +72,7 @@ impl Instruction {
 
         match self {
             Constant(_) => 2,
-            InlineConstant(_) => 2,
+            InlineConstant(_) => 1,
             Pop => 1,
             Unary(_) => 2,
             Binary(_) => 2,
