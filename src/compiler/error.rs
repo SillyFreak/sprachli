@@ -41,4 +41,6 @@ pub enum InternalError {
     InvalidNumberLiteral(#[from] ParseBigDecimalError),
     #[error("Invalid string literal: {0}")]
     InvalidStringLiteral(#[from] ParseStringError),
+    #[error("Invalid stack effect: an instruction would pop from an empty stack")]
+    InvalidStackEffect,
 }

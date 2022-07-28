@@ -6,6 +6,7 @@ mod writer;
 use std::collections::HashMap;
 use std::fmt;
 use std::io::Write;
+use std::iter;
 use std::str::FromStr;
 
 use crate::ast;
@@ -193,7 +194,7 @@ impl Compiler {
 #[derive(Debug)]
 struct InstructionCompiler<'a> {
     compiler: &'a mut Compiler,
-    locals: Vec<String>,
+    stack: Vec<String>,
     instructions: Vec<Instruction>,
 }
 
@@ -201,22 +202,56 @@ impl<'a> InstructionCompiler<'a> {
     pub fn new(compiler: &'a mut Compiler) -> Self {
         Self {
             compiler,
-            locals: Default::default(),
+            stack: Default::default(),
             instructions: Default::default(),
         }
     }
 
-    fn push(&mut self, instruction: Instruction) {
-        self.instructions.push(instruction);
+    fn apply_stack_effect(&mut self, effect: isize) -> Result<()> {
+        if let Ok(effect) = usize::try_from(effect) {
+            let empty_vars = iter::repeat("".to_string());
+            self.stack.extend(empty_vars.take(effect));
+        } else if let Ok(effect) = usize::try_from(-effect) {
+            let len = self
+                .stack
+                .len()
+                .checked_sub(effect)
+                .ok_or(InternalError::InvalidStackEffect)?;
+            self.stack.truncate(len);
+        } else {
+            unreachable!();
+        }
+        Ok(())
     }
 
-    fn push_placeholder<F>(&mut self, f: F) -> Placeholder<F>
+    fn push(&mut self, instruction: Instruction) -> Result<()> {
+        self.apply_stack_effect(instruction.stack_effect())?;
+        self.instructions.push(instruction);
+        Ok(())
+    }
+
+    fn push_placeholder<F>(&mut self, dummy: Instruction, f: F) -> Result<Placeholder<F>>
     where
         F: FnOnce(Offset) -> Instruction,
     {
+        self.apply_stack_effect(dummy.stack_effect())?;
         let index = self.instructions.len();
         self.instructions.push(Instruction::JumpPlaceholder);
-        Placeholder(index, f)
+        Ok(Placeholder(index, f))
+    }
+
+    fn push_jump_placeholder(&mut self) -> Result<Placeholder<impl FnOnce(Offset) -> Instruction>> {
+        use Instruction::*;
+        use Offset::*;
+        self.push_placeholder(Jump(Forward(0)), Jump)
+    }
+
+    fn push_jump_if_placeholder(
+        &mut self,
+    ) -> Result<Placeholder<impl FnOnce(Offset) -> Instruction>> {
+        use Instruction::*;
+        use Offset::*;
+        self.push_placeholder(JumpIf(Forward(0)), JumpIf)
     }
 
     fn offset_from(&self, index: usize) -> Offset {
@@ -238,7 +273,8 @@ impl<'a> InstructionCompiler<'a> {
             ..
         } = function;
 
-        self.locals.extend(formal_parameters.iter().map(ToString::to_string));
+        self.stack
+            .extend(formal_parameters.iter().map(ToString::to_string));
         self.visit_block(body)?;
 
         Ok(Function::new(formal_parameters.len(), self.instructions))
@@ -267,7 +303,7 @@ impl<'a> InstructionCompiler<'a> {
         if let Some(expr) = expr {
             self.visit_expression(expr)?;
         } else {
-            self.push(InlineConstant(InlineConstant::Unit));
+            self.push(InlineConstant(InlineConstant::Unit))?;
         }
         Ok(())
     }
@@ -277,7 +313,7 @@ impl<'a> InstructionCompiler<'a> {
 
         let number = Number::from_str(literal).map_err(InternalError::from)?;
         let constant = self.compiler.add_constant(number);
-        self.push(Constant(constant));
+        self.push(Constant(constant))?;
         Ok(())
     }
 
@@ -286,7 +322,7 @@ impl<'a> InstructionCompiler<'a> {
 
         let string = string_from_literal(literal).map_err(InternalError::from)?;
         let constant = self.compiler.add_constant(string);
-        self.push(Constant(constant));
+        self.push(Constant(constant))?;
         Ok(())
     }
 
@@ -294,28 +330,28 @@ impl<'a> InstructionCompiler<'a> {
         use Instruction::*;
 
         if let Some(local) = self
-            .locals
+            .stack
             .iter()
             .enumerate()
             .rev()
             .find_map(|(i, local)| (*local == name).then_some(i))
         {
-            self.push(LoadLocal(local));
+            self.push(LoadLocal(local))?;
         } else {
             let name = self.compiler.add_constant(name.to_string());
-            self.push(LoadNamed(name));
+            self.push(LoadNamed(name))?;
         }
         Ok(())
     }
 
-    fn visit_jump(&mut self, expr: ast::Jump) -> Result<()> {
+    fn visit_jump(&mut self, stmt: ast::Jump) -> Result<()> {
         use ast::Jump::*;
 
-        match expr {
+        match stmt {
             Return(expr) => {
                 let expr = expr.map(|expr| *expr);
                 self.visit_optional(expr)?;
-                self.push(Instruction::Return);
+                self.push(Instruction::Return)?;
             }
         }
 
@@ -327,7 +363,7 @@ impl<'a> InstructionCompiler<'a> {
 
         self.visit_expression(*expr.left)?;
         self.visit_expression(*expr.right)?;
-        self.push(Binary(expr.operator));
+        self.push(Binary(expr.operator))?;
         Ok(())
     }
 
@@ -335,7 +371,7 @@ impl<'a> InstructionCompiler<'a> {
         use Instruction::*;
 
         self.visit_expression(*expr.right)?;
-        self.push(Unary(expr.operator));
+        self.push(Unary(expr.operator))?;
         Ok(())
     }
 
@@ -347,7 +383,7 @@ impl<'a> InstructionCompiler<'a> {
         for expr in call.actual_parameters {
             self.visit_expression(expr)?;
         }
-        self.push(Call(arity));
+        self.push(Call(arity))?;
         Ok(())
     }
 
@@ -361,7 +397,7 @@ impl<'a> InstructionCompiler<'a> {
         if let Some(expr) = block.expression {
             self.visit_expression(*expr)?;
         } else {
-            self.push(InlineConstant(InlineConstant::Unit));
+            self.push(InlineConstant(InlineConstant::Unit))?;
         }
         Ok(())
     }
@@ -375,7 +411,7 @@ impl<'a> InstructionCompiler<'a> {
             }
             Expression(expr) => {
                 self.visit_expression(expr)?;
-                self.push(Instruction::Pop);
+                self.push(Instruction::Pop)?;
                 Ok(())
             }
             Jump(stmt) => self.visit_jump(stmt),
@@ -392,12 +428,25 @@ impl<'a> InstructionCompiler<'a> {
         for (condition, then_branch) in expr.then_branches {
             // jump if the condition is false
             self.visit_expression(condition)?;
-            self.push(Unary(Not));
-            let cond = self.push_placeholder(JumpIf);
+            self.push(Unary(Not))?;
+            let cond = self.push_jump_if_placeholder()?;
+
+            let depth = self.stack.len();
+
             // do the then branch unless jumped
             self.visit_block(then_branch)?;
-            end_jumps.push(self.push_placeholder(Jump));
+            end_jumps.push(self.push_jump_placeholder()?);
             cond.fill(self);
+
+            // we have multiple branches of which only one is taken,
+            // so the block's result is not really "still" on the stack.
+            // after the whole if, the result (which may be unit if
+            // there's no else branch) will be on the stack, so removing
+            // the one from the block here is correct
+            assert!(self.stack.len() == depth + 1);
+            let name = self.stack.pop().unwrap();
+            // this is an expression result, so it can't have a name
+            assert!(name == "");
         }
         let else_branch = expr.else_branch.map(ast::Expression::Block);
         self.visit_optional(else_branch)?;
@@ -412,8 +461,11 @@ impl<'a> InstructionCompiler<'a> {
 
         let start = self.instructions.len();
         self.visit_block(expr.body)?;
-        self.push(Pop);
-        self.push_placeholder(Jump).fill_to(self, start);
+        self.push(Pop)?;
+        self.push_jump_placeholder()?.fill_to(self, start);
+        // we ignore the body's result, but the loop itself has a result (or diverges),
+        // i.e. its stack effect is not 0 but 1.
+        self.apply_stack_effect(1)?;
         Ok(())
     }
 }
