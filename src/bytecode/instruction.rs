@@ -23,6 +23,7 @@ pub enum Opcode {
     Binary,
     LoadLocal,
     LoadNamed,
+    PopScope,
     Call,
     Return,
     // Jump & JumpIf
@@ -41,6 +42,7 @@ pub enum Instruction {
     Binary(BinaryOperator),
     LoadLocal(usize),
     LoadNamed(usize),
+    PopScope(usize),
     Call(usize),
     Return,
     Jump(Offset),
@@ -48,10 +50,10 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    pub fn stack_effect(self) -> isize {
+    pub fn stack_effect(self) -> Option<isize> {
         use Instruction::*;
 
-        match self {
+        let effect = match self {
             Constant(_) => 1,
             InlineConstant(_) => 1,
             Pop => -1,
@@ -59,12 +61,15 @@ impl Instruction {
             Binary(_) => -1,
             LoadLocal(_) => 1,
             LoadNamed(_) => 1,
+            PopScope(depth) => return None,
             Call(arity) => -isize::try_from(arity).expect("illegal arity"),
             // Return diverges, but it (conceptually) pops one value off the stack before the function ends
             Return => -1,
             Jump(_) => 0,
             JumpIf(_) => -1,
-        }
+        };
+
+        Some(effect)
     }
 
     pub fn encoded_len(self) -> usize {
@@ -78,6 +83,7 @@ impl Instruction {
             Binary(_) => 2,
             LoadLocal(_) => 2,
             LoadNamed(_) => 2,
+            PopScope(_) => 2,
             Call(_) => 2,
             Return => 1,
             Jump(_) => 2,
@@ -116,6 +122,7 @@ impl Instruction {
                 }
                 Ok(())
             }
+            PopScope(depth) => write!(f, "POP SCOPE {depth}"),
             Call(arity) => write!(f, "CALL {arity}"),
             Return => write!(f, "RETURN"),
             Jump(offset) => write!(f, "JUMP {offset:?}"),

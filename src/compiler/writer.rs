@@ -98,6 +98,10 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 body.push(Op::LoadNamed.into());
                 body.push(index as u8);
             }
+            In::PopScope(depth) => {
+                body.push(Op::PopScope.into());
+                body.push(depth as u8);
+            }
             In::Call(arity) => {
                 body.push(Op::Call.into());
                 body.push(arity as u8);
