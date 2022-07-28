@@ -53,6 +53,8 @@ pub Statement: ast::Statement<'input> = {
 
 pub Jump: ast::Statement<'input> = {
 	"return" <Expression?> => ast::Jump::new_return(<>).into(),
+	"break" <Expression?> => ast::Jump::new_break(<>).into(),
+	"continue" => ast::Jump::Continue.into(),
 }
 
 pub VariableDeclaration: ast::Statement<'input> = {
@@ -180,7 +182,7 @@ pub String: &'input str = {
 
 match {
 	// keywords must have priority over identifiers
-	"pub", "fn", "struct", "return", "let", "mut", "if", "else", "loop",
+	"pub", "fn", "struct", "return", "break", "continue", "let", "mut", "if", "else", "loop",
 } else {
 	r"[_a-zA-Z][_a-zA-Z0-9]*" => IDENTIFIER,
 	r"[0-9]+" => NUMBER,

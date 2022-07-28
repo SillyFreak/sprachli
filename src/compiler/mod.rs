@@ -368,6 +368,8 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
                 self.visit_optional(expr)?;
                 self.push(Instruction::Return)?;
             }
+            Break(_expr) => todo!(),
+            Continue => todo!(),
         }
 
         Ok(())

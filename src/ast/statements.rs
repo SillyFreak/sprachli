@@ -36,12 +36,19 @@ impl fmt::Debug for Statement<'_> {
 #[derive(Clone, PartialEq, Eq)]
 pub enum Jump<'input> {
     Return(Option<Box<Expression<'input>>>),
+    Break(Option<Box<Expression<'input>>>),
+    Continue,
 }
 
 impl<'input> Jump<'input> {
     pub fn new_return(right: Option<Expression<'input>>) -> Self {
         let right = right.map(Box::new);
         Self::Return(right)
+    }
+
+    pub fn new_break(right: Option<Expression<'input>>) -> Self {
+        let right = right.map(Box::new);
+        Self::Break(right)
     }
 }
 
@@ -63,6 +70,14 @@ impl fmt::Debug for Jump<'_> {
                     .items(expr.iter())
                     .finish()
             }
+            Break(expr) => {
+                let compact = expr.as_deref().map_or(true, Expression::is_simple);
+                f.debug_sexpr_compact(compact)
+                    .name("break")
+                    .items(expr.iter())
+                    .finish()
+            }
+            Continue => f.debug_sexpr_compact(true).name("continue").finish(),
         }
     }
 }
