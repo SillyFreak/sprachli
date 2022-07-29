@@ -1,6 +1,6 @@
 use std::fmt;
 
-use super::Block;
+use super::{Block, Variable};
 use crate::fmt::{DebugSexpr, FormatterExt};
 
 /// Declarations are the individual constructs that can go (among other places)
@@ -75,7 +75,7 @@ pub struct Use<'input> {
 pub struct Fn<'input> {
     pub visibility: Visibility,
     pub name: &'input str,
-    pub formal_parameters: Vec<&'input str>,
+    pub formal_parameters: Vec<Variable<'input>>,
     pub body: Block<'input>,
 }
 
@@ -83,7 +83,7 @@ impl<'input> Fn<'input> {
     pub fn new(
         visibility: Visibility,
         name: &'input str,
-        formal_parameters: Vec<&'input str>,
+        formal_parameters: Vec<Variable<'input>>,
         body: Block<'input>,
     ) -> Self {
         Self {
@@ -97,7 +97,7 @@ impl<'input> Fn<'input> {
     pub fn new_declaration(
         visibility: Visibility,
         name: &'input str,
-        formal_parameters: Vec<&'input str>,
+        formal_parameters: Vec<Variable<'input>>,
         body: Block<'input>,
     ) -> Declaration<'input> {
         Declaration::Fn(Self::new(visibility, name, formal_parameters, body))
@@ -110,7 +110,7 @@ impl fmt::Debug for Fn<'_> {
         f.name("fn");
         self.visibility.fmt(&mut f);
         f.compact_name(self.name)
-            .compact_names(&self.formal_parameters)
+            .compact_items(&self.formal_parameters)
             .item(&self.body)
             .finish()
     }

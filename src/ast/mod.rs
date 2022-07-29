@@ -25,3 +25,19 @@ impl fmt::Debug for SourceFile<'_> {
             .finish()
     }
 }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Variable<'input> {
+    pub mutable: bool,
+    pub name: &'input str,
+}
+
+impl fmt::Debug for Variable<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut f = f.debug_sexpr_compact(true);
+        if self.mutable {
+            f.compact_name("mut");
+        }
+        f.compact_name(self.name).finish()
+    }
+}

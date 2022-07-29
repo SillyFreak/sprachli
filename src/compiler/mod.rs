@@ -184,7 +184,7 @@ impl Compiler {
 #[derive(Debug)]
 struct InstructionCompiler<'a, 'input> {
     compiler: &'a mut Compiler,
-    stack: Vec<&'input str>,
+    stack: Vec<Option<ast::Variable<'input>>>,
     jump_targets: Vec<JumpTarget>,
     instructions: Vec<InstructionItem>,
 }
@@ -201,8 +201,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
 
     fn apply_stack_effect(&mut self, effect: isize) -> Result<()> {
         if let Ok(effect) = usize::try_from(effect) {
-            let empty_vars = iter::repeat("");
-            self.stack.extend(empty_vars.take(effect));
+            self.stack.extend(iter::repeat(None).take(effect));
         } else if let Ok(effect) = usize::try_from(-effect) {
             let len = self
                 .stack
@@ -296,7 +295,8 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             ..
         } = function;
 
-        self.stack.extend(&formal_parameters);
+        self.stack
+            .extend(formal_parameters.iter().copied().map(Some));
         self.visit_block(body)?;
 
         let instructions = self
@@ -359,7 +359,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             .iter()
             .enumerate()
             .rev()
-            .find_map(|(i, local)| (*local == name).then_some(i))
+            .find_map(|(i, local)| local.filter(|var| var.name == name).map(|_| i))
         {
             self.push(LoadLocal(local))?;
         } else {
@@ -411,9 +411,13 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
     }
 
     fn visit_variable_declaration(&mut self, stmt: ast::VariableDeclaration<'input>) -> Result<()> {
-        self.visit_optional(stmt.initializer)?;
-        let name = self.stack.last_mut().unwrap();
-        *name = stmt.name;
+        let ast::VariableDeclaration {
+            variable,
+            initializer,
+        } = stmt;
+        self.visit_optional(initializer)?;
+        let var = self.stack.last_mut().unwrap();
+        *var = Some(variable);
         Ok(())
     }
 
@@ -467,8 +471,8 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         assert!(self.stack.len() == depth + locals + 1);
         assert!(self.stack[depth..depth + locals]
             .iter()
-            .all(|local| !local.is_empty()));
-        assert!(self.stack[depth + locals].is_empty());
+            .all(|local| !local.is_none()));
+        assert!(self.stack[depth + locals].is_none());
 
         // drop the local variables
         self.push(Instruction::PopScope(depth))?;
@@ -519,9 +523,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             // there's no else branch) will be on the stack, so removing
             // the one from the block here is correct
             assert!(self.stack.len() == depth + 1);
-            let name = self.stack.pop().unwrap();
-            // this is an expression result, so it can't have a name
-            assert!(name.is_empty());
+            self.apply_stack_effect(-1)?;
         }
         let else_branch = expr.else_branch.map(ast::Expression::Block);
         self.visit_optional(else_branch)?;

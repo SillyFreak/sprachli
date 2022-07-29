@@ -101,10 +101,10 @@ mod tests {
 
         test.parse("fn foo() {}", "(fn foo (block ()))");
         test.parse("pub fn foo() {}", "(fn pub foo (block ()))");
-        test.parse("fn foo(a) {}", "(fn foo a (block ()))");
-        test.parse("fn foo(a,) {}", "(fn foo a (block ()))");
-        test.parse("fn foo(a, b) {}", "(fn foo a b (block ()))");
-        test.parse("fn foo(a, b,) {}", "(fn foo a b (block ()))");
+        test.parse("fn foo(a) {}", "(fn foo (a) (block ()))");
+        test.parse("fn foo(a,) {}", "(fn foo (a) (block ()))");
+        test.parse("fn foo(a, b) {}", "(fn foo (a) (b) (block ()))");
+        test.parse("fn foo(a, b,) {}", "(fn foo (a) (b) (block ()))");
         test.parse_err("fn foo(a, 1) {}");
     }
 

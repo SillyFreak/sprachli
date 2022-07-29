@@ -6,6 +6,13 @@ pub SourceFile: ast::SourceFile<'input> = {
 	<declarations:Declaration*> => ast::SourceFile { <> },
 }
 
+Variable: ast::Variable<'input> = {
+	<mutable:"mut"?> <name:Identifier> => {
+		let mutable = mutable.is_some();
+		ast::Variable { <> }
+	},
+}
+
 //////
 // declarations
 
@@ -25,7 +32,7 @@ Visibility: ast::Visibility = {
 pub Fn: ast::Fn<'input> = {
 	<visibility:Visibility>
 	"fn" <name:Identifier>
-	"(" <formal_parameters:CommaSeparated<Identifier>> ")"
+	"(" <formal_parameters:CommaSeparated<Variable>> ")"
 	<body:Block> => ast::Fn::new(<>),
 }
 
@@ -59,10 +66,7 @@ pub Jump: ast::Statement<'input> = {
 }
 
 pub VariableDeclaration: ast::Statement<'input> = {
-	"let" <mutable:"mut"?> <name:Identifier> <initializer:("=" <Expression>)?> => {
-		let mutable = mutable.is_some();
-		ast::VariableDeclaration::new(mutable, name, initializer).into()
-	},
+	"let" <Variable> <("=" <Expression>)?> => ast::VariableDeclaration::new(<>).into(),
 }
 
 pub Assignment: ast::Statement<'input> = {

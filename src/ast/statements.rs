@@ -1,6 +1,6 @@
 use std::fmt;
 
-use super::{Declaration, Expression};
+use super::{Declaration, Expression, Variable};
 use crate::fmt::FormatterExt;
 
 #[derive(Clone, PartialEq, Eq)]
@@ -86,16 +86,14 @@ impl fmt::Debug for Jump<'_> {
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct VariableDeclaration<'input> {
-    pub mutable: bool,
-    pub name: &'input str,
+    pub variable: Variable<'input>,
     pub initializer: Option<Expression<'input>>,
 }
 
 impl<'input> VariableDeclaration<'input> {
-    pub fn new(mutable: bool, name: &'input str, initializer: Option<Expression<'input>>) -> Self {
+    pub fn new(variable: Variable<'input>, initializer: Option<Expression<'input>>) -> Self {
         Self {
-            mutable,
-            name,
+            variable,
             initializer,
         }
     }
@@ -113,12 +111,9 @@ impl fmt::Debug for VariableDeclaration<'_> {
             .initializer
             .as_ref()
             .map_or(true, Expression::is_simple);
-        let mut f = f.debug_sexpr_compact(compact);
-        f.name("let");
-        if self.mutable {
-            f.compact_name("mut");
-        }
-        f.compact_name(self.name)
+        f.debug_sexpr_compact(compact)
+            .name("let")
+            .compact_item(&self.variable)
             .items(self.initializer.iter())
             .finish()
     }
