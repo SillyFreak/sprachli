@@ -23,6 +23,10 @@ impl<'b> Stack<'b> {
         self.0.get(index)
     }
 
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Value<'b>> {
+        self.0.get_mut(index)
+    }
+
     pub fn pop(&mut self) -> Result<Value<'b>> {
         self.0.pop().ok_or_else(|| InternalError::EmptyStack.into())
     }

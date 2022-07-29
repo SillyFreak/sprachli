@@ -50,13 +50,22 @@ impl<'b> Vm<'b> {
         Ok(value)
     }
 
-    fn get_local(&mut self, offset: usize, index: usize) -> Result<Value<'b>> {
+    fn get_local(&mut self, offset: usize, index: usize) -> Result<&Value<'b>> {
         let value = self
             .stack
             .get(offset + index)
             .ok_or(InternalError::InvalidLocal(index))?;
 
-        Ok(value.clone())
+        Ok(value)
+    }
+
+    fn get_local_mut(&mut self, offset: usize, index: usize) -> Result<&mut Value<'b>> {
+        let value = self
+            .stack
+            .get_mut(offset + index)
+            .ok_or(InternalError::InvalidLocal(index))?;
+
+        Ok(value)
     }
 
     fn constant(&mut self, index: usize) -> Result<()> {
@@ -76,7 +85,7 @@ impl<'b> Vm<'b> {
     }
 
     fn load_local(&mut self, offset: usize, index: usize) -> Result<()> {
-        let value = self.get_local(offset, index)?;
+        let value = self.get_local(offset, index)?.clone();
         self.stack.push(value)
     }
 
@@ -89,6 +98,13 @@ impl<'b> Vm<'b> {
 
         let value = self.get_global(name).cloned()?;
         self.stack.push(Value::constant(value))
+    }
+
+    fn store_local(&mut self, offset: usize, index: usize) -> Result<()> {
+        let value = self.stack.pop()?;
+        let var = self.get_local_mut(offset, index)?;
+        *var = value;
+        Ok(())
     }
 
     fn load_named_by_name(&mut self, name: &str) -> Result<()> {
@@ -201,7 +217,7 @@ impl<'b> Vm<'b> {
                 Binary(operator) => self.binary(operator)?,
                 LoadLocal(index) => self.load_local(offset, index)?,
                 LoadNamed(index) => self.load_named(index)?,
-                StoreLocal(index) => todo!(),
+                StoreLocal(index) => self.store_local(offset, index)?,
                 StoreNamed(index) => Err(Error::Unsupported(
                     "Tried to mutate a binding in the global scope",
                 ))?,

@@ -12,6 +12,10 @@ pub enum Error {
     Io(#[from] IoError),
     #[error("Parse Error: {0}")]
     Parse(LalrpopParseError<usize, Token, &'static str>),
+    #[error("Invalid assignment target")]
+    InvalidAssignmentTarget,
+    #[error("Assignment to immutable variable")]
+    ImmutableVariable,
     #[error("break/continue statement without enclosing loop")]
     NoLoopToExit,
     #[error("Unsupported language construct: {0}")]

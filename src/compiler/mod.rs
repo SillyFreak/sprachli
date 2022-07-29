@@ -428,6 +428,30 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         Ok(())
     }
 
+    fn visit_assignment(&mut self, stmt: ast::Assignment<'input>) -> Result<()> {
+        use Instruction::*;
+
+        let ast::Assignment { left, right } = stmt;
+
+        let name = match left {
+            ast::Expression::Identifier(name) => name,
+            _ => Err(Error::InvalidAssignmentTarget)?,
+        };
+
+        self.visit_expression(right)?;
+
+        if let Some((local, var)) = self.find_local(name) {
+            if !var.mutable {
+                Err(Error::ImmutableVariable)?;
+            }
+            self.push(StoreLocal(local))?;
+        } else {
+            let name = self.compiler.add_constant(name.to_string());
+            self.push(StoreNamed(name))?;
+        }
+        Ok(())
+    }
+
     fn visit_binary(&mut self, expr: ast::Binary<'input>) -> Result<()> {
         use Instruction::*;
 
@@ -501,7 +525,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             }
             Jump(stmt) => self.visit_jump(stmt),
             VariableDeclaration(stmt) => self.visit_variable_declaration(stmt),
-            Assignment(_stmt) => todo!(),
+            Assignment(stmt) => self.visit_assignment(stmt),
         }
     }
 
