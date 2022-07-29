@@ -17,6 +17,7 @@ use bigdecimal::BigDecimal;
 use itertools::Itertools;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
+use crate::fmt::{FormatterExt, ModuleFormat};
 use instruction::{InlineConstant, Instruction, Offset, Opcode};
 
 pub use error::*;
@@ -56,24 +57,18 @@ impl<'b> Module<'b> {
         let index = *self.globals.get(name)?;
         self.constant(index)
     }
+}
 
-    pub(crate) fn fmt_constant(&self, f: &mut fmt::Formatter<'_>, index: usize) -> fmt::Result {
-        match self.constant(index) {
-            Some(constant) => write!(f, "{constant:?}"),
-            _ => f.write_str("illegal constant"),
-        }
-    }
+impl<'b> ModuleFormat for Module<'b> {
+    type Constant = Constant<'b>;
 
-    pub(crate) fn fmt_constant_ident(
-        &self,
-        f: &mut fmt::Formatter<'_>,
-        index: usize,
-    ) -> fmt::Result {
-        match self.constant(index) {
-            Some(Constant::String(value)) => f.write_str(value),
-            Some(constant) => write!(f, "{constant:?} (invalid identifier)"),
-            _ => f.write_str("illegal constant"),
-        }
+    fn constant(&self, index: usize) -> Option<(&Self::Constant, Option<&str>)> {
+        let constant = self.constants.get(index)?;
+        let string = match *constant {
+            Constant::String(value) => Some(value),
+            _ => None,
+        };
+        Some((constant, string))
     }
 }
 
@@ -93,7 +88,7 @@ impl fmt::Debug for Module<'_> {
                 f.write_str("        ")?;
                 f.write_str(name)?;
                 write!(f, ": {index:<0$} -- ", 9usize.saturating_sub(name.len()))?;
-                self.fmt_constant(f, *index)?;
+                f.fmt_constant(self, *index)?;
                 f.write_str("\n")?;
             }
             f.write_str("    },\n")?;
@@ -124,10 +119,10 @@ pub enum Constant<'b> {
 }
 
 impl<'b> Constant<'b> {
-    pub(crate) fn fmt_with(
+    pub(crate) fn fmt_with<M: ModuleFormat>(
         &self,
         f: &mut fmt::Formatter<'_>,
-        module: Option<&Module>,
+        module: Option<&M>,
     ) -> fmt::Result {
         use fmt::Debug;
         use Constant::*;
@@ -142,7 +137,7 @@ impl<'b> Constant<'b> {
 
 impl fmt::Debug for Constant<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt_with(f, None)
+        self.fmt_with::<Module>(f, None)
     }
 }
 
@@ -165,10 +160,10 @@ impl<'b> Function<'b> {
         &self.body
     }
 
-    pub(crate) fn fmt_with(
+    pub(crate) fn fmt_with<M: ModuleFormat>(
         &self,
         f: &mut fmt::Formatter<'_>,
-        module: Option<&Module>,
+        module: Option<&M>,
     ) -> fmt::Result {
         f.write_str("fn (")?;
         for i in (0..self.arity).map(Some).intersperse(None) {
@@ -191,7 +186,7 @@ impl<'b> Function<'b> {
 
 impl fmt::Debug for Function<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt_with(f, None)
+        self.fmt_with::<Module>(f, None)
     }
 }
 
@@ -226,10 +221,10 @@ where
 }
 
 impl<'b> InstructionSequence<'b> {
-    pub(crate) fn fmt_with(
+    pub(crate) fn fmt_with<M: ModuleFormat>(
         &self,
         f: &mut fmt::Formatter<'_>,
-        module: Option<&Module>,
+        module: Option<&M>,
     ) -> fmt::Result {
         use fmt::Debug;
 
@@ -261,7 +256,7 @@ impl<'b> InstructionSequence<'b> {
 
 impl fmt::Debug for InstructionSequence<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt_with(f, None)
+        self.fmt_with::<Module>(f, None)
     }
 }
 

@@ -5,6 +5,7 @@ use itertools::Itertools;
 
 use super::instruction::Instruction;
 use super::Module;
+use crate::fmt::ModuleFormat;
 
 pub type Number = BigDecimal;
 
@@ -34,10 +35,10 @@ impl From<Function> for Constant {
 }
 
 impl Constant {
-    pub(crate) fn fmt_with(
+    pub(crate) fn fmt_with<M: ModuleFormat>(
         &self,
         f: &mut fmt::Formatter<'_>,
-        module: Option<&Module>,
+        module: Option<&M>,
     ) -> fmt::Result {
         use fmt::Debug;
         use Constant::*;
@@ -52,7 +53,7 @@ impl Constant {
 
 impl fmt::Debug for Constant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt_with(f, None)
+        self.fmt_with::<Module>(f, None)
     }
 }
 
@@ -75,10 +76,10 @@ impl Function {
         &self.body
     }
 
-    pub(crate) fn fmt_with(
+    pub(crate) fn fmt_with<M: ModuleFormat>(
         &self,
         f: &mut fmt::Formatter<'_>,
-        module: Option<&Module>,
+        module: Option<&M>,
     ) -> fmt::Result {
         f.write_str("fn (")?;
         for i in (0..self.arity).map(Some).intersperse(None) {
@@ -98,10 +99,10 @@ impl Function {
         Ok(())
     }
 
-    pub(crate) fn fmt_body_with(
+    pub(crate) fn fmt_body_with<M: ModuleFormat>(
         &self,
         f: &mut fmt::Formatter<'_>,
-        module: Option<&Module>,
+        module: Option<&M>,
     ) -> fmt::Result {
         use fmt::Debug;
 
@@ -125,6 +126,6 @@ impl Function {
 
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt_with(f, None)
+        self.fmt_with::<Module>(f, None)
     }
 }

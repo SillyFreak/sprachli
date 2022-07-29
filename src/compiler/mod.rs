@@ -10,6 +10,7 @@ use std::iter;
 use std::str::FromStr;
 
 use crate::ast;
+use crate::fmt::{FormatterExt, ModuleFormat};
 use crate::parser::{parse_source_file, string_from_literal};
 use constant::{Constant, Function, Number};
 use instruction::{Instruction, Offset};
@@ -67,28 +68,16 @@ impl From<Compiler> for Module {
     }
 }
 
-impl Module {
-    pub(crate) fn fmt_constant(&self, f: &mut fmt::Formatter<'_>, index: usize) -> fmt::Result {
-        match self.constants.get(index) {
-            Some(constant) => write!(f, "{constant:?}"),
-            _ => f.write_str("illegal constant"),
-        }
-    }
+impl ModuleFormat for Module {
+    type Constant = Constant;
 
-    pub(crate) fn fmt_constant_ident(
-        &self,
-        f: &mut fmt::Formatter<'_>,
-        index: usize,
-    ) -> std::result::Result<Option<&str>, fmt::Error> {
-        match self.constants.get(index) {
-            Some(Constant::String(value)) => {
-                f.write_str(value)?;
-                return Ok(Some(value));
-            }
-            Some(constant) => write!(f, "{constant:?} (invalid identifier)")?,
-            _ => f.write_str("illegal constant")?,
-        }
-        Ok(None)
+    fn constant(&self, index: usize) -> Option<(&Self::Constant, Option<&str>)> {
+        let constant = self.constants.get(index)?;
+        let string = match constant {
+            Constant::String(value) => Some(value.as_str()),
+            _ => None,
+        };
+        Some((constant, string))
     }
 }
 
@@ -106,14 +95,14 @@ impl fmt::Debug for Module {
             f.write_str("    globals: {\n")?;
             for (name, index) in &self.globals {
                 f.write_str("        ")?;
-                let name = self.fmt_constant_ident(f, *name)?;
+                let name = f.fmt_constant_ident(self, *name)?;
                 match name {
                     Some(name) => {
                         write!(f, ": {index:<0$} -- ", 9usize.saturating_sub(name.len()))?
                     }
                     None => write!(f, ": {index} -- ")?,
                 }
-                self.fmt_constant(f, *index)?;
+                f.fmt_constant(self, *index)?;
                 f.write_str("\n")?;
             }
             f.write_str("    },\n")?;

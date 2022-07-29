@@ -1,16 +1,53 @@
 use std::fmt::{self, Write};
 
+pub trait ModuleFormat {
+    type Constant: fmt::Debug;
+
+    fn constant(&self, index: usize) -> Option<(&Self::Constant, Option<&str>)>;
+}
+
 pub trait FormatterExt<'a> {
     fn debug_sexpr<'b>(&'b mut self) -> DebugSexpr<'b, 'a> {
         self.debug_sexpr_compact(false)
     }
 
     fn debug_sexpr_compact<'b>(&'b mut self, compact: bool) -> DebugSexpr<'b, 'a>;
+
+    fn fmt_constant<M: ModuleFormat>(&mut self, module: &M, index: usize) -> fmt::Result;
+
+    fn fmt_constant_ident<'b, M: ModuleFormat>(
+        &mut self,
+        module: &'b M,
+        index: usize,
+    ) -> std::result::Result<Option<&'b str>, fmt::Error>;
 }
 
 impl<'a> FormatterExt<'a> for fmt::Formatter<'a> {
     fn debug_sexpr_compact<'b>(&'b mut self, compact: bool) -> DebugSexpr<'b, 'a> {
         DebugSexpr::new(self, compact)
+    }
+
+    fn fmt_constant<M: ModuleFormat>(&mut self, module: &M, index: usize) -> fmt::Result {
+        match module.constant(index) {
+            Some((constant, _)) => write!(self, "{constant:?}"),
+            _ => self.write_str("illegal constant"),
+        }
+    }
+
+    fn fmt_constant_ident<'b, M: ModuleFormat>(
+        &mut self,
+        module: &'b M,
+        index: usize,
+    ) -> std::result::Result<Option<&'b str>, fmt::Error> {
+        match module.constant(index) {
+            Some((_, Some(name))) => {
+                self.write_str(name)?;
+                return Ok(Some(name));
+            }
+            Some((constant, _)) => write!(self, "{constant:?} (invalid identifier)")?,
+            None => self.write_str("illegal constant")?,
+        }
+        Ok(None)
     }
 }
 

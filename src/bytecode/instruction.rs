@@ -4,6 +4,7 @@ use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use super::Module;
 use crate::ast;
+use crate::fmt::{FormatterExt, ModuleFormat};
 
 pub use ast::{BinaryOperator, UnaryOperator};
 
@@ -91,10 +92,10 @@ impl Instruction {
         }
     }
 
-    pub(crate) fn fmt_with(
+    pub(crate) fn fmt_with<M: ModuleFormat>(
         &self,
         f: &mut fmt::Formatter<'_>,
-        module: Option<&Module>,
+        module: Option<&M>,
     ) -> fmt::Result {
         use Instruction::*;
 
@@ -102,7 +103,7 @@ impl Instruction {
             Constant(index) => {
                 if let Some(module) = module {
                     write!(f, "CONST #{index:<3} -- ")?;
-                    module.fmt_constant(f, *index)?;
+                    f.fmt_constant(module, *index)?;
                 } else {
                     write!(f, "CONST #{index}")?;
                 }
@@ -116,7 +117,7 @@ impl Instruction {
             LoadNamed(index) => {
                 if let Some(module) = module {
                     write!(f, "LOAD #{index:<4} -- ")?;
-                    module.fmt_constant_ident(f, *index)?;
+                    f.fmt_constant_ident(module, *index)?;
                 } else {
                     write!(f, "LOAD #{index}")?;
                 }
@@ -133,7 +134,7 @@ impl Instruction {
 
 impl fmt::Debug for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt_with(f, None)
+        self.fmt_with::<Module>(f, None)
     }
 }
 
