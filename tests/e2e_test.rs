@@ -16,6 +16,14 @@ where
 }
 
 #[test]
+fn test_assign() {
+    run_and_check_result(include_str!("programs/assign.spr"), |actual| {
+        let expected = &BigDecimal::from(42);
+        assert_eq!(actual.as_number().ok(), Some(expected));
+    })
+}
+
+#[test]
 fn test_break() {
     run_and_check_result(include_str!("programs/break.spr"), |actual| {
         let expected = &BigDecimal::from(42);

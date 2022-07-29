@@ -490,6 +490,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             }
             Jump(stmt) => self.visit_jump(stmt),
             VariableDeclaration(stmt) => self.visit_variable_declaration(stmt),
+            Assignment(_stmt) => todo!(),
         }
     }
 

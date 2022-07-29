@@ -9,6 +9,7 @@ pub enum Statement<'input> {
     Expression(Expression<'input>),
     Jump(Jump<'input>),
     VariableDeclaration(VariableDeclaration<'input>),
+    Assignment(Assignment<'input>),
 }
 
 impl Statement<'_> {
@@ -29,6 +30,7 @@ impl fmt::Debug for Statement<'_> {
             Self::Expression(stmt) => stmt.fmt(f),
             Self::Jump(stmt) => stmt.fmt(f),
             Self::VariableDeclaration(stmt) => stmt.fmt(f),
+            Self::Assignment(stmt) => stmt.fmt(f),
         }
     }
 }
@@ -118,6 +120,35 @@ impl fmt::Debug for VariableDeclaration<'_> {
         }
         f.compact_name(self.name)
             .items(self.initializer.iter())
+            .finish()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct Assignment<'input> {
+    pub left: Expression<'input>,
+    pub right: Expression<'input>,
+}
+
+impl<'input> Assignment<'input> {
+    pub fn new(left: Expression<'input>, right: Expression<'input>) -> Self {
+        Self { left, right }
+    }
+}
+
+impl<'input> From<Assignment<'input>> for Statement<'input> {
+    fn from(value: Assignment<'input>) -> Self {
+        Statement::Assignment(value)
+    }
+}
+
+impl fmt::Debug for Assignment<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let compact = self.left.is_simple() && self.right.is_simple();
+        f.debug_sexpr_compact(compact)
+            .name("=")
+            .item(&self.left)
+            .item(&self.right)
             .finish()
     }
 }

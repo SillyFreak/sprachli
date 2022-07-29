@@ -49,6 +49,7 @@ pub Statement: ast::Statement<'input> = {
 	<Expression> ";" => ast::Statement::Expression(<>),
 	<Jump> ";",
 	<VariableDeclaration> ";",
+	<Assignment> ";",
 }
 
 pub Jump: ast::Statement<'input> = {
@@ -62,6 +63,10 @@ pub VariableDeclaration: ast::Statement<'input> = {
 		let mutable = mutable.is_some();
 		ast::VariableDeclaration::new(mutable, name, initializer).into()
 	},
+}
+
+pub Assignment: ast::Statement<'input> = {
+	<left:Expression> "=" <right:Expression> => ast::Assignment::new(<>).into(),
 }
 
 //////
