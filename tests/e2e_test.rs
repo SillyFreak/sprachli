@@ -15,28 +15,26 @@ where
     f(result)
 }
 
-#[test]
-fn test_assign() {
-    run_and_check_result(include_str!("programs/assign.spr"), |actual| {
+fn run_and_check_result_42(source: &str) {
+    run_and_check_result(source, |actual| {
         let expected = &BigDecimal::from(42);
         assert_eq!(actual.as_number().ok(), Some(expected));
     })
+}
+
+#[test]
+fn test_assign() {
+    run_and_check_result_42(include_str!("programs/assign.spr"))
 }
 
 #[test]
 fn test_break() {
-    run_and_check_result(include_str!("programs/break.spr"), |actual| {
-        let expected = &BigDecimal::from(42);
-        assert_eq!(actual.as_number().ok(), Some(expected));
-    })
+    run_and_check_result_42(include_str!("programs/break.spr"))
 }
 
 // #[test]
 // fn test_continue() {
-//     run_and_check_result(include_str!("programs/break.spr"), |actual| {
-//         let expected = &BigDecimal::from(42);
-//         assert_eq!(actual.as_number().ok(), Some(expected));
-//     })
+//     run_and_check_result_42(include_str!("programs/break.spr"))
 // }
 
 #[test]
@@ -57,40 +55,25 @@ fn test_even() {
 
 #[test]
 fn test_loop() {
-    run_and_check_result(include_str!("programs/loop.spr"), |actual| {
-        let expected = &BigDecimal::from(42);
-        assert_eq!(actual.as_number().ok(), Some(expected));
-    })
+    run_and_check_result_42(include_str!("programs/loop.spr"))
 }
 
 #[test]
 fn test_max() {
-    run_and_check_result(include_str!("programs/max.spr"), |actual| {
-        let expected = &BigDecimal::from(42);
-        assert_eq!(actual.as_number().ok(), Some(expected));
-    })
+    run_and_check_result_42(include_str!("programs/max.spr"))
 }
 
 #[test]
 fn test_return() {
-    run_and_check_result(include_str!("programs/return.spr"), |actual| {
-        let expected = &BigDecimal::from(42);
-        assert_eq!(actual.as_number().ok(), Some(expected));
-    })
+    run_and_check_result_42(include_str!("programs/return.spr"))
 }
 
 #[test]
 fn test_statement() {
-    run_and_check_result(include_str!("programs/statement.spr"), |actual| {
-        let expected = &BigDecimal::from(42);
-        assert_eq!(actual.as_number().ok(), Some(expected));
-    })
+    run_and_check_result_42(include_str!("programs/statement.spr"))
 }
 
 #[test]
 fn test_variable() {
-    run_and_check_result(include_str!("programs/variable.spr"), |actual| {
-        let expected = &BigDecimal::from(42);
-        assert_eq!(actual.as_number().ok(), Some(expected));
-    })
+    run_and_check_result_42(include_str!("programs/variable.spr"))
 }
