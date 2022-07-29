@@ -185,6 +185,7 @@ impl Compiler {
 struct InstructionCompiler<'a, 'input> {
     compiler: &'a mut Compiler,
     stack: Vec<&'input str>,
+    jump_targets: Vec<JumpTarget>,
     instructions: Vec<InstructionItem>,
 }
 
@@ -193,6 +194,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         Self {
             compiler,
             stack: Default::default(),
+            jump_targets: Default::default(),
             instructions: Default::default(),
         }
     }
@@ -264,6 +266,27 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             .map(InstructionItem::encoded_len)
             .sum();
         Offset::Backward(offset)
+    }
+
+    fn push_jump_target(&mut self) -> &JumpTarget {
+        let depth = self.stack.len();
+        let start = self.instructions.len();
+        self.jump_targets.push(JumpTarget::new(depth, start));
+        self.jump_targets.last().unwrap()
+    }
+
+    fn pop_jump_target(&mut self) -> Option<()> {
+        let jump_target = self.jump_targets.pop()?;
+        jump_target.fill_end_jumps(self);
+        Some(())
+    }
+
+    fn current_jump_target(&self) -> Option<&JumpTarget> {
+        self.jump_targets.last()
+    }
+
+    fn current_jump_target_mut(&mut self) -> Option<&mut JumpTarget> {
+        self.jump_targets.last_mut()
     }
 
     pub fn visit_fn(mut self, function: ast::Fn<'input>) -> Result<Function> {
@@ -348,6 +371,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
 
     fn visit_jump(&mut self, stmt: ast::Jump<'input>) -> Result<()> {
         use ast::Jump::*;
+        use PlaceholderKind::*;
 
         match stmt {
             Return(expr) => {
@@ -355,8 +379,32 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
                 self.visit_optional(expr)?;
                 self.push(Instruction::Return)?;
             }
-            Break(_expr) => todo!(),
-            Continue => todo!(),
+            Break(expr) => {
+                let jump_target = self.current_jump_target().ok_or(Error::NoLoopToExit)?;
+                let depth = jump_target.depth();
+
+                let expr = expr.map(|expr| *expr);
+                self.visit_optional(expr)?;
+                self.push(Instruction::PopScope(depth))?;
+
+                let jump = self.push_placeholder(Jump)?;
+                // if the compiler works correctly, this should be the same jump target as before
+                self.current_jump_target_mut().unwrap().push_end_jump(jump);
+
+                // despite pushing a value, break has a stack effect of zero, so negate that
+                self.apply_stack_effect(-1)?;
+            }
+            Continue => {
+                let jump_target = self.current_jump_target().ok_or(Error::NoLoopToExit)?;
+                let depth = jump_target.depth();
+                let start = jump_target.start();
+
+                self.push(Instruction::InlineConstant(InlineConstant::Unit))?;
+                self.push(Instruction::PopScope(depth))?;
+                self.push(Instruction::Pop)?;
+
+                self.push_placeholder(Jump)?.fill_to(self, start);
+            }
         }
 
         Ok(())
@@ -485,11 +533,12 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
     fn visit_loop(&mut self, expr: ast::Loop<'input>) -> Result<()> {
         use Instruction::*;
 
-        let start = self.instructions.len();
+        let start = self.push_jump_target().start();
         self.visit_block(expr.body)?;
         self.push(Pop)?;
         self.push_placeholder(PlaceholderKind::Jump)?
             .fill_to(self, start);
+        self.pop_jump_target().unwrap();
         // we ignore the body's result, but the loop itself has a result (or diverges),
         // i.e. its stack effect is not 0 but 1.
         self.apply_stack_effect(1)?;
@@ -513,5 +562,40 @@ impl Placeholder {
         let offset = instructions.offset_to(to_index);
         assert!(instructions.instructions[index] == InstructionItem::Placeholder(kind));
         instructions.instructions[index] = kind.fill(offset);
+    }
+}
+
+#[derive(Debug)]
+struct JumpTarget {
+    depth: usize,
+    start: usize,
+    end_jumps: Vec<Placeholder>,
+}
+
+impl JumpTarget {
+    pub fn new(depth: usize, start: usize) -> Self {
+        Self {
+            depth,
+            start,
+            end_jumps: Default::default(),
+        }
+    }
+
+    pub fn depth(&self) -> usize {
+        self.depth
+    }
+
+    pub fn start(&self) -> usize {
+        self.start
+    }
+
+    pub fn push_end_jump(&mut self, jump: Placeholder) {
+        self.end_jumps.push(jump);
+    }
+
+    pub fn fill_end_jumps(self, instructions: &mut InstructionCompiler) {
+        for jump in self.end_jumps {
+            jump.fill(instructions);
+        }
     }
 }

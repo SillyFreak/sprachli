@@ -23,6 +23,14 @@ fn test_break() {
     })
 }
 
+// #[test]
+// fn test_continue() {
+//     run_and_check_result(include_str!("programs/break.spr"), |actual| {
+//         let expected = &BigDecimal::from(42);
+//         assert_eq!(actual.as_number().ok(), Some(expected));
+//     })
+// }
+
 #[test]
 fn test_escape() {
     run_and_check_result(include_str!("programs/escape.spr"), |actual| {

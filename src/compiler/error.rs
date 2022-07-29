@@ -8,10 +8,12 @@ use crate::parser::{Error as ParseError, ParseStringError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Parse Error: {0}")]
-    Parse(LalrpopParseError<usize, Token, &'static str>),
     #[error("IO Error: {0}")]
     Io(#[from] IoError),
+    #[error("Parse Error: {0}")]
+    Parse(LalrpopParseError<usize, Token, &'static str>),
+    #[error("break/continue statement without enclosing loop")]
+    NoLoopToExit,
     #[error("Unsupported language construct: {0}")]
     Unsupported(&'static str),
     #[error("Internal Error: {0}")]
