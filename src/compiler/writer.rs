@@ -98,6 +98,14 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 body.push(Op::LoadNamed.into());
                 body.push(index as u8);
             }
+            In::StoreLocal(index) => {
+                body.push(Op::StoreLocal.into());
+                body.push(index as u8);
+            }
+            In::StoreNamed(index) => {
+                body.push(Op::StoreNamed.into());
+                body.push(index as u8);
+            }
             In::PopScope(depth) => {
                 body.push(Op::PopScope.into());
                 body.push(depth as u8);

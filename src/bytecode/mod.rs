@@ -362,6 +362,14 @@ impl Iterator for InstructionIter<'_, '_> {
                         let constant = self.parameter(opcode)?;
                         In::LoadNamed(constant as usize)
                     }
+                    Op::StoreLocal => {
+                        let local = self.parameter(opcode)?;
+                        In::StoreLocal(local as usize)
+                    }
+                    Op::StoreNamed => {
+                        let constant = self.parameter(opcode)?;
+                        In::StoreNamed(constant as usize)
+                    }
                     Op::PopScope => {
                         let depth = self.parameter(opcode)?;
                         In::PopScope(depth as usize)

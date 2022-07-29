@@ -201,6 +201,10 @@ impl<'b> Vm<'b> {
                 Binary(operator) => self.binary(operator)?,
                 LoadLocal(index) => self.load_local(offset, index)?,
                 LoadNamed(index) => self.load_named(index)?,
+                StoreLocal(index) => todo!(),
+                StoreNamed(index) => Err(Error::Unsupported(
+                    "Tried to mutate a binding in the global scope",
+                ))?,
                 PopScope(depth) => drop(self.stack.pop_all_under(offset + depth)?),
                 Call(arity) => self.call(arity)?,
                 Return => {

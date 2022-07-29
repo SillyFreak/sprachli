@@ -33,8 +33,6 @@ pub enum InternalError {
     InvalidStringLiteral(#[from] ParseStringError),
     #[error("Tried to pop from an empty stack")]
     EmptyStack,
-    #[error("Tried to mutate a binding in the global scope")]
-    WriteGlobalScope,
     #[error("Invalid bytecode sequence: {0}")]
     InvalidBytecode(#[from] BytecodeError),
     #[error("Tried to jump to nonexistent instruction")]

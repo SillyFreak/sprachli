@@ -24,6 +24,8 @@ pub enum Opcode {
     Binary,
     LoadLocal,
     LoadNamed,
+    StoreLocal,
+    StoreNamed,
     PopScope,
     Call,
     Return,
@@ -43,6 +45,8 @@ pub enum Instruction {
     Binary(BinaryOperator),
     LoadLocal(usize),
     LoadNamed(usize),
+    StoreLocal(usize),
+    StoreNamed(usize),
     PopScope(usize),
     Call(usize),
     Return,
@@ -62,6 +66,8 @@ impl Instruction {
             Binary(_) => -1,
             LoadLocal(_) => 1,
             LoadNamed(_) => 1,
+            StoreLocal(_) => -1,
+            StoreNamed(_) => -1,
             PopScope(_depth) => return None,
             Call(arity) => -isize::try_from(arity).expect("illegal arity"),
             // Return diverges, but it (conceptually) pops one value off the stack before the function ends
@@ -84,6 +90,8 @@ impl Instruction {
             Binary(_) => 2,
             LoadLocal(_) => 2,
             LoadNamed(_) => 2,
+            StoreLocal(_) => 2,
+            StoreNamed(_) => 2,
             PopScope(_) => 2,
             Call(_) => 2,
             Return => 1,
@@ -120,6 +128,16 @@ impl Instruction {
                     f.fmt_constant_ident(module, *index)?;
                 } else {
                     write!(f, "LOAD #{index}")?;
+                }
+                Ok(())
+            }
+            StoreLocal(local) => write!(f, "STORE _{local}"),
+            StoreNamed(index) => {
+                if let Some(module) = module {
+                    write!(f, "STORE #{index:<4} -- ")?;
+                    f.fmt_constant_ident(module, *index)?;
+                } else {
+                    write!(f, "STORE #{index}")?;
                 }
                 Ok(())
             }
