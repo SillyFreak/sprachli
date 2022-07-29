@@ -50,14 +50,25 @@ fn test_assign() {
 }
 
 #[test]
+fn test_assign_immutable() {
+    run_and_check_result(include_str!("programs/assign_immutable.spr"), |actual| {
+        assert!(matches!(
+            actual,
+            Err(Error::Compiler(CompilerError::ImmutableVariable)),
+        ));
+        Ok(())
+    })
+}
+
+#[test]
 fn test_break() {
     run_and_check_result_42(include_str!("programs/break.spr"))
 }
 
-// #[test]
-// fn test_continue() {
-//     run_and_check_result_42(include_str!("programs/break.spr"))
-// }
+#[test]
+fn test_continue() {
+    run_and_check_result_42(include_str!("programs/continue.spr"))
+}
 
 #[test]
 fn test_escape() {

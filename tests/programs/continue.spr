@@ -1,5 +1,10 @@
 fn main() {
+	let mut x = 1;
 	loop {
-		continue;
+		if x < 42 {
+			x = x + 1;
+			continue;
+		};
+		return x;
 	}
 }
