@@ -1,24 +1,46 @@
 use bigdecimal::BigDecimal;
 
-use sprachli::bytecode::parse_bytecode;
-use sprachli::compiler::compile_source_file;
-use sprachli::vm::{Value, Vm};
+use sprachli::bytecode::{parser::parse_bytecode, Error as BytecodeError};
+use sprachli::compiler::{compile_source_file, Error as CompilerError};
+use sprachli::vm::{Error as RuntimeError, Value, Vm};
+
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("Compiler Error: {0}")]
+    Compiler(#[from] CompilerError),
+    #[error("Bytecode Error: {0}")]
+    Bytecode(#[from] BytecodeError),
+    #[error("Runtime Error: {0}")]
+    Runtime(#[from] RuntimeError),
+}
 
 fn run_and_check_result<F>(source: &str, f: F)
 where
-    F: FnOnce(Value),
+    F: FnOnce(Result<Value, Error>) -> Result<(), Error>,
 {
-    let mut bytecode = Vec::new();
-    compile_source_file(&mut bytecode, source).expect("compiler error");
-    let module = parse_bytecode(&bytecode).expect("bytecode error");
-    let result = Vm::new(module).run().expect("runtime error");
-    f(result)
+    (|| {
+        let mut bytecode = Vec::new();
+        let () = match compile_source_file(&mut bytecode, source) {
+            Ok(value) => value,
+            Err(e) => return f(Err(e.into())),
+        };
+        let module = match parse_bytecode(&bytecode) {
+            Ok(value) => value,
+            Err(e) => return f(Err(e.into())),
+        };
+        let result = match Vm::new(module).run() {
+            Ok(value) => value,
+            Err(e) => return f(Err(e.into())),
+        };
+        f(Ok(result))
+    })()
+    .unwrap()
 }
 
 fn run_and_check_result_42(source: &str) {
     run_and_check_result(source, |actual| {
-        let expected = &BigDecimal::from(42);
-        assert_eq!(actual.as_number().ok(), Some(expected));
+        assert_eq!(actual?.as_number()?, &BigDecimal::from(42));
+        Ok(())
     })
 }
 
@@ -40,16 +62,16 @@ fn test_break() {
 #[test]
 fn test_escape() {
     run_and_check_result(include_str!("programs/escape.spr"), |actual| {
-        let expected = "a\r\nb\"c";
-        assert_eq!(actual.as_string().ok(), Some(expected));
+        assert_eq!(actual?.as_string()?, "a\r\nb\"c");
+        Ok(())
     })
 }
 
 #[test]
 fn test_even() {
     run_and_check_result(include_str!("programs/even.spr"), |actual| {
-        let expected = true;
-        assert_eq!(actual.as_bool().ok(), Some(expected));
+        assert_eq!(actual?.as_bool()?, true);
+        Ok(())
     })
 }
 
