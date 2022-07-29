@@ -215,6 +215,19 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         Ok(())
     }
 
+    fn find_local(&mut self, name: &str) -> Option<(usize, ast::Variable<'input>)> {
+        let mut iter = self.stack.iter().enumerate().rev();
+
+        iter.find_map(|(i, local)| {
+            let var = local.clone()?;
+            if var.name == name {
+                Some((i, var))
+            } else {
+                None
+            }
+        })
+    }
+
     fn push<I: Into<InstructionItem>>(&mut self, instruction: I) -> Result<()> {
         use Instruction::*;
         use InstructionItem::*;
@@ -354,13 +367,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
     fn visit_identifier(&mut self, name: &str) -> Result<()> {
         use Instruction::*;
 
-        if let Some(local) = self
-            .stack
-            .iter()
-            .enumerate()
-            .rev()
-            .find_map(|(i, local)| local.filter(|var| var.name == name).map(|_| i))
-        {
+        if let Some((local, _)) = self.find_local(name) {
             self.push(LoadLocal(local))?;
         } else {
             let name = self.compiler.add_constant(name.to_string());
