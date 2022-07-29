@@ -43,4 +43,6 @@ pub enum InternalError {
     InvalidStringLiteral(#[from] ParseStringError),
     #[error("Invalid stack effect: an instruction would pop from an empty stack")]
     InvalidStackEffect,
+    #[error("Invalid bytecode: an invalid instruction sequence was generated")]
+    InvalidBytecode,
 }

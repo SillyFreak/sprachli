@@ -10,10 +10,11 @@ use std::iter;
 use std::str::FromStr;
 
 use crate::ast;
+use crate::bytecode::instruction::{InlineConstant, Instruction, Offset};
 use crate::fmt::{FormatterExt, ModuleFormat};
 use crate::parser::{parse_source_file, string_from_literal};
 use constant::{Constant, Function, Number};
-use instruction::{Instruction, Offset};
+use instruction::{InstructionItem, PlaceholderKind};
 
 pub use error::{Error, InternalError, Result};
 pub use writer::write_bytecode;
@@ -184,7 +185,7 @@ impl Compiler {
 struct InstructionCompiler<'a, 'input> {
     compiler: &'a mut Compiler,
     stack: Vec<&'input str>,
-    instructions: Vec<Instruction>,
+    instructions: Vec<InstructionItem>,
 }
 
 impl<'a, 'input> InstructionCompiler<'a, 'input> {
@@ -213,14 +214,17 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         Ok(())
     }
 
-    fn push(&mut self, instruction: Instruction) -> Result<()> {
+    fn push<I: Into<InstructionItem>>(&mut self, instruction: I) -> Result<()> {
         use Instruction::*;
+        use InstructionItem::*;
+
+        let instruction = instruction.into();
 
         if let Some(effect) = instruction.stack_effect() {
             self.apply_stack_effect(effect)?;
         } else {
             match instruction {
-                PopScope(depth) => {
+                Real(PopScope(depth)) => {
                     let end = self
                         .stack
                         .len()
@@ -235,39 +239,30 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         Ok(())
     }
 
-    fn push_placeholder<F>(&mut self, dummy: Instruction, f: F) -> Result<Placeholder<F>>
-    where
-        F: FnOnce(Offset) -> Instruction,
-    {
-        self.apply_stack_effect(dummy.stack_effect().unwrap())?;
+    fn push_placeholder(&mut self, kind: PlaceholderKind) -> Result<Placeholder> {
+        self.apply_stack_effect(kind.stack_effect())?;
         let index = self.instructions.len();
-        self.instructions.push(Instruction::JumpPlaceholder);
-        Ok(Placeholder(index, f))
-    }
-
-    fn push_jump_placeholder(&mut self) -> Result<Placeholder<impl FnOnce(Offset) -> Instruction>> {
-        use Instruction::*;
-        use Offset::*;
-        self.push_placeholder(Jump(Forward(0)), Jump)
-    }
-
-    fn push_jump_if_placeholder(
-        &mut self,
-    ) -> Result<Placeholder<impl FnOnce(Offset) -> Instruction>> {
-        use Instruction::*;
-        use Offset::*;
-        self.push_placeholder(JumpIf(Forward(0)), JumpIf)
+        self.instructions.push(InstructionItem::Placeholder(kind));
+        Ok(Placeholder(index, kind))
     }
 
     fn offset_from(&self, index: usize) -> Offset {
         let skipped = &self.instructions[index..];
-        let offset = skipped.iter().copied().map(Instruction::encoded_len).sum();
+        let offset = skipped
+            .iter()
+            .copied()
+            .map(InstructionItem::encoded_len)
+            .sum();
         Offset::Forward(offset)
     }
 
     fn offset_to(&self, index: usize) -> Offset {
         let skipped = &self.instructions[index..];
-        let offset = skipped.iter().copied().map(Instruction::encoded_len).sum();
+        let offset = skipped
+            .iter()
+            .copied()
+            .map(InstructionItem::encoded_len)
+            .sum();
         Offset::Backward(offset)
     }
 
@@ -281,7 +276,13 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         self.stack.extend(&formal_parameters);
         self.visit_block(body)?;
 
-        Ok(Function::new(formal_parameters.len(), self.instructions))
+        let instructions = self
+            .instructions
+            .iter()
+            .map(|ins| ins.real().ok_or(InternalError::InvalidBytecode))
+            .collect::<std::result::Result<_, _>>()?;
+
+        Ok(Function::new(formal_parameters.len(), instructions))
     }
 
     fn visit_expression(&mut self, expr: ast::Expression<'input>) -> Result<()> {
@@ -301,13 +302,10 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
     }
 
     fn visit_optional(&mut self, expr: Option<ast::Expression<'input>>) -> Result<()> {
-        use instruction::InlineConstant;
-        use Instruction::*;
-
         if let Some(expr) = expr {
             self.visit_expression(expr)?;
         } else {
-            self.push(InlineConstant(InlineConstant::Unit))?;
+            self.push(Instruction::InlineConstant(InlineConstant::Unit))?;
         }
         Ok(())
     }
@@ -401,9 +399,6 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
     }
 
     fn visit_block(&mut self, block: ast::Block<'input>) -> Result<()> {
-        use instruction::InlineConstant;
-        use Instruction::*;
-
         let depth = self.stack.len();
         let mut locals = 0;
 
@@ -416,7 +411,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         if let Some(expr) = block.expression {
             self.visit_expression(*expr)?;
         } else {
-            self.push(InlineConstant(InlineConstant::Unit))?;
+            self.push(Instruction::InlineConstant(InlineConstant::Unit))?;
         }
 
         // there should be locals + 1 extra values on the stack,
@@ -428,7 +423,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         assert!(self.stack[depth + locals].is_empty());
 
         // drop the local variables
-        self.push(PopScope(depth))?;
+        self.push(Instruction::PopScope(depth))?;
 
         Ok(())
     }
@@ -460,13 +455,13 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             // jump if the condition is false
             self.visit_expression(condition)?;
             self.push(Unary(Not))?;
-            let cond = self.push_jump_if_placeholder()?;
+            let cond = self.push_placeholder(PlaceholderKind::JumpIf)?;
 
             let depth = self.stack.len();
 
             // do the then branch unless jumped
             self.visit_block(then_branch)?;
-            end_jumps.push(self.push_jump_placeholder()?);
+            end_jumps.push(self.push_placeholder(PlaceholderKind::Jump)?);
             cond.fill(self);
 
             // we have multiple branches of which only one is taken,
@@ -493,7 +488,8 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         let start = self.instructions.len();
         self.visit_block(expr.body)?;
         self.push(Pop)?;
-        self.push_jump_placeholder()?.fill_to(self, start);
+        self.push_placeholder(PlaceholderKind::Jump)?
+            .fill_to(self, start);
         // we ignore the body's result, but the loop itself has a result (or diverges),
         // i.e. its stack effect is not 0 but 1.
         self.apply_stack_effect(1)?;
@@ -502,29 +498,20 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
 }
 
 #[derive(Debug)]
-struct Placeholder<F>(usize, F);
+struct Placeholder(usize, PlaceholderKind);
 
-impl<F> Placeholder<F>
-where
-    F: FnOnce(Offset) -> Instruction,
-{
+impl Placeholder {
     pub fn fill(self, instructions: &mut InstructionCompiler) {
-        let Placeholder(index, f) = self;
-        let instruction = f(instructions.offset_from(index + 1));
-        assert_eq!(
-            instructions.instructions[index],
-            Instruction::JumpPlaceholder,
-        );
-        instructions.instructions[index] = instruction;
+        let Placeholder(index, kind) = self;
+        let offset = instructions.offset_from(index + 1);
+        assert!(instructions.instructions[index] == InstructionItem::Placeholder(kind));
+        instructions.instructions[index] = kind.fill(offset);
     }
 
     pub fn fill_to(self, instructions: &mut InstructionCompiler, to_index: usize) {
-        let Placeholder(index, f) = self;
-        let instruction = f(instructions.offset_to(to_index));
-        assert_eq!(
-            instructions.instructions[index],
-            Instruction::JumpPlaceholder,
-        );
-        instructions.instructions[index] = instruction;
+        let Placeholder(index, kind) = self;
+        let offset = instructions.offset_to(to_index);
+        assert!(instructions.instructions[index] == InstructionItem::Placeholder(kind));
+        instructions.instructions[index] = kind.fill(offset);
     }
 }

@@ -1,67 +1,40 @@
 use std::fmt;
 
 use super::Module;
-use crate::ast::{BinaryOperator, UnaryOperator};
-use crate::fmt::{FormatterExt, ModuleFormat};
+use crate::bytecode::instruction::{Instruction, Offset};
+use crate::fmt::ModuleFormat;
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
-pub enum Instruction {
-    Constant(usize),
-    InlineConstant(InlineConstant),
-    Pop,
-    Unary(UnaryOperator),
-    Binary(BinaryOperator),
-    LoadLocal(usize),
-    LoadNamed(usize),
-    PopScope(usize),
-    Call(usize),
-    Return,
-    Jump(Offset),
-    JumpIf(Offset),
-    JumpPlaceholder,
+pub enum InstructionItem {
+    Real(Instruction),
+    Placeholder(PlaceholderKind),
 }
 
-impl Instruction {
+impl InstructionItem {
+    pub fn real(self) -> Option<Instruction> {
+        use InstructionItem::*;
+
+        match self {
+            Real(ins) => Some(ins),
+            _ => None,
+        }
+    }
+
     pub fn stack_effect(self) -> Option<isize> {
-        use Instruction::*;
+        use InstructionItem::*;
 
-        let effect = match self {
-            Constant(_) => 1,
-            InlineConstant(_) => 1,
-            Pop => -1,
-            Unary(_) => 0,
-            Binary(_) => -1,
-            LoadLocal(_) => 1,
-            LoadNamed(_) => 1,
-            PopScope(_depth) => return None,
-            Call(arity) => -isize::try_from(arity).expect("illegal arity"),
-            // Return diverges, but it (conceptually) pops one value off the stack before the function ends
-            Return => -1,
-            Jump(_) => 0,
-            JumpIf(_) => -1,
-            JumpPlaceholder => 0,
-        };
-
-        Some(effect)
+        match self {
+            Real(ins) => ins.stack_effect(),
+            Placeholder(pl) => Some(pl.stack_effect()),
+        }
     }
 
     pub fn encoded_len(self) -> usize {
-        use Instruction::*;
+        use InstructionItem::*;
 
         match self {
-            Constant(_) => 2,
-            InlineConstant(_) => 1,
-            Pop => 1,
-            Unary(_) => 2,
-            Binary(_) => 2,
-            LoadLocal(_) => 2,
-            LoadNamed(_) => 2,
-            PopScope(_) => 2,
-            Call(_) => 2,
-            Return => 1,
-            Jump(_) => 2,
-            JumpIf(_) => 2,
-            JumpPlaceholder => 2,
+            Real(ins) => ins.encoded_len(),
+            Placeholder(pl) => pl.encoded_len(),
         }
     }
 
@@ -70,67 +43,70 @@ impl Instruction {
         f: &mut fmt::Formatter<'_>,
         module: Option<&M>,
     ) -> fmt::Result {
-        use Instruction::*;
+        use InstructionItem::*;
 
         match self {
-            Constant(index) => {
-                if let Some(module) = module {
-                    write!(f, "CONST #{index:<3} -- ")?;
-                    f.fmt_constant(module, *index)?;
-                } else {
-                    write!(f, "CONST #{index}")?;
-                }
-                Ok(())
-            }
-            InlineConstant(value) => write!(f, "CONST {value:?}"),
-            Pop => write!(f, "POP"),
-            Unary(op) => write!(f, "UNARY {op:?}"),
-            Binary(op) => write!(f, "BINARY {op:?}"),
-            LoadLocal(local) => write!(f, "LOAD _{local}"),
-            LoadNamed(index) => {
-                if let Some(module) = module {
-                    write!(f, "LOAD #{index:<4} -- ")?;
-                    f.fmt_constant_ident(module, *index)?;
-                } else {
-                    write!(f, "LOAD #{index}")?;
-                }
-                Ok(())
-            }
-            PopScope(depth) => write!(f, "POP SCOPE {depth}"),
-            Call(arity) => write!(f, "CALL {arity}"),
-            Return => write!(f, "RETURN"),
-            Jump(offset) => write!(f, "JUMP {offset:?}"),
-            JumpIf(offset) => write!(f, "JUMP_IF {offset:?}"),
-            JumpPlaceholder => write!(f, "INVALID  "),
+            Real(ins) => ins.fmt_with(f, module),
+            Placeholder(kind) => kind.fmt_with(f, module),
         }
     }
 }
 
-impl fmt::Debug for Instruction {
+impl From<Instruction> for InstructionItem {
+    fn from(ins: Instruction) -> Self {
+        InstructionItem::Real(ins)
+    }
+}
+
+impl fmt::Debug for InstructionItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.fmt_with::<Module>(f, None)
     }
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum InlineConstant {
-    Unit,
-    Bool(bool),
+pub enum PlaceholderKind {
+    Jump,
+    JumpIf,
 }
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
-pub enum Offset {
-    Forward(usize),
-    Backward(usize),
-}
-
-impl fmt::Debug for Offset {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Offset::*;
+impl PlaceholderKind {
+    pub fn stack_effect(self) -> isize {
+        use PlaceholderKind::*;
 
         match self {
-            Forward(offset) => write!(f, "+{offset}"),
-            Backward(offset) => write!(f, "-{offset}"),
+            Jump => 0,
+            JumpIf => -1,
+        }
+    }
+
+    pub fn encoded_len(self) -> usize {
+        use PlaceholderKind::*;
+
+        match self {
+            Jump | JumpIf => 2,
+        }
+    }
+
+    pub fn fill(self, offset: Offset) -> InstructionItem {
+        use PlaceholderKind::*;
+
+        match self {
+            Jump => Instruction::Jump(offset).into(),
+            JumpIf => Instruction::JumpIf(offset).into(),
+        }
+    }
+
+    pub(crate) fn fmt_with<M: ModuleFormat>(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        _module: Option<&M>,
+    ) -> fmt::Result {
+        use PlaceholderKind::*;
+
+        match self {
+            Jump => write!(f, "JUMP PLACEHOLDER"),
+            JumpIf => write!(f, "JUMP_IF PLACEHOLDER"),
         }
     }
 }

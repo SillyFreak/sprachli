@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::io::{Result, Write};
 
 use super::constant::{Constant, Function};
-use super::instruction::{InlineConstant, Instruction, Offset};
 use super::Module;
 use crate::bytecode::instruction;
 use crate::bytecode::{ConstantType, Number};
@@ -60,9 +59,10 @@ fn string<W: Write>(w: &mut W, value: &str) -> Result<()> {
 }
 
 fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
+    use instruction::InlineConstant as Const;
+    use instruction::Instruction as In;
+    use instruction::Offset::*;
     use instruction::Opcode as Op;
-    use InlineConstant as Inl;
-    use Instruction as In;
 
     let mut body = Vec::with_capacity(value.body().len());
     for ins in value.body() {
@@ -73,9 +73,9 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
             }
             In::InlineConstant(value) => {
                 let opcode = match value {
-                    Inl::Unit => Op::Unit,
-                    Inl::Bool(true) => Op::True,
-                    Inl::Bool(false) => Op::False,
+                    Const::Unit => Op::Unit,
+                    Const::Bool(true) => Op::True,
+                    Const::Bool(false) => Op::False,
                 };
                 body.push(opcode.into());
             }
@@ -111,25 +111,19 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
             }
             In::Jump(offset) => {
                 let (opcode, offset) = match offset {
-                    Offset::Forward(offset) => (Op::JumpForward, offset),
-                    Offset::Backward(offset) => (Op::JumpBackward, offset),
+                    Forward(offset) => (Op::JumpForward, offset),
+                    Backward(offset) => (Op::JumpBackward, offset),
                 };
                 body.push(opcode.into());
                 body.push(offset as u8);
             }
             In::JumpIf(offset) => {
                 let (opcode, offset) = match offset {
-                    Offset::Forward(offset) => (Op::JumpForwardIf, offset),
-                    Offset::Backward(offset) => (Op::JumpBackwardIf, offset),
+                    Forward(offset) => (Op::JumpForwardIf, offset),
+                    Backward(offset) => (Op::JumpBackwardIf, offset),
                 };
                 body.push(opcode.into());
                 body.push(offset as u8);
-            }
-            In::JumpPlaceholder => {
-                // TODO check this in a better way
-                assert!(Op::try_from(0).is_err());
-                body.push(0);
-                body.push(0);
             }
         }
     }
