@@ -92,9 +92,9 @@ mod tests {
     }
 
     #[test]
-    fn test_fn_parser() {
-        fn parse<'input>(input: &'input str) -> Result<crate::ast::Fn<'input>> {
-            FnParser::new().parse(input)
+    fn test_fn_declaration_parser() {
+        fn parse<'input>(input: &'input str) -> Result<crate::ast::FnDeclaration<'input>> {
+            FnDeclarationParser::new().parse(input)
         }
 
         let test = TestParser::new(parse);

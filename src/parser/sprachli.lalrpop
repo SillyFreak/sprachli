@@ -18,7 +18,7 @@ Variable: ast::Variable<'input> = {
 
 pub Declaration: ast::Declaration<'input> = {
 	// Use
-	<Fn> => ast::Declaration::Fn(<>),
+	<FnDeclaration> => ast::Declaration::Fn(<>),
 	<Struct> => ast::Declaration::Struct(<>),
 	// Mixin
 	// Impl
@@ -29,11 +29,11 @@ Visibility: ast::Visibility = {
 	"pub" => ast::Visibility::Public,
 }
 
-pub Fn: ast::Fn<'input> = {
+pub FnDeclaration: ast::FnDeclaration<'input> = {
 	<visibility:Visibility>
 	"fn" <name:Identifier>
 	"(" <formal_parameters:CommaSeparated<Variable>> ")"
-	<body:Block> => ast::Fn::new(<>),
+	<body:Block> => ast::FnDeclaration::new(<>),
 }
 
 pub Struct: ast::Struct<'input> = {

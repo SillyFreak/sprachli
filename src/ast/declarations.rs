@@ -11,7 +11,7 @@ use crate::fmt::{DebugSexpr, FormatterExt};
 #[derive(Clone, PartialEq, Eq)]
 pub enum Declaration<'input> {
     Use(Use<'input>),
-    Fn(Fn<'input>),
+    Fn(FnDeclaration<'input>),
     Struct(Struct<'input>),
     Mixin(Mixin<'input>),
     Impl(Impl<'input>),
@@ -72,14 +72,14 @@ pub struct Use<'input> {
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub struct Fn<'input> {
+pub struct FnDeclaration<'input> {
     pub visibility: Visibility,
     pub name: &'input str,
     pub formal_parameters: Vec<Variable<'input>>,
     pub body: Block<'input>,
 }
 
-impl<'input> Fn<'input> {
+impl<'input> FnDeclaration<'input> {
     pub fn new(
         visibility: Visibility,
         name: &'input str,
@@ -104,7 +104,7 @@ impl<'input> Fn<'input> {
     }
 }
 
-impl fmt::Debug for Fn<'_> {
+impl fmt::Debug for FnDeclaration<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut f = f.debug_sexpr();
         f.name("fn");
@@ -183,12 +183,12 @@ pub struct Mixin<'input> {
     pub visibility: Visibility,
     pub name: &'input str,
     pub inheritances: Vec<Path<'input>>,
-    pub methods: Vec<Fn<'input>>,
+    pub methods: Vec<FnDeclaration<'input>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Impl<'input> {
     pub name: &'input str,
     pub inheritances: Vec<Path<'input>>,
-    pub methods: Vec<Fn<'input>>,
+    pub methods: Vec<FnDeclaration<'input>>,
 }

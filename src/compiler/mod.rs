@@ -173,9 +173,9 @@ impl Compiler {
         Ok(())
     }
 
-    fn visit_fn(&mut self, function: ast::Fn) -> Result<()> {
+    fn visit_fn(&mut self, function: ast::FnDeclaration) -> Result<()> {
         let name = function.name;
-        let function = InstructionCompiler::new(self).visit_fn(function)?;
+        let function = InstructionCompiler::new(self).visit_fn_declaration(function)?;
         self.add_global(name.to_string(), function);
         Ok(())
     }
@@ -301,8 +301,8 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         self.jump_targets.last_mut()
     }
 
-    pub fn visit_fn(mut self, function: ast::Fn<'input>) -> Result<Function> {
-        let ast::Fn {
+    pub fn visit_fn_declaration(mut self, function: ast::FnDeclaration<'input>) -> Result<Function> {
+        let ast::FnDeclaration {
             formal_parameters,
             body,
             ..
