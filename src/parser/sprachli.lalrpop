@@ -30,22 +30,20 @@ Visibility: ast::Visibility = {
 }
 
 pub FnDeclaration: ast::FnDeclaration<'input> = {
-	<visibility:Visibility>
-	"fn" <name:Identifier>
-	"(" <formal_parameters:CommaSeparated<Variable>> ")"
-	<body:Block> => ast::FnDeclaration::new(<>),
+	<Visibility> "fn" <Identifier>
+	"(" <CommaSeparated<Variable>> ")" <Block>
+	=> ast::FnDeclaration::new(<>),
 }
 
 pub Struct: ast::Struct<'input> = {
-	<visibility:Visibility>
-	"struct" <name:Identifier>
-	<members:StructMembers> => ast::Struct::new(<>),
+	<Visibility> "struct" <Identifier> <StructMembers>
+	=> ast::Struct::new(<>),
 }
 
 StructMembers: ast::StructMembers<'input> = {
 	";" => ast::StructMembers::Empty,
-	"(" <members:CommaSeparated<Identifier>> ")" ";" => ast::StructMembers::Positional(<>),
-	"{" <members:CommaSeparated<Identifier>> "}" => ast::StructMembers::Named(<>),
+	"(" <CommaSeparated<Identifier>> ")" ";" => ast::StructMembers::Positional(<>),
+	"{" <CommaSeparated<Identifier>> "}" => ast::StructMembers::Named(<>),
 };
 
 //////
@@ -70,7 +68,7 @@ pub VariableDeclaration: ast::Statement<'input> = {
 }
 
 pub Assignment: ast::Statement<'input> = {
-	<left:Expression> "=" <right:Expression> => ast::Assignment::new(<>).into(),
+	<Expression> "=" <Expression> => ast::Assignment::new(<>).into(),
 }
 
 //////
@@ -88,26 +86,26 @@ pub Expression: ast::Expression<'input> = {
 	Loop,
 
 	#[precedence(level="2")]
-	<function:Expression> "(" <actual_parameters:ActualParameters> ")" => ast::Call::new(<>).into(),
+	<Expression> "(" <ActualParameters> ")" => ast::Call::new(<>).into(),
 
 	#[precedence(level="3")]
-	<operator:UnaryOp> <right:Expression> => ast::Unary::new(<>).into(),
+	<UnaryOp> <Expression> => ast::Unary::new(<>).into(),
 	
 	#[precedence(level="4")]
 	#[assoc(side="left")]
-	<left:Expression> <operator:MultiplicativeOp> <right:Expression> => ast::Binary::new(<>).into(),
+	<Expression> <MultiplicativeOp> <Expression> => ast::Binary::new(<>).into(),
 
 	#[precedence(level="5")]
 	#[assoc(side="left")]
-	<left:Expression> <operator:AdditiveOp> <right:Expression> => ast::Binary::new(<>).into(),
+	<Expression> <AdditiveOp> <Expression> => ast::Binary::new(<>).into(),
 
 	#[precedence(level="6")]
 	#[assoc(side="left")]
-	<left:Expression> <operator:ComparisonOp> <right:Expression> => ast::Binary::new(<>).into(),
+	<Expression> <ComparisonOp> <Expression> => ast::Binary::new(<>).into(),
 
 	#[precedence(level="7")]
 	#[assoc(side="left")]
-	<left:Expression> <operator:EqualityOp> <right:Expression> => ast::Binary::new(<>).into(),
+	<Expression> <EqualityOp> <Expression> => ast::Binary::new(<>).into(),
 }
 
 ActualParameters: Vec<ast::Expression<'input>> = {
@@ -143,7 +141,7 @@ UnaryOp: ast::UnaryOperator = {
 }
 
 pub Block: ast::Block<'input> = {
-	"{" <statements:Statement*> <expression:Expression?> "}" => ast::Block::new(<>),
+	"{" <Statement*> <Expression?> "}" => ast::Block::new(<>),
 }
 
 pub Group: ast::Expression<'input> = {
@@ -165,7 +163,7 @@ ThenBranch: (ast::Expression<'input>, ast::Block<'input>) = {
 }
 
 pub Loop: ast::Expression<'input> = {
-	"loop" <body:Block> => ast::Loop::new(<>).into()
+	"loop" <Block> => ast::Loop::new(<>).into()
 }
 
 //////
