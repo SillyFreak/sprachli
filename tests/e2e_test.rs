@@ -97,6 +97,11 @@ fn test_fn_expr() {
 }
 
 #[test]
+fn test_higher_order() {
+    run_and_check_result_42(include_str!("programs/higher_order.spr"))
+}
+
+#[test]
 fn test_loop() {
     run_and_check_result_42(include_str!("programs/loop.spr"))
 }

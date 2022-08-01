@@ -1,0 +1,11 @@
+fn apply(f, x) {
+	f(x)
+}
+
+fn double(x) {
+	x * 2
+}
+
+fn main() {
+	apply(double, 21)
+}
