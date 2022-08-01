@@ -326,6 +326,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
 
         match expr {
             Number(literal) => self.visit_number(literal),
+            Bool(value) => self.visit_bool(value),
             String(literal) => self.visit_string(literal),
             Identifier(name) => self.visit_identifier(name),
             Binary(expr) => self.visit_binary(expr),
@@ -352,6 +353,11 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         let number = Number::from_str(literal).map_err(InternalError::from)?;
         let constant = self.compiler.add_constant(number);
         self.push(Constant(constant))?;
+        Ok(())
+    }
+
+    fn visit_bool(&mut self, value: bool) -> Result<()> {
+        self.push(Instruction::InlineConstant(InlineConstant::Bool(value)))?;
         Ok(())
     }
 

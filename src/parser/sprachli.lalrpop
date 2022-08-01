@@ -79,6 +79,7 @@ pub Assignment: ast::Statement<'input> = {
 pub Expression: ast::Expression<'input> = {
 	#[precedence(level="1")]
 	Number => ast::Expression::Number(<>),
+	Bool => ast::Expression::Bool(<>),
 	String => ast::Expression::String(<>),
 	Identifier => ast::Expression::Identifier(<>),
 	Block => ast::Expression::Block(<>),
@@ -185,13 +186,22 @@ pub Number: &'input str = {
 	NUMBER,
 }
 
+pub Bool: bool = {
+	"true" => true,
+	"false" => false,
+}
+
 pub String: &'input str = {
 	STRING,
 }
 
 match {
 	// keywords must have priority over identifiers
-	"pub", "fn", "struct", "return", "break", "continue", "let", "mut", "if", "else", "loop",
+	"pub", "fn", "struct",
+	"return", "break", "continue",
+	"let", "mut",
+	"if", "else", "loop",
+	"true", "false",
 } else {
 	r"[_a-zA-Z][_a-zA-Z0-9]*" => IDENTIFIER,
 	r"[0-9]+" => NUMBER,

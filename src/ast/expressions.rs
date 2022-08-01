@@ -8,6 +8,7 @@ use crate::fmt::FormatterExt;
 #[derive(Clone, PartialEq, Eq)]
 pub enum Expression<'input> {
     Number(&'input str),
+    Bool(bool),
     String(&'input str),
     Identifier(&'input str),
     Binary(Binary<'input>),
@@ -30,6 +31,7 @@ impl fmt::Debug for Expression<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Number(value) => fmt::Display::fmt(value, f),
+            Self::Bool(value) => fmt::Display::fmt(value, f),
             Self::String(value) => fmt::Display::fmt(value, f),
             Self::Identifier(name) => f.write_str(name),
             Self::Binary(expr) => expr.fmt(f),

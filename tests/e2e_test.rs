@@ -61,6 +61,11 @@ fn test_assign_immutable() {
 }
 
 #[test]
+fn test_bool() {
+    run_and_check_result_42(include_str!("programs/bool.spr"))
+}
+
+#[test]
 fn test_break() {
     run_and_check_result_42(include_str!("programs/break.spr"))
 }
