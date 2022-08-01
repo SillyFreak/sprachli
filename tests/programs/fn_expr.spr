@@ -1,0 +1,6 @@
+fn main() {
+	let max = fn (a, b) {
+		if a > b { a } else { b }
+	};
+	max(2, 42)
+}

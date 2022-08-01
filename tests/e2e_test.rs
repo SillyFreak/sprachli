@@ -92,6 +92,11 @@ fn test_even() {
 }
 
 #[test]
+fn test_fn_expr() {
+    run_and_check_result_42(include_str!("programs/fn_expr.spr"))
+}
+
+#[test]
 fn test_loop() {
     run_and_check_result_42(include_str!("programs/loop.spr"))
 }

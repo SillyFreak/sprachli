@@ -174,8 +174,8 @@ impl Compiler {
     }
 
     fn visit_fn(&mut self, function: ast::FnDeclaration) -> Result<()> {
-        let name = function.name;
-        let function = InstructionCompiler::new(self).visit_fn_declaration(function)?;
+        let ast::FnDeclaration { name, trunk, .. } = function;
+        let function = InstructionCompiler::new(self).visit_fn_trunk(trunk)?;
         self.add_global(name.to_string(), function);
         Ok(())
     }
@@ -301,14 +301,11 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         self.jump_targets.last_mut()
     }
 
-    pub fn visit_fn_declaration(
-        mut self,
-        function: ast::FnDeclaration<'input>,
-    ) -> Result<Function> {
+    pub fn visit_fn_trunk(mut self, trunk: ast::FnTrunk<'input>) -> Result<Function> {
         let ast::FnTrunk {
             formal_parameters,
             body,
-        } = function.trunk;
+        } = trunk;
 
         self.stack
             .extend(formal_parameters.iter().copied().map(Some));
@@ -335,7 +332,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             Unary(expr) => self.visit_unary(expr),
             Call(call) => self.visit_call(call),
             Block(block) => self.visit_block(block),
-            Fn(expr) => todo!(),
+            Fn(expr) => self.visit_fn(expr),
             If(expr) => self.visit_if(expr),
             Loop(expr) => self.visit_loop(expr),
         }
@@ -536,6 +533,15 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             VariableDeclaration(stmt) => self.visit_variable_declaration(stmt),
             Assignment(stmt) => self.visit_assignment(stmt),
         }
+    }
+
+    fn visit_fn(&mut self, expr: ast::Fn<'input>) -> Result<()> {
+        use Instruction::*;
+
+        let function = InstructionCompiler::new(self.compiler).visit_fn_trunk(expr.trunk)?;
+        let constant = self.compiler.add_constant(function);
+        self.push(Constant(constant))?;
+        Ok(())
     }
 
     fn visit_if(&mut self, expr: ast::If<'input>) -> Result<()> {
