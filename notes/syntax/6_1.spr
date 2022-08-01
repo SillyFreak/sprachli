@@ -1,6 +1,6 @@
 /// Approach 1: there are no enums, just structs that happen to implement the same interface.
-/// This is very similar to the OO approach, but without assuming inheritance or spelling out
-/// subtype relationships.
+/// This is very similar to the OO approach (code for different variants is located in different
+/// types), but without assuming inheritance or spelling out subtype relationships.
 
 struct Some(value);
 struct None;
@@ -27,10 +27,10 @@ impl None {
 
 fn main() {
 	let mut opt = Some(1);
-	opt = opt.map((value) -> value + 1);
+	opt = opt.map(fn (value) { value + 1 });
 	print(opt);  // Some(2)
 
 	let mut opt = None;
-	opt = opt.map(opt, (value) -> value + 1);
+	opt = opt.map(fn (value) { value + 1 });
 	print(opt);  // None
 }

@@ -1,14 +1,14 @@
 fn main() {
 	let list = [];
 	let list = [1, 2];
-	print(list[0])  // 1
+	print(list[0]);  // 1
 
 	let dict = [ -> ];
 	let dict = [ 1 -> 3, 2 -> 4 ];
-	print(dict[1])  // 3
+	print(dict[1]);  // 3
 
 	let tup = ();
 	let tup = (1,);
 	let tup = (2, 3);
-	print(tup.0)  // 2
+	print(tup.0);  // 2
 }

@@ -1,8 +1,3 @@
-// built in:
-// struct True;
-// struct False;
-// struct Unit;
-
 // The name of a Unit struct is at the same time the name of a value,
 // e.g. `None::foo()` and `None.foo()` can both be valid method calls.
 

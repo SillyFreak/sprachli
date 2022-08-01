@@ -2,8 +2,8 @@ fn main() {
 	let mut num = 4;
 	let even = loop {
 		match num {
-			0 => break True,
-			1 => break False,
+			0 => break true,
+			1 => break false,
 			_ => num -= 2,
 		}
 	};

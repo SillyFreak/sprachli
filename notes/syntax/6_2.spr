@@ -25,10 +25,10 @@ impl Option {
 
 fn main() {
 	let mut opt = Some(1);
-	opt = opt.map((value) -> value + 1);
+	opt = opt.map(fn (value) { value + 1 });
 	print(opt);  // Some(2)
 
 	let mut opt = None;
-	opt = opt.map(opt, (value) -> value + 1);
+	opt = opt.map(fn (value) { value + 1 });
 	print(opt);  // None
 }
