@@ -29,6 +29,7 @@ pub Declaration: ast::Declaration<'input> = {
 	// Impl
 }
 
+#[inline]
 Visibility: ast::Visibility = {
 	=> ast::Visibility::Private,
 	"pub" => ast::Visibility::Public,
@@ -85,6 +86,7 @@ pub Expression: ast::Expression<'input> = {
 	String => ast::Expression::String(<>),
 	Identifier => ast::Expression::Identifier(<>),
 	Block => ast::Expression::Block(<>),
+	Fn,
 	Group,
 	If,
 	Loop,
@@ -146,6 +148,10 @@ UnaryOp: ast::UnaryOperator = {
 
 pub Block: ast::Block<'input> = {
 	"{" <Statement*> <Expression?> "}" => ast::Block::new(<>),
+}
+
+pub Fn: ast::Expression<'input> = {
+	"fn" <FnTrunk> => ast::Fn::new(<>).into(),
 }
 
 pub Group: ast::Expression<'input> = {

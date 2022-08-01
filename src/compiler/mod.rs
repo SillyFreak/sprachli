@@ -335,6 +335,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             Unary(expr) => self.visit_unary(expr),
             Call(call) => self.visit_call(call),
             Block(block) => self.visit_block(block),
+            Fn(expr) => todo!(),
             If(expr) => self.visit_if(expr),
             Loop(expr) => self.visit_loop(expr),
         }

@@ -2,7 +2,7 @@ use std::fmt;
 
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
-use super::Statement;
+use super::{FnTrunk, Statement};
 use crate::fmt::FormatterExt;
 
 #[derive(Clone, PartialEq, Eq)]
@@ -15,6 +15,7 @@ pub enum Expression<'input> {
     Unary(Unary<'input>),
     Call(Call<'input>),
     Block(Block<'input>),
+    Fn(Fn<'input>),
     If(If<'input>),
     Loop(Loop<'input>),
 }
@@ -38,6 +39,7 @@ impl fmt::Debug for Expression<'_> {
             Self::Unary(expr) => expr.fmt(f),
             Self::Call(expr) => expr.fmt(f),
             Self::Block(expr) => expr.fmt(f),
+            Self::Fn(expr) => expr.fmt(f),
             Self::If(expr) => expr.fmt(f),
             Self::Loop(expr) => expr.fmt(f),
         }
@@ -237,6 +239,32 @@ impl fmt::Debug for Block<'_> {
         } else {
             f.item(&());
         }
+        f.finish()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct Fn<'input> {
+    pub trunk: FnTrunk<'input>,
+}
+
+impl<'input> Fn<'input> {
+    pub fn new(trunk: FnTrunk<'input>) -> Self {
+        Self { trunk }
+    }
+}
+
+impl<'input> From<Fn<'input>> for Expression<'input> {
+    fn from(value: Fn<'input>) -> Self {
+        Expression::Fn(value)
+    }
+}
+
+impl fmt::Debug for Fn<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut f = f.debug_sexpr();
+        f.name("fn");
+        self.trunk.fmt(&mut f);
         f.finish()
     }
 }
