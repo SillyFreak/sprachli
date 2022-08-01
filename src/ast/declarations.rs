@@ -93,14 +93,11 @@ impl<'input> FnDeclaration<'input> {
             body,
         }
     }
+}
 
-    pub fn new_declaration(
-        visibility: Visibility,
-        name: &'input str,
-        formal_parameters: Vec<Variable<'input>>,
-        body: Block<'input>,
-    ) -> Declaration<'input> {
-        Declaration::Fn(Self::new(visibility, name, formal_parameters, body))
+impl<'input> From<FnDeclaration<'input>> for Declaration<'input> {
+    fn from(value: FnDeclaration<'input>) -> Self {
+        Declaration::Fn(value)
     }
 }
 
@@ -131,13 +128,11 @@ impl<'input> Struct<'input> {
             members,
         }
     }
+}
 
-    pub fn new_declaration(
-        visibility: Visibility,
-        name: &'input str,
-        members: StructMembers<'input>,
-    ) -> Declaration<'input> {
-        Declaration::Struct(Self::new(visibility, name, members))
+impl<'input> From<Struct<'input>> for Declaration<'input> {
+    fn from(value: Struct<'input>) -> Self {
+        Declaration::Struct(value)
     }
 }
 

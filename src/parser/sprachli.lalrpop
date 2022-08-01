@@ -18,8 +18,8 @@ Variable: ast::Variable<'input> = {
 
 pub Declaration: ast::Declaration<'input> = {
 	// Use
-	<FnDeclaration> => ast::Declaration::Fn(<>),
-	<Struct> => ast::Declaration::Struct(<>),
+	<decl:FnDeclaration> => decl.into(),
+	<decl:Struct> => decl.into(),
 	// Mixin
 	// Impl
 }
