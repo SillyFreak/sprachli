@@ -49,10 +49,7 @@ pub struct FnTrunk<'input> {
 }
 
 impl<'input> FnTrunk<'input> {
-    pub fn new(
-        formal_parameters: Vec<Variable<'input>>,
-        body: Block<'input>,
-    ) -> Self {
+    pub fn new(formal_parameters: Vec<Variable<'input>>, body: Block<'input>) -> Self {
         Self {
             formal_parameters,
             body,
@@ -60,9 +57,7 @@ impl<'input> FnTrunk<'input> {
     }
 
     pub(crate) fn fmt(&self, f: &mut DebugSexpr<'_, '_>) {
-        f
-            .compact_items(&self.formal_parameters)
-            .item(&self.body);
+        f.compact_items(&self.formal_parameters).item(&self.body);
     }
 }
 

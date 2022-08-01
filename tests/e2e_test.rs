@@ -20,7 +20,7 @@ where
 {
     (|| {
         let mut bytecode = Vec::new();
-        let () = match compile_source_file(&mut bytecode, source) {
+        match compile_source_file(&mut bytecode, source) {
             Ok(value) => value,
             Err(e) => return f(Err(e.into())),
         };
@@ -86,7 +86,7 @@ fn test_escape() {
 #[test]
 fn test_even() {
     run_and_check_result(include_str!("programs/even.spr"), |actual| {
-        assert_eq!(actual?.as_bool()?, true);
+        assert!(actual?.as_bool()?);
         Ok(())
     })
 }

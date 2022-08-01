@@ -219,7 +219,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         let mut iter = self.stack.iter().enumerate().rev();
 
         iter.find_map(|(i, local)| {
-            let var = local.clone()?;
+            let var = (*local)?;
             if var.name == name {
                 Some((i, var))
             } else {
@@ -301,7 +301,10 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         self.jump_targets.last_mut()
     }
 
-    pub fn visit_fn_declaration(mut self, function: ast::FnDeclaration<'input>) -> Result<Function> {
+    pub fn visit_fn_declaration(
+        mut self,
+        function: ast::FnDeclaration<'input>,
+    ) -> Result<Function> {
         let ast::FnTrunk {
             formal_parameters,
             body,

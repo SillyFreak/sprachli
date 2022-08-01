@@ -79,11 +79,7 @@ pub struct FnDeclaration<'input> {
 }
 
 impl<'input> FnDeclaration<'input> {
-    pub fn new(
-        visibility: Visibility,
-        name: &'input str,
-        trunk: FnTrunk<'input>,
-    ) -> Self {
+    pub fn new(visibility: Visibility, name: &'input str, trunk: FnTrunk<'input>) -> Self {
         Self {
             visibility,
             name,
