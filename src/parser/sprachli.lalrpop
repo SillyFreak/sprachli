@@ -13,6 +13,11 @@ Variable: ast::Variable<'input> = {
 	},
 }
 
+FnTrunk: ast::FnTrunk<'input> = {
+	"(" <CommaSeparated<Variable>> ")" <Block>
+	=> ast::FnTrunk::new(<>),
+}
+
 //////
 // declarations
 
@@ -30,8 +35,7 @@ Visibility: ast::Visibility = {
 }
 
 pub FnDeclaration: ast::FnDeclaration<'input> = {
-	<Visibility> "fn" <Identifier>
-	"(" <CommaSeparated<Variable>> ")" <Block>
+	<Visibility> "fn" <Identifier> <FnTrunk>
 	=> ast::FnDeclaration::new(<>),
 }
 

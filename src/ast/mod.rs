@@ -4,7 +4,7 @@ mod statements;
 
 use std::fmt;
 
-use crate::fmt::FormatterExt;
+use crate::fmt::{DebugSexpr, FormatterExt};
 
 pub use declarations::*;
 pub use expressions::*;
@@ -39,5 +39,38 @@ impl fmt::Debug for Variable<'_> {
             f.compact_name("mut");
         }
         f.compact_name(self.name).finish()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct FnTrunk<'input> {
+    pub formal_parameters: Vec<Variable<'input>>,
+    pub body: Block<'input>,
+}
+
+impl<'input> FnTrunk<'input> {
+    pub fn new(
+        formal_parameters: Vec<Variable<'input>>,
+        body: Block<'input>,
+    ) -> Self {
+        Self {
+            formal_parameters,
+            body,
+        }
+    }
+
+    pub(crate) fn fmt(&self, f: &mut DebugSexpr<'_, '_>) {
+        f
+            .compact_items(&self.formal_parameters)
+            .item(&self.body);
+    }
+}
+
+impl fmt::Debug for FnTrunk<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut f = f.debug_sexpr();
+        f.name("fn-trunk");
+        self.fmt(&mut f);
+        f.finish()
     }
 }

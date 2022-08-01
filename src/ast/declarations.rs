@@ -1,6 +1,6 @@
 use std::fmt;
 
-use super::{Block, Variable};
+use super::FnTrunk;
 use crate::fmt::{DebugSexpr, FormatterExt};
 
 /// Declarations are the individual constructs that can go (among other places)
@@ -75,22 +75,19 @@ pub struct Use<'input> {
 pub struct FnDeclaration<'input> {
     pub visibility: Visibility,
     pub name: &'input str,
-    pub formal_parameters: Vec<Variable<'input>>,
-    pub body: Block<'input>,
+    pub trunk: FnTrunk<'input>,
 }
 
 impl<'input> FnDeclaration<'input> {
     pub fn new(
         visibility: Visibility,
         name: &'input str,
-        formal_parameters: Vec<Variable<'input>>,
-        body: Block<'input>,
+        trunk: FnTrunk<'input>,
     ) -> Self {
         Self {
             visibility,
             name,
-            formal_parameters,
-            body,
+            trunk,
         }
     }
 }
@@ -106,10 +103,9 @@ impl fmt::Debug for FnDeclaration<'_> {
         let mut f = f.debug_sexpr();
         f.name("fn");
         self.visibility.fmt(&mut f);
-        f.compact_name(self.name)
-            .compact_items(&self.formal_parameters)
-            .item(&self.body)
-            .finish()
+        f.compact_name(self.name);
+        self.trunk.fmt(&mut f);
+        f.finish()
     }
 }
 

@@ -302,11 +302,10 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
     }
 
     pub fn visit_fn_declaration(mut self, function: ast::FnDeclaration<'input>) -> Result<Function> {
-        let ast::FnDeclaration {
+        let ast::FnTrunk {
             formal_parameters,
             body,
-            ..
-        } = function;
+        } = function.trunk;
 
         self.stack
             .extend(formal_parameters.iter().copied().map(Some));
