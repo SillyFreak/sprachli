@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::io::Write;
 use std::iter;
+use std::slice::SliceIndex;
 use std::str::FromStr;
 
 use crate::ast;
@@ -272,7 +273,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
                 self.push(Instruction::PopScope(depth))?;
                 self.push(Instruction::Pop)?;
 
-                self.push_placeholder(Jump)?.fill_to(self, start);
+                self.push_placeholder(Jump)?.jump_back_to_index(self, start);
             }
         }
 
@@ -463,7 +464,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
             // do the then branch unless jumped
             self.visit_block(then_branch)?;
             end_jumps.push(self.push_placeholder(PlaceholderKind::Jump)?);
-            cond.fill(self);
+            cond.jump_fwd_to_current(self);
 
             // we have multiple branches of which only one is taken,
             // so the block's result is not really "still" on the stack.
@@ -476,7 +477,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         let else_branch = expr.else_branch.map(ast::Expression::Block);
         self.visit_optional(else_branch)?;
         for end_jump in end_jumps {
-            end_jump.fill(self);
+            end_jump.jump_fwd_to_current(self);
         }
         Ok(())
     }
@@ -488,7 +489,7 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         self.visit_block(expr.body)?;
         self.push(Pop)?;
         self.push_placeholder(PlaceholderKind::Jump)?
-            .fill_to(self, start);
+            .jump_back_to_index(self, start);
         self.pop_jump_target().unwrap();
         // we ignore the body's result, but the loop itself has a result (or diverges),
         // i.e. its stack effect is not 0 but 1.
@@ -583,46 +584,50 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
     fn current_jump_target_mut(&mut self) -> Option<&mut JumpTarget> {
         self.jump_targets.last_mut()
     }
-
-    // jump placeholder helpers
-
-    fn offset_from(&self, index: usize) -> Offset {
-        let skipped = &self.instructions[index..];
-        let offset = skipped
-            .iter()
-            .copied()
-            .map(InstructionItem::encoded_len)
-            .sum();
-        Offset::Forward(offset)
-    }
-
-    fn offset_to(&self, index: usize) -> Offset {
-        let skipped = &self.instructions[index..];
-        let offset = skipped
-            .iter()
-            .copied()
-            .map(InstructionItem::encoded_len)
-            .sum();
-        Offset::Backward(offset)
-    }
 }
 
 #[derive(Debug)]
 struct Placeholder(usize, PlaceholderKind);
 
 impl Placeholder {
-    pub fn fill(self, instructions: &mut InstructionCompiler) {
-        let Placeholder(index, kind) = self;
-        let offset = instructions.offset_from(index + 1);
-        assert!(instructions.instructions[index] == InstructionItem::Placeholder(kind));
-        instructions.instructions[index] = kind.fill(offset);
+    fn slot<'a>(&self, instructions: &'a mut InstructionCompiler) -> &'a mut InstructionItem {
+        let Placeholder(index, kind) = *self;
+        let slot = &mut instructions.instructions[index];
+        assert!(*slot == InstructionItem::Placeholder(kind));
+        slot
     }
 
-    pub fn fill_to(self, instructions: &mut InstructionCompiler, to_index: usize) {
+    fn encoded_len<I>(instructions: &InstructionCompiler, range: I) -> usize
+    where
+        I: SliceIndex<[InstructionItem], Output = [InstructionItem]>,
+    {
+        instructions.instructions[range]
+            .iter()
+            .copied()
+            .map(InstructionItem::encoded_len)
+            .sum()
+    }
+
+    pub fn jump_fwd_to_current(self, instructions: &mut InstructionCompiler) {
         let Placeholder(index, kind) = self;
-        let offset = instructions.offset_to(to_index);
-        assert!(instructions.instructions[index] == InstructionItem::Placeholder(kind));
-        instructions.instructions[index] = kind.fill(offset);
+
+        // the offset is calculated from *after* the jump instruction (therefore +1)
+        // and goes to before the target instruction. The target instruction is implicitly
+        // the next one to be pushed onto the sequence, so simply calculate the length
+        // until the end
+        let offset = Offset::Forward(Self::encoded_len(instructions, index + 1..));
+
+        *self.slot(instructions) = kind.jump(offset);
+    }
+
+    pub fn jump_back_to_index(self, instructions: &mut InstructionCompiler, to_index: usize) {
+        let Placeholder(index, kind) = self;
+
+        // the offset is calculated from *after* the jump instruction (therefore +1)
+        // and goes back to before the target instruction, of which the index is given
+        let offset = Offset::Backward(Self::encoded_len(instructions, to_index..index + 1));
+
+        *self.slot(instructions) = kind.jump(offset);
     }
 }
 
@@ -656,7 +661,7 @@ impl JumpTarget {
 
     pub fn fill_end_jumps(self, instructions: &mut InstructionCompiler) {
         for jump in self.end_jumps {
-            jump.fill(instructions);
+            jump.jump_fwd_to_current(instructions);
         }
     }
 }

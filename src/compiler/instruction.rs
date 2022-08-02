@@ -88,7 +88,7 @@ impl PlaceholderKind {
         }
     }
 
-    pub fn fill(self, offset: Offset) -> InstructionItem {
+    pub fn jump(self, offset: Offset) -> InstructionItem {
         use PlaceholderKind::*;
 
         match self {
