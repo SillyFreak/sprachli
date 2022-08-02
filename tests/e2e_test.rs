@@ -44,6 +44,214 @@ fn run_and_check_result_42(source: &str) {
     })
 }
 
+mod operators {
+    use super::*;
+
+    #[test]
+    fn test_not() {
+        let source = "fn main() { !false }";
+        run_and_check_result(source, |actual| {
+            assert!(actual?.as_bool()?);
+            Ok(())
+        });
+
+        let source = "fn main() { !true }";
+        run_and_check_result(source, |actual| {
+            assert!(!actual?.as_bool()?);
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_neg() {
+        let source = "fn main() { -(-42) }";
+        run_and_check_result_42(source);
+    }
+
+    #[test]
+    fn test_mul() {
+        let source = "fn main() { 3 * 14 }";
+        run_and_check_result_42(source);
+    }
+
+    #[test]
+    fn test_div() {
+        let source = "fn main() { 84 / 2 }";
+        run_and_check_result_42(source);
+    }
+
+    #[test]
+    fn test_mod() {
+        let source = "fn main() { 242 % 100 }";
+        run_and_check_result_42(source);
+    }
+
+    #[test]
+    fn test_add() {
+        let source = "fn main() { 22 + 20 }";
+        run_and_check_result_42(source);
+    }
+
+    #[test]
+    fn test_sub() {
+        let source = "fn main() { 62 - 20 }";
+        run_and_check_result_42(source);
+    }
+
+    #[test]
+    fn test_shr() {
+        let source = "fn main() { 168 >> 2 }";
+        run_and_check_result_42(source);
+    }
+
+    #[test]
+    fn test_shl() {
+        let source = "fn main() { 21 << 1 }";
+        run_and_check_result_42(source);
+    }
+
+    #[test]
+    fn test_bit_and() {
+        // 42 = 0b101010
+        //      0b111010 = 58
+        //      0b101111 = 47
+        let source = "fn main() { 58 & 47 }";
+        run_and_check_result_42(source);
+    }
+
+    #[test]
+    fn test_bit_xor() {
+        // 42 = 0b101010
+        //      0b111101 = 61
+        //      0b010111 = 23
+        let source = "fn main() { 61 ^ 23 }";
+        run_and_check_result_42(source);
+    }
+
+    #[test]
+    fn test_bit_or() {
+        // 42 = 0b101010
+        //      0b001010 = 10
+        //      0b101000 = 40
+        let source = "fn main() { 10 | 40 }";
+        run_and_check_result_42(source);
+    }
+
+    #[test]
+    fn test_eq() {
+        let source = "fn main() { 42 == 42 }";
+        run_and_check_result(source, |actual| {
+            assert!(actual?.as_bool()?);
+            Ok(())
+        });
+
+        let source = "fn main() { 42 == 69 }";
+        run_and_check_result(source, |actual| {
+            assert!(!actual?.as_bool()?);
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_neq() {
+        let source = "fn main() { 42 != 42 }";
+        run_and_check_result(source, |actual| {
+            assert!(!actual?.as_bool()?);
+            Ok(())
+        });
+
+        let source = "fn main() { 42 != 69 }";
+        run_and_check_result(source, |actual| {
+            assert!(actual?.as_bool()?);
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_gt() {
+        let source = "fn main() { 42 > 69 }";
+        run_and_check_result(source, |actual| {
+            assert!(!actual?.as_bool()?);
+            Ok(())
+        });
+
+        let source = "fn main() { 42 > 42 }";
+        run_and_check_result(source, |actual| {
+            assert!(!actual?.as_bool()?);
+            Ok(())
+        });
+
+        let source = "fn main() { 69 > 42 }";
+        run_and_check_result(source, |actual| {
+            assert!(actual?.as_bool()?);
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_lt() {
+        let source = "fn main() { 42 < 69 }";
+        run_and_check_result(source, |actual| {
+            assert!(actual?.as_bool()?);
+            Ok(())
+        });
+
+        let source = "fn main() { 42 < 42 }";
+        run_and_check_result(source, |actual| {
+            assert!(!actual?.as_bool()?);
+            Ok(())
+        });
+
+        let source = "fn main() { 69 < 42 }";
+        run_and_check_result(source, |actual| {
+            assert!(!actual?.as_bool()?);
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_gte() {
+        let source = "fn main() { 42 >= 69 }";
+        run_and_check_result(source, |actual| {
+            assert!(!actual?.as_bool()?);
+            Ok(())
+        });
+
+        let source = "fn main() { 42 >= 42 }";
+        run_and_check_result(source, |actual| {
+            assert!(actual?.as_bool()?);
+            Ok(())
+        });
+
+        let source = "fn main() { 69 >= 42 }";
+        run_and_check_result(source, |actual| {
+            assert!(actual?.as_bool()?);
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_lte() {
+        let source = "fn main() { 42 <= 69 }";
+        run_and_check_result(source, |actual| {
+            assert!(actual?.as_bool()?);
+            Ok(())
+        });
+
+        let source = "fn main() { 42 <= 42 }";
+        run_and_check_result(source, |actual| {
+            assert!(actual?.as_bool()?);
+            Ok(())
+        });
+
+        let source = "fn main() { 69 <= 42 }";
+        run_and_check_result(source, |actual| {
+            assert!(!actual?.as_bool()?);
+            Ok(())
+        });
+    }
+}
+
 #[test]
 fn test_assign() {
     run_and_check_result_42(include_str!("programs/assign.spr"))
