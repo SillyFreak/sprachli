@@ -180,8 +180,8 @@ mod tests {
         test.parse_eq("a >= b + c", "a >= (b + c)");
         test.parse_eq("a + b >= c", "(a + b) >= c");
         // test.parse_eq("a >= b >= c", "???");
-        test.parse_eq("a == b >= c", "a == (b >= c)");
-        test.parse_eq("a >= b == c", "(a >= b) == c");
+        // test.parse_eq("a == b >= c", "???");
+        // test.parse_eq("a >= b == c", "???");
         // test.parse_eq("a == b == c", "???");
     }
 
