@@ -49,35 +49,50 @@ impl fmt::Debug for Expression<'_> {
 #[derive(Clone, Copy, Hash, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum BinaryOperator {
-    // equality
+    // multiplicative
+    Multiply,
+    Divide,
+    Modulo,
+    // additive
+    Add,
+    Subtract,
+    // shift
+    RightShift,
+    LeftShift,
+    // bitwise
+    BitAnd,
+    BitXor,
+    BitOr,
+    // comparison
     Equals,
     NotEquals,
-    // comparison
     Greater,
     GreaterEquals,
     Less,
     LessEquals,
-    // additive
-    Add,
-    Subtract,
-    // multiplicative
-    Multiply,
-    Divide,
 }
 
 impl fmt::Debug for BinaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use BinaryOperator::*;
+
         match self {
-            Self::Equals => f.write_str("=="),
-            Self::NotEquals => f.write_str("!="),
-            Self::Greater => f.write_str(">"),
-            Self::GreaterEquals => f.write_str(">="),
-            Self::Less => f.write_str("<"),
-            Self::LessEquals => f.write_str("<="),
-            Self::Add => f.write_str("+"),
-            Self::Subtract => f.write_str("-"),
-            Self::Multiply => f.write_str("*"),
-            Self::Divide => f.write_str("/"),
+            Multiply => f.write_str("*"),
+            Divide => f.write_str("/"),
+            Modulo => f.write_str("%"),
+            Add => f.write_str("+"),
+            Subtract => f.write_str("-"),
+            RightShift => f.write_str(">>"),
+            LeftShift => f.write_str("<<"),
+            BitAnd => f.write_str("&"),
+            BitXor => f.write_str("^"),
+            BitOr => f.write_str("|"),
+            Equals => f.write_str("=="),
+            NotEquals => f.write_str("!="),
+            Greater => f.write_str(">"),
+            GreaterEquals => f.write_str(">="),
+            Less => f.write_str("<"),
+            LessEquals => f.write_str("<="),
         }
     }
 }
@@ -133,9 +148,11 @@ pub enum UnaryOperator {
 
 impl fmt::Debug for UnaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use UnaryOperator::*;
+
         match self {
-            Self::Negate => f.write_str("-"),
-            Self::Not => f.write_str("!"),
+            Negate => f.write_str("-"),
+            Not => f.write_str("!"),
         }
     }
 }

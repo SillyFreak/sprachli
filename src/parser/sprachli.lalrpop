@@ -124,24 +124,24 @@ pub Expression: ast::Expression<'input> = {
 	<Expression> <AdditiveOp> <Expression> => ast::Binary::new(<>).into(),
 
 	// shift >> <<
-	// #[assoc(side="left")]
-	// #[precedence(level="9")]
-	// <Expression> <ShiftOp> <Expression> => ast::Binary::new(<>).into(),
+	#[assoc(side="left")]
+	#[precedence(level="9")]
+	<Expression> <ShiftOp> <Expression> => ast::Binary::new(<>).into(),
 
 	// bitwise &
-	// #[assoc(side="left")]
-	// #[precedence(level="10")]
-	// <Expression> <BitAndOp> <Expression> => ast::Binary::new(<>).into(),
+	#[assoc(side="left")]
+	#[precedence(level="10")]
+	<Expression> <BitAndOp> <Expression> => ast::Binary::new(<>).into(),
 
 	// bitwise ^
-	// #[assoc(side="left")]
-	// #[precedence(level="11")]
-	// <Expression> <BitXorOp> <Expression> => ast::Binary::new(<>).into(),
+	#[assoc(side="left")]
+	#[precedence(level="11")]
+	<Expression> <BitXorOp> <Expression> => ast::Binary::new(<>).into(),
 
 	// bitwise |
-	// #[assoc(side="left")]
-	// #[precedence(level="12")]
-	// <Expression> <BitOrOp> <Expression> => ast::Binary::new(<>).into(),
+	#[assoc(side="left")]
+	#[precedence(level="12")]
+	<Expression> <BitOrOp> <Expression> => ast::Binary::new(<>).into(),
 
 	// comparison == != < > <= >=
 	#[precedence(level="13")]
@@ -172,7 +172,7 @@ UnaryOp: ast::UnaryOperator = {
 MultiplicativeOp: ast::BinaryOperator = {
 	"*" => ast::BinaryOperator::Multiply,
 	"/" => ast::BinaryOperator::Divide,
-	// "%" => ast::BinaryOperator::Modulo,
+	"%" => ast::BinaryOperator::Modulo,
 }
 
 AdditiveOp: ast::BinaryOperator = {
@@ -180,22 +180,22 @@ AdditiveOp: ast::BinaryOperator = {
 	"-" => ast::BinaryOperator::Subtract,
 }
 
-// ShiftOp: ast::BinaryOperator = {
-// 	">>" => ast::BinaryOperator::RightShift,
-// 	"<<" => ast::BinaryOperator::LeftShift,
-// }
+ShiftOp: ast::BinaryOperator = {
+	">>" => ast::BinaryOperator::RightShift,
+	"<<" => ast::BinaryOperator::LeftShift,
+}
 
-// BitAndOp: ast::BinaryOperator = {
-// 	"&" => ast::BinaryOperator::BitAnd,
-// }
+BitAndOp: ast::BinaryOperator = {
+	"&" => ast::BinaryOperator::BitAnd,
+}
 
-// BitXorOp: ast::BinaryOperator = {
-// 	"^" => ast::BinaryOperator::BitXor,
-// }
+BitXorOp: ast::BinaryOperator = {
+	"^" => ast::BinaryOperator::BitXor,
+}
 
-// BitOrOp: ast::BinaryOperator = {
-// 	"|" => ast::BinaryOperator::BitOr,
-// }
+BitOrOp: ast::BinaryOperator = {
+	"|" => ast::BinaryOperator::BitOr,
+}
 
 ComparisonOp: ast::BinaryOperator = {
 	"==" => ast::BinaryOperator::Equals,

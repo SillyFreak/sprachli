@@ -2,6 +2,8 @@ mod error;
 mod stack;
 mod value;
 
+use bigdecimal::num_bigint::{BigInt, ToBigInt};
+use bigdecimal::num_traits::ToPrimitive;
 use bigdecimal::BigDecimal;
 
 use crate::ast::{BinaryOperator, UnaryOperator};
@@ -130,9 +132,44 @@ impl<'b> Vm<'b> {
         use BinaryOperator::*;
         use Value::*;
 
+        fn to_integer(value: &BigDecimal) -> Result<BigInt> {
+            if !value.is_integer() {
+                Err(Error::TypeError("integral number value".to_string()))?;
+            }
+            Ok(value.to_bigint().unwrap())
+        }
+
+        fn to_isize(value: &BigDecimal) -> Result<isize> {
+            if !value.is_integer() {
+                Err(Error::TypeError("integral number value".to_string()))?;
+            }
+            value
+                .to_isize()
+                .ok_or_else(|| Error::TypeError("small integral number value".to_string()))
+        }
+
         let [left, right] = {
             let mut ops = self.stack.pop_multiple(2)?;
             [ops.next().unwrap(), ops.next().unwrap()]
+        };
+
+        let arithmetic = |op: fn(&BigDecimal, &BigDecimal) -> BigDecimal| {
+            let result = op(left.as_number()?, right.as_number()?);
+            Ok(Value::number(result))
+        };
+
+        let bitshift = |op: fn(BigInt, isize) -> BigInt| {
+            let left = left.as_number().and_then(to_integer)?;
+            let right = right.as_number().and_then(to_isize)?;
+            let result = op(left, right);
+            Ok(Value::number(result.into()))
+        };
+
+        let bitwise = |op: fn(BigInt, BigInt) -> BigInt| {
+            let left = left.as_number().and_then(to_integer)?;
+            let right = right.as_number().and_then(to_integer)?;
+            let result = op(left, right);
+            Ok(Value::number(result.into()))
         };
 
         let equality_comparison = |eq: bool| -> Result<Value> {
@@ -156,22 +193,23 @@ impl<'b> Vm<'b> {
             Ok(Value::bool(result))
         };
 
-        let arithmetic = |op: fn(&BigDecimal, &BigDecimal) -> BigDecimal| {
-            let result = op(left.as_number()?, right.as_number()?);
-            Ok(Value::number(result))
-        };
-
         let value = match operator {
+            Multiply => arithmetic(|a, b| a * b),
+            Divide => arithmetic(|a, b| a / b),
+            Modulo => arithmetic(|a, b| a % b),
+            Add => arithmetic(|a, b| a + b),
+            Subtract => arithmetic(|a, b| a - b),
+            RightShift => bitshift(|a, b| a >> b),
+            LeftShift => bitshift(|a, b| a << b),
+            BitAnd => bitwise(|a, b| a & b),
+            BitXor => bitwise(|a, b| a ^ b),
+            BitOr => bitwise(|a, b| a | b),
             Equals => equality_comparison(true),
             NotEquals => equality_comparison(false),
             Greater => number_comparison(|a, b| a > b),
             GreaterEquals => number_comparison(|a, b| a >= b),
             Less => number_comparison(|a, b| a < b),
             LessEquals => number_comparison(|a, b| a <= b),
-            Add => arithmetic(|a, b| a + b),
-            Subtract => arithmetic(|a, b| a - b),
-            Multiply => arithmetic(|a, b| a * b),
-            Divide => arithmetic(|a, b| a / b),
         }?;
 
         self.stack.push(value)
