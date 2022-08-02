@@ -199,108 +199,6 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         }
     }
 
-    fn apply_stack_effect(&mut self, effect: isize) -> Result<()> {
-        if let Ok(effect) = usize::try_from(effect) {
-            self.stack.extend(iter::repeat(None).take(effect));
-        } else if let Ok(effect) = usize::try_from(-effect) {
-            let len = self
-                .stack
-                .len()
-                .checked_sub(effect)
-                .ok_or(InternalError::InvalidStackEffect)?;
-            self.stack.truncate(len);
-        } else {
-            unreachable!();
-        }
-        Ok(())
-    }
-
-    fn find_local(&mut self, name: &str) -> Option<(usize, ast::Variable<'input>)> {
-        let mut iter = self.stack.iter().enumerate().rev();
-
-        iter.find_map(|(i, local)| {
-            let var = (*local)?;
-            if var.name == name {
-                Some((i, var))
-            } else {
-                None
-            }
-        })
-    }
-
-    fn push<I: Into<InstructionItem>>(&mut self, instruction: I) -> Result<()> {
-        use Instruction::*;
-        use InstructionItem::*;
-
-        let instruction = instruction.into();
-
-        if let Some(effect) = instruction.stack_effect() {
-            self.apply_stack_effect(effect)?;
-        } else {
-            match instruction {
-                Real(PopScope(depth)) => {
-                    let end = self
-                        .stack
-                        .len()
-                        .checked_sub(1)
-                        .ok_or(InternalError::InvalidStackEffect)?;
-                    self.stack.drain(depth..end);
-                }
-                _ => unreachable!(),
-            }
-        }
-        self.instructions.push(instruction);
-        Ok(())
-    }
-
-    fn push_placeholder(&mut self, kind: PlaceholderKind) -> Result<Placeholder> {
-        self.apply_stack_effect(kind.stack_effect())?;
-        let index = self.instructions.len();
-        self.instructions.push(InstructionItem::Placeholder(kind));
-        Ok(Placeholder(index, kind))
-    }
-
-    fn offset_from(&self, index: usize) -> Offset {
-        let skipped = &self.instructions[index..];
-        let offset = skipped
-            .iter()
-            .copied()
-            .map(InstructionItem::encoded_len)
-            .sum();
-        Offset::Forward(offset)
-    }
-
-    fn offset_to(&self, index: usize) -> Offset {
-        let skipped = &self.instructions[index..];
-        let offset = skipped
-            .iter()
-            .copied()
-            .map(InstructionItem::encoded_len)
-            .sum();
-        Offset::Backward(offset)
-    }
-
-    fn push_jump_target(&mut self) -> &JumpTarget {
-        let depth = self.stack.len();
-        let start = self.instructions.len();
-        self.jump_targets.push(JumpTarget::new(depth, start));
-        self.jump_targets.last().unwrap()
-    }
-
-    fn pop_jump_target(&mut self) -> Option<()> {
-        let jump_target = self.jump_targets.pop()?;
-        jump_target.fill_end_jumps(self);
-        Some(())
-    }
-
-    fn current_jump_target(&self) -> Option<&JumpTarget> {
-        self.jump_targets.last()
-    }
-
-    fn current_jump_target_mut(&mut self) -> Option<&mut JumpTarget> {
-        self.jump_targets.last_mut()
-    }
-
     pub fn visit_fn_trunk(mut self, trunk: ast::FnTrunk<'input>) -> Result<Function> {
         let ast::FnTrunk {
             formal_parameters,
@@ -320,66 +218,24 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         Ok(Function::new(formal_parameters.len(), instructions))
     }
 
-    fn visit_expression(&mut self, expr: ast::Expression<'input>) -> Result<()> {
-        use ast::Expression::*;
+    // statements
 
-        match expr {
-            Number(literal) => self.visit_number(literal),
-            Bool(value) => self.visit_bool(value),
-            String(literal) => self.visit_string(literal),
-            Identifier(name) => self.visit_identifier(name),
-            Binary(expr) => self.visit_binary(expr),
-            Unary(expr) => self.visit_unary(expr),
-            Call(call) => self.visit_call(call),
-            Block(block) => self.visit_block(block),
-            Fn(expr) => self.visit_fn(expr),
-            If(expr) => self.visit_if(expr),
-            Loop(expr) => self.visit_loop(expr),
+    fn visit_statement(&mut self, stmt: ast::Statement<'input>) -> Result<()> {
+        use ast::Statement::*;
+
+        match stmt {
+            Declaration(_) => {
+                todo!("emit instructions");
+            }
+            Expression(expr) => {
+                self.visit_expression(expr)?;
+                self.push(Instruction::Pop)?;
+                Ok(())
+            }
+            Jump(stmt) => self.visit_jump(stmt),
+            VariableDeclaration(stmt) => self.visit_variable_declaration(stmt),
+            Assignment(stmt) => self.visit_assignment(stmt),
         }
-    }
-
-    fn visit_optional(&mut self, expr: Option<ast::Expression<'input>>) -> Result<()> {
-        if let Some(expr) = expr {
-            self.visit_expression(expr)?;
-        } else {
-            self.push(Instruction::InlineConstant(InlineConstant::Unit))?;
-        }
-        Ok(())
-    }
-
-    fn visit_number(&mut self, literal: &str) -> Result<()> {
-        use Instruction::*;
-
-        let number = Number::from_str(literal).map_err(InternalError::from)?;
-        let constant = self.compiler.add_constant(number);
-        self.push(Constant(constant))?;
-        Ok(())
-    }
-
-    fn visit_bool(&mut self, value: bool) -> Result<()> {
-        self.push(Instruction::InlineConstant(InlineConstant::Bool(value)))?;
-        Ok(())
-    }
-
-    fn visit_string(&mut self, literal: &str) -> Result<()> {
-        use Instruction::*;
-
-        let string = string_from_literal(literal).map_err(InternalError::from)?;
-        let constant = self.compiler.add_constant(string);
-        self.push(Constant(constant))?;
-        Ok(())
-    }
-
-    fn visit_identifier(&mut self, name: &str) -> Result<()> {
-        use Instruction::*;
-
-        if let Some((local, _)) = self.find_local(name) {
-            self.push(LoadLocal(local))?;
-        } else {
-            let name = self.compiler.add_constant(name.to_string());
-            self.push(LoadNamed(name))?;
-        }
-        Ok(())
     }
 
     fn visit_jump(&mut self, stmt: ast::Jump<'input>) -> Result<()> {
@@ -458,6 +314,70 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         Ok(())
     }
 
+    // expressions
+
+    fn visit_expression(&mut self, expr: ast::Expression<'input>) -> Result<()> {
+        use ast::Expression::*;
+
+        match expr {
+            Number(literal) => self.visit_number(literal),
+            Bool(value) => self.visit_bool(value),
+            String(literal) => self.visit_string(literal),
+            Identifier(name) => self.visit_identifier(name),
+            Binary(expr) => self.visit_binary(expr),
+            Unary(expr) => self.visit_unary(expr),
+            Call(call) => self.visit_call(call),
+            Block(block) => self.visit_block(block),
+            Fn(expr) => self.visit_fn(expr),
+            If(expr) => self.visit_if(expr),
+            Loop(expr) => self.visit_loop(expr),
+        }
+    }
+
+    fn visit_optional(&mut self, expr: Option<ast::Expression<'input>>) -> Result<()> {
+        if let Some(expr) = expr {
+            self.visit_expression(expr)?;
+        } else {
+            self.push(Instruction::InlineConstant(InlineConstant::Unit))?;
+        }
+        Ok(())
+    }
+
+    fn visit_number(&mut self, literal: &str) -> Result<()> {
+        use Instruction::*;
+
+        let number = Number::from_str(literal).map_err(InternalError::from)?;
+        let constant = self.compiler.add_constant(number);
+        self.push(Constant(constant))?;
+        Ok(())
+    }
+
+    fn visit_bool(&mut self, value: bool) -> Result<()> {
+        self.push(Instruction::InlineConstant(InlineConstant::Bool(value)))?;
+        Ok(())
+    }
+
+    fn visit_string(&mut self, literal: &str) -> Result<()> {
+        use Instruction::*;
+
+        let string = string_from_literal(literal).map_err(InternalError::from)?;
+        let constant = self.compiler.add_constant(string);
+        self.push(Constant(constant))?;
+        Ok(())
+    }
+
+    fn visit_identifier(&mut self, name: &str) -> Result<()> {
+        use Instruction::*;
+
+        if let Some((local, _)) = self.find_local(name) {
+            self.push(LoadLocal(local))?;
+        } else {
+            let name = self.compiler.add_constant(name.to_string());
+            self.push(LoadNamed(name))?;
+        }
+        Ok(())
+    }
+
     fn visit_binary(&mut self, expr: ast::Binary<'input>) -> Result<()> {
         use Instruction::*;
 
@@ -517,24 +437,6 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         Ok(())
     }
 
-    fn visit_statement(&mut self, stmt: ast::Statement<'input>) -> Result<()> {
-        use ast::Statement::*;
-
-        match stmt {
-            Declaration(_) => {
-                todo!("emit instructions");
-            }
-            Expression(expr) => {
-                self.visit_expression(expr)?;
-                self.push(Instruction::Pop)?;
-                Ok(())
-            }
-            Jump(stmt) => self.visit_jump(stmt),
-            VariableDeclaration(stmt) => self.visit_variable_declaration(stmt),
-            Assignment(stmt) => self.visit_assignment(stmt),
-        }
-    }
-
     fn visit_fn(&mut self, expr: ast::Fn<'input>) -> Result<()> {
         use Instruction::*;
 
@@ -592,6 +494,116 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
         // i.e. its stack effect is not 0 but 1.
         self.apply_stack_effect(1)?;
         Ok(())
+    }
+
+    // instruction helpers
+
+    fn push<I: Into<InstructionItem>>(&mut self, instruction: I) -> Result<()> {
+        use Instruction::*;
+        use InstructionItem::*;
+
+        let instruction = instruction.into();
+
+        if let Some(effect) = instruction.stack_effect() {
+            self.apply_stack_effect(effect)?;
+        } else {
+            match instruction {
+                Real(PopScope(depth)) => {
+                    let end = self
+                        .stack
+                        .len()
+                        .checked_sub(1)
+                        .ok_or(InternalError::InvalidStackEffect)?;
+                    self.stack.drain(depth..end);
+                }
+                _ => unreachable!(),
+            }
+        }
+        self.instructions.push(instruction);
+        Ok(())
+    }
+
+    fn push_placeholder(&mut self, kind: PlaceholderKind) -> Result<Placeholder> {
+        self.apply_stack_effect(kind.stack_effect())?;
+        let index = self.instructions.len();
+        self.instructions.push(InstructionItem::Placeholder(kind));
+        Ok(Placeholder(index, kind))
+    }
+
+    // stack helpers
+
+    fn apply_stack_effect(&mut self, effect: isize) -> Result<()> {
+        if let Ok(effect) = usize::try_from(effect) {
+            self.stack.extend(iter::repeat(None).take(effect));
+        } else if let Ok(effect) = usize::try_from(-effect) {
+            let len = self
+                .stack
+                .len()
+                .checked_sub(effect)
+                .ok_or(InternalError::InvalidStackEffect)?;
+            self.stack.truncate(len);
+        } else {
+            unreachable!();
+        }
+        Ok(())
+    }
+
+    fn find_local(&mut self, name: &str) -> Option<(usize, ast::Variable<'input>)> {
+        let mut iter = self.stack.iter().enumerate().rev();
+
+        iter.find_map(|(i, local)| {
+            let var = (*local)?;
+            if var.name == name {
+                Some((i, var))
+            } else {
+                None
+            }
+        })
+    }
+
+    // jump target helpers
+
+    fn push_jump_target(&mut self) -> &JumpTarget {
+        let depth = self.stack.len();
+        let start = self.instructions.len();
+        self.jump_targets.push(JumpTarget::new(depth, start));
+        self.jump_targets.last().unwrap()
+    }
+
+    fn pop_jump_target(&mut self) -> Option<()> {
+        let jump_target = self.jump_targets.pop()?;
+        jump_target.fill_end_jumps(self);
+        Some(())
+    }
+
+    fn current_jump_target(&self) -> Option<&JumpTarget> {
+        self.jump_targets.last()
+    }
+
+    fn current_jump_target_mut(&mut self) -> Option<&mut JumpTarget> {
+        self.jump_targets.last_mut()
+    }
+
+    // jump placeholder helpers
+
+    fn offset_from(&self, index: usize) -> Offset {
+        let skipped = &self.instructions[index..];
+        let offset = skipped
+            .iter()
+            .copied()
+            .map(InstructionItem::encoded_len)
+            .sum();
+        Offset::Forward(offset)
+    }
+
+    fn offset_to(&self, index: usize) -> Offset {
+        let skipped = &self.instructions[index..];
+        let offset = skipped
+            .iter()
+            .copied()
+            .map(InstructionItem::encoded_len)
+            .sum();
+        Offset::Backward(offset)
     }
 }
 
