@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::io::{Result, Write};
 
 use super::constant::{Constant, Function};
@@ -148,7 +148,7 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
     Ok(())
 }
 
-fn globals<W: Write>(w: &mut W, globals: &HashMap<usize, usize>) -> Result<()> {
+fn globals<W: Write>(w: &mut W, globals: &BTreeMap<usize, usize>) -> Result<()> {
     let len = globals.len() as u16;
     w.write_all(&len.to_be_bytes())?;
     for (key, value) in globals.iter() {
@@ -159,7 +159,7 @@ fn globals<W: Write>(w: &mut W, globals: &HashMap<usize, usize>) -> Result<()> {
     Ok(())
 }
 
-fn structs<W: Write>(w: &mut W, structs: &HashMap<usize, Struct>) -> Result<()> {
+fn structs<W: Write>(w: &mut W, structs: &BTreeMap<usize, Struct>) -> Result<()> {
     let len = structs.len() as u16;
     w.write_all(&len.to_be_bytes())?;
     for (name, decl) in structs {

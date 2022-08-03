@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use nom::bytes::complete::{tag, take};
 use nom::multi::count;
@@ -102,10 +102,10 @@ fn get_string_constant<'b>(constants: &[Constant<'b>], index: usize) -> Result<&
     }
 }
 
-fn globals<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, HashMap<&'b str, usize>> {
+fn globals<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, BTreeMap<&'b str, usize>> {
     let (i, len) = be_u16(i)?;
     let (i, globals) = count(|i| global(i, constants), len as usize)(i)?;
-    Ok((i, HashMap::from_iter(globals)))
+    Ok((i, BTreeMap::from_iter(globals)))
 }
 
 fn global<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str, usize)> {
@@ -119,10 +119,10 @@ fn global<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str, 
 fn structs<'b>(
     i: &'b [u8],
     constants: &[Constant<'b>],
-) -> IResult<'b, HashMap<&'b str, Struct<'b>>> {
+) -> IResult<'b, BTreeMap<&'b str, Struct<'b>>> {
     let (i, len) = be_u16(i)?;
     let (i, structs) = count(|i| strucct(i, constants), len as usize)(i)?;
-    Ok((i, HashMap::from_iter(structs)))
+    Ok((i, BTreeMap::from_iter(structs)))
 }
 
 fn strucct<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str, Struct<'b>)> {

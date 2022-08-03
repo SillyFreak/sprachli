@@ -11,7 +11,7 @@ mod error;
 pub mod instruction;
 pub mod parser;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use bigdecimal::BigDecimal;
 use itertools::Itertools;
@@ -33,15 +33,15 @@ where
 #[derive(Clone)]
 pub struct Module<'b> {
     constants: Vec<Constant<'b>>,
-    globals: HashMap<&'b str, usize>,
-    structs: HashMap<&'b str, Struct<'b>>,
+    globals: BTreeMap<&'b str, usize>,
+    structs: BTreeMap<&'b str, Struct<'b>>,
 }
 
 impl<'b> Module<'b> {
     pub fn new(
         constants: Vec<Constant<'b>>,
-        globals: HashMap<&'b str, usize>,
-        structs: HashMap<&'b str, Struct<'b>>,
+        globals: BTreeMap<&'b str, usize>,
+        structs: BTreeMap<&'b str, Struct<'b>>,
     ) -> Self {
         Self {
             constants,
@@ -58,7 +58,7 @@ impl<'b> Module<'b> {
         self.constants.get(index)
     }
 
-    pub fn globals(&self) -> &HashMap<&'b str, usize> {
+    pub fn globals(&self) -> &BTreeMap<&'b str, usize> {
         &self.globals
     }
 
@@ -67,7 +67,7 @@ impl<'b> Module<'b> {
         self.constant(index)
     }
 
-    pub fn structs(&self) -> &HashMap<&'b str, Struct<'b>> {
+    pub fn structs(&self) -> &BTreeMap<&'b str, Struct<'b>> {
         &self.structs
     }
 

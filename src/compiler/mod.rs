@@ -3,7 +3,7 @@ mod error;
 mod instruction;
 mod writer;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::io::Write;
 use std::iter;
@@ -36,8 +36,8 @@ pub fn compile_ast<W: Write>(w: &mut W, ast: ast::SourceFile) -> Result<()> {
 #[derive(Clone)]
 pub struct Module {
     constants: Vec<Constant>,
-    globals: HashMap<usize, usize>,
-    structs: HashMap<usize, Struct>,
+    globals: BTreeMap<usize, usize>,
+    structs: BTreeMap<usize, Struct>,
 }
 
 impl Module {
@@ -49,11 +49,11 @@ impl Module {
         &self.constants
     }
 
-    pub fn globals(&self) -> &HashMap<usize, usize> {
+    pub fn globals(&self) -> &BTreeMap<usize, usize> {
         &self.globals
     }
 
-    pub fn structs(&self) -> &HashMap<usize, Struct> {
+    pub fn structs(&self) -> &BTreeMap<usize, Struct> {
         &self.structs
     }
 }
@@ -147,8 +147,8 @@ impl fmt::Debug for Module {
 struct Compiler {
     constants: Vec<Constant>,
     constants_map: HashMap<Constant, usize>,
-    structs: HashMap<usize, Struct>,
-    globals: HashMap<usize, usize>,
+    structs: BTreeMap<usize, Struct>,
+    globals: BTreeMap<usize, usize>,
 }
 
 impl Compiler {
