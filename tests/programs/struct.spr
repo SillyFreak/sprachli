@@ -1,0 +1,5 @@
+struct Empty;
+struct Positional(x, y);
+struct Named { x, y }
+
+fn main() {}

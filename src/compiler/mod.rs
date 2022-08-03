@@ -10,6 +10,8 @@ use std::iter;
 use std::slice::SliceIndex;
 use std::str::FromStr;
 
+use itertools::Itertools;
+
 use crate::ast;
 use crate::bytecode::instruction::{InlineConstant, Instruction, Offset};
 use crate::fmt::{FormatterExt, ModuleFormat};
@@ -35,6 +37,7 @@ pub fn compile_ast<W: Write>(w: &mut W, ast: ast::SourceFile) -> Result<()> {
 pub struct Module {
     constants: Vec<Constant>,
     globals: HashMap<usize, usize>,
+    structs: HashMap<usize, Struct>,
 }
 
 impl Module {
@@ -48,6 +51,10 @@ impl Module {
 
     pub fn globals(&self) -> &HashMap<usize, usize> {
         &self.globals
+    }
+
+    pub fn structs(&self) -> &HashMap<usize, Struct> {
+        &self.structs
     }
 }
 
@@ -64,9 +71,16 @@ impl TryFrom<ast::SourceFile<'_>> for Module {
 impl From<Compiler> for Module {
     fn from(compiler: Compiler) -> Self {
         let Compiler {
-            constants, globals, ..
+            constants,
+            globals,
+            structs,
+            ..
         } = compiler;
-        Self { constants, globals }
+        Self {
+            constants,
+            globals,
+            structs,
+        }
     }
 }
 
@@ -108,12 +122,22 @@ impl fmt::Debug for Module {
                 f.write_str("\n")?;
             }
             f.write_str("    },\n")?;
+            f.write_str("    structs: {\n")?;
+            for (name, decl) in &self.structs {
+                f.write_str("        ")?;
+                f.fmt_constant_ident(self, *name)?;
+                f.write_str(": ")?;
+                decl.fmt_with(f, Some(self))?;
+                f.write_str("\n")?;
+            }
+            f.write_str("    },\n")?;
             f.write_str("}")?;
             Ok(())
         } else {
             f.debug_struct("Module")
                 .field("constants", &self.constants)
                 .field("globals", &self.globals)
+                .field("structs", &self.structs)
                 .finish()
         }
     }
@@ -123,6 +147,7 @@ impl fmt::Debug for Module {
 struct Compiler {
     constants: Vec<Constant>,
     constants_map: HashMap<Constant, usize>,
+    structs: HashMap<usize, Struct>,
     globals: HashMap<usize, usize>,
 }
 
@@ -165,8 +190,8 @@ impl Compiler {
 
         match declaration {
             Use(_decl) => Err(Error::Unsupported("use declaration"))?,
-            Fn(function) => self.visit_fn(function)?,
-            Struct(_decl) => Err(Error::Unsupported("struct"))?,
+            Fn(decl) => self.visit_fn(decl)?,
+            Struct(decl) => self.visit_struct(decl)?,
             Mixin(_decl) => Err(Error::Unsupported("mixin"))?,
             Impl(_decl) => Err(Error::Unsupported("impl block"))?,
         }
@@ -174,11 +199,88 @@ impl Compiler {
         Ok(())
     }
 
-    fn visit_fn(&mut self, function: ast::FnDeclaration) -> Result<()> {
-        let ast::FnDeclaration { name, trunk, .. } = function;
+    fn visit_fn(&mut self, decl: ast::FnDeclaration) -> Result<()> {
+        let ast::FnDeclaration { name, trunk, .. } = decl;
         let function = InstructionCompiler::new(self).visit_fn_trunk(trunk)?;
         self.add_global(name.to_string(), function);
         Ok(())
+    }
+
+    fn visit_struct(&mut self, decl: ast::Struct) -> Result<()> {
+        let ast::Struct { name, members, .. } = decl;
+        let name = self.add_constant(name.to_string());
+        let members = match members {
+            ast::StructMembers::Empty => Struct::Empty,
+            ast::StructMembers::Positional(members) => Struct::Positional(members.len()),
+            ast::StructMembers::Named(members) => {
+                let members = members
+                    .iter()
+                    .map(|member| self.add_constant(member.to_string()))
+                    .collect();
+                Struct::Named(members)
+            }
+        };
+        self.structs.insert(name, members);
+        Ok(())
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub enum Struct {
+    Empty,
+    Positional(usize),
+    Named(Vec<usize>),
+}
+
+impl Struct {
+    pub(crate) fn fmt_with<M: ModuleFormat>(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        module: Option<&M>,
+    ) -> fmt::Result {
+        use Struct::*;
+
+        match self {
+            Empty => f.write_str("struct;"),
+            Positional(count) => {
+                f.write_str("struct(")?;
+                for i in (0..*count).map(Some).intersperse(None) {
+                    match i {
+                        Some(i) => write!(f, "_{}", i)?,
+                        None => f.write_str(", ")?,
+                    }
+                }
+                f.write_str(");")?;
+                Ok(())
+            }
+            Named(members) => {
+                if members.is_empty() {
+                    f.write_str("struct {}")?;
+                } else {
+                    f.write_str("struct { ")?;
+                    for i in members.iter().map(Some).intersperse(None) {
+                        match i {
+                            Some(index) => {
+                                if let Some(module) = module {
+                                    f.fmt_constant_ident(module, *index)?;
+                                } else {
+                                    write!(f, "#{index}")?;
+                                }
+                            }
+                            None => f.write_str(", ")?,
+                        }
+                    }
+                    f.write_str(" }")?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+impl fmt::Debug for Struct {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.fmt_with::<Module>(f, None)
     }
 }
 
