@@ -11,9 +11,7 @@ pub use ast::{BinaryOperator, UnaryOperator};
 #[derive(Debug, Clone, Copy, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Opcode {
-    // zero is reserved for intentionally invalid opcodes,
-    // but all nontaken opcodes are of course invalid as well
-    Constant = 1,
+    Constant,
     // InlineConstant
     Unit,
     True,
