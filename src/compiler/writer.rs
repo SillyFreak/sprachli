@@ -65,90 +65,60 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
     use instruction::Offset::*;
     use instruction::Opcode as Op;
 
+    fn push_opcode(body: &mut Vec<u8>, opcode: Op) {
+        body.push(opcode.into());
+    }
+
+    fn push_opcode_u8(body: &mut Vec<u8>, opcode: Op, param: u8) {
+        body.push(opcode.into());
+        body.push(param);
+    }
+
     let mut body = Vec::with_capacity(value.body().len());
     for ins in value.body() {
         match *ins {
-            In::Constant(index) => {
-                body.push(Op::Constant.into());
-                body.push(index as u8);
-            }
+            In::Constant(index) => push_opcode_u8(&mut body, Op::Constant, index as u8),
             In::InlineConstant(value) => {
                 let opcode = match value {
                     Const::Unit => Op::Unit,
                     Const::Bool(true) => Op::True,
                     Const::Bool(false) => Op::False,
                 };
-                body.push(opcode.into());
+                push_opcode(&mut body, opcode);
             }
-            In::Unary(op) => {
-                body.push(Op::Unary.into());
-                body.push(op.into());
-            }
-            In::Binary(op) => {
-                body.push(Op::Binary.into());
-                body.push(op.into());
-            }
-            In::LoadLocal(index) => {
-                body.push(Op::LoadLocal.into());
-                body.push(index as u8);
-            }
-            In::StoreLocal(index) => {
-                body.push(Op::StoreLocal.into());
-                body.push(index as u8);
-            }
-            In::LoadNamed(index) => {
-                body.push(Op::LoadNamed.into());
-                body.push(index as u8);
-            }
-            In::StoreNamed(index) => {
-                body.push(Op::StoreNamed.into());
-                body.push(index as u8);
-            }
+            In::Unary(op) => push_opcode_u8(&mut body, Op::Unary, op.into()),
+            In::Binary(op) => push_opcode_u8(&mut body, Op::Binary, op.into()),
+            In::LoadLocal(index) => push_opcode_u8(&mut body, Op::LoadLocal, index as u8),
+            In::StoreLocal(index) => push_opcode_u8(&mut body, Op::StoreLocal, index as u8),
+            In::LoadNamed(index) => push_opcode_u8(&mut body, Op::LoadNamed, index as u8),
+            In::StoreNamed(index) => push_opcode_u8(&mut body, Op::StoreNamed, index as u8),
             In::LoadPositionalField(index) => {
-                body.push(Op::LoadPositionalField.into());
-                body.push(index as u8);
+                push_opcode_u8(&mut body, Op::LoadPositionalField, index as u8)
             }
             In::StorePositionalField(index) => {
-                body.push(Op::StorePositionalField.into());
-                body.push(index as u8);
+                push_opcode_u8(&mut body, Op::StorePositionalField, index as u8)
             }
-            In::LoadNamedField(index) => {
-                body.push(Op::LoadNamedField.into());
-                body.push(index as u8);
-            }
+            In::LoadNamedField(index) => push_opcode_u8(&mut body, Op::LoadNamedField, index as u8),
             In::StoreNamedField(index) => {
-                body.push(Op::StoreNamedField.into());
-                body.push(index as u8);
+                push_opcode_u8(&mut body, Op::StoreNamedField, index as u8)
             }
-            In::Pop => {
-                body.push(Op::Pop.into());
-            }
-            In::PopScope(depth) => {
-                body.push(Op::PopScope.into());
-                body.push(depth as u8);
-            }
-            In::Call(arity) => {
-                body.push(Op::Call.into());
-                body.push(arity as u8);
-            }
-            In::Return => {
-                body.push(Op::Return.into());
-            }
+            In::Pop => push_opcode(&mut body, Op::Pop),
+            In::PopScope(depth) => push_opcode_u8(&mut body, Op::PopScope, depth as u8),
+            In::Call(arity) => push_opcode_u8(&mut body, Op::Call, arity as u8),
+            In::Return => push_opcode(&mut body, Op::Return),
             In::Jump(offset) => {
                 let (opcode, offset) = match offset {
                     Forward(offset) => (Op::JumpForward, offset),
                     Backward(offset) => (Op::JumpBackward, offset),
                 };
-                body.push(opcode.into());
-                body.push(offset as u8);
+                push_opcode_u8(&mut body, opcode, offset as u8);
             }
             In::JumpIf(offset) => {
                 let (opcode, offset) = match offset {
                     Forward(offset) => (Op::JumpForwardIf, offset),
                     Backward(offset) => (Op::JumpBackwardIf, offset),
                 };
-                body.push(opcode.into());
-                body.push(offset as u8);
+                push_opcode_u8(&mut body, opcode, offset as u8);
             }
         }
     }
