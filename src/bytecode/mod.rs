@@ -417,7 +417,6 @@ impl Iterator for InstructionIter<'_, '_> {
                     Op::Unit => In::InlineConstant(Inl::Unit),
                     Op::True => In::InlineConstant(Inl::Bool(true)),
                     Op::False => In::InlineConstant(Inl::Bool(false)),
-                    Op::Pop => In::Pop,
                     Op::Unary => {
                         let op = self.parameter(opcode)?;
                         let op = op
@@ -436,18 +435,19 @@ impl Iterator for InstructionIter<'_, '_> {
                         let local = self.parameter(opcode)?;
                         In::LoadLocal(local as usize)
                     }
-                    Op::LoadNamed => {
-                        let constant = self.parameter(opcode)?;
-                        In::LoadNamed(constant as usize)
-                    }
                     Op::StoreLocal => {
                         let local = self.parameter(opcode)?;
                         In::StoreLocal(local as usize)
+                    }
+                    Op::LoadNamed => {
+                        let constant = self.parameter(opcode)?;
+                        In::LoadNamed(constant as usize)
                     }
                     Op::StoreNamed => {
                         let constant = self.parameter(opcode)?;
                         In::StoreNamed(constant as usize)
                     }
+                    Op::Pop => In::Pop,
                     Op::PopScope => {
                         let depth = self.parameter(opcode)?;
                         In::PopScope(depth as usize)

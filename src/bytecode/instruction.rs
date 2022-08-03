@@ -11,23 +11,29 @@ pub use ast::{BinaryOperator, UnaryOperator};
 #[derive(Debug, Clone, Copy, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Opcode {
+    // constants
     Constant,
-    // InlineConstant
     Unit,
     True,
     False,
 
-    Pop,
+    // calculations
     Unary,
     Binary,
+
+    // memory
     LoadLocal,
-    LoadNamed,
     StoreLocal,
+    LoadNamed,
     StoreNamed,
+
+    // stack management
+    Pop,
     PopScope,
     Call,
     Return,
-    // Jump & JumpIf
+
+    // jumps
     JumpForward,
     JumpBackward,
     JumpForwardIf,
@@ -36,18 +42,29 @@ pub enum Opcode {
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Instruction {
+    // constants
     Constant(usize),
     InlineConstant(InlineConstant),
-    Pop,
+
+    // calculations
     Unary(UnaryOperator),
     Binary(BinaryOperator),
+
+    // memory
     LoadLocal(usize),
-    LoadNamed(usize),
     StoreLocal(usize),
+    LoadNamed(usize),
     StoreNamed(usize),
+
+    // stack management
+    Pop,
     PopScope(usize),
+
+    // functions
     Call(usize),
     Return,
+
+    // jumps
     Jump(Offset),
     JumpIf(Offset),
 }
@@ -59,13 +76,13 @@ impl Instruction {
         let effect = match self {
             Constant(_) => 1,
             InlineConstant(_) => 1,
-            Pop => -1,
             Unary(_) => 0,
             Binary(_) => -1,
             LoadLocal(_) => 1,
-            LoadNamed(_) => 1,
             StoreLocal(_) => -1,
+            LoadNamed(_) => 1,
             StoreNamed(_) => -1,
+            Pop => -1,
             PopScope(_depth) => return None,
             Call(arity) => -isize::try_from(arity).expect("illegal arity"),
             // Return diverges, but it (conceptually) pops one value off the stack before the function ends
@@ -83,13 +100,13 @@ impl Instruction {
         match self {
             Constant(_) => 2,
             InlineConstant(_) => 1,
-            Pop => 1,
             Unary(_) => 2,
             Binary(_) => 2,
             LoadLocal(_) => 2,
-            LoadNamed(_) => 2,
             StoreLocal(_) => 2,
+            LoadNamed(_) => 2,
             StoreNamed(_) => 2,
+            Pop => 1,
             PopScope(_) => 2,
             Call(_) => 2,
             Return => 1,
@@ -120,6 +137,7 @@ impl Instruction {
             Unary(op) => write!(f, "UNARY {op:?}"),
             Binary(op) => write!(f, "BINARY {op:?}"),
             LoadLocal(local) => write!(f, "LOAD _{local}"),
+            StoreLocal(local) => write!(f, "STORE _{local}"),
             LoadNamed(index) => {
                 if let Some(module) = module {
                     write!(f, "LOAD #{index:<4} -- ")?;
@@ -129,10 +147,9 @@ impl Instruction {
                 }
                 Ok(())
             }
-            StoreLocal(local) => write!(f, "STORE _{local}"),
             StoreNamed(index) => {
                 if let Some(module) = module {
-                    write!(f, "STORE #{index:<4} -- ")?;
+                    write!(f, "STORE #{index:<3} -- ")?;
                     f.fmt_constant_ident(module, *index)?;
                 } else {
                     write!(f, "STORE #{index}")?;

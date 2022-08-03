@@ -250,15 +250,15 @@ impl<'b> Vm<'b> {
             match ins.map_err(InternalError::from)? {
                 Constant(index) => self.constant(index)?,
                 InlineConstant(constant) => self.inline_constant(constant)?,
-                Pop => self.stack.pop().map(|_| ())?,
                 Unary(operator) => self.unary(operator)?,
                 Binary(operator) => self.binary(operator)?,
                 LoadLocal(index) => self.load_local(offset, index)?,
-                LoadNamed(index) => self.load_named(index)?,
                 StoreLocal(index) => self.store_local(offset, index)?,
+                LoadNamed(index) => self.load_named(index)?,
                 StoreNamed(_index) => Err(Error::Unsupported(
                     "Tried to mutate a binding in the global scope",
                 ))?,
+                Pop => self.stack.pop().map(|_| ())?,
                 PopScope(depth) => drop(self.stack.pop_all_under(offset + depth)?),
                 Call(arity) => self.call(arity)?,
                 Return => {

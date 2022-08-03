@@ -80,9 +80,6 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 };
                 body.push(opcode.into());
             }
-            In::Pop => {
-                body.push(Op::Pop.into());
-            }
             In::Unary(op) => {
                 body.push(Op::Unary.into());
                 body.push(op.into());
@@ -95,17 +92,20 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 body.push(Op::LoadLocal.into());
                 body.push(index as u8);
             }
-            In::LoadNamed(index) => {
-                body.push(Op::LoadNamed.into());
-                body.push(index as u8);
-            }
             In::StoreLocal(index) => {
                 body.push(Op::StoreLocal.into());
+                body.push(index as u8);
+            }
+            In::LoadNamed(index) => {
+                body.push(Op::LoadNamed.into());
                 body.push(index as u8);
             }
             In::StoreNamed(index) => {
                 body.push(Op::StoreNamed.into());
                 body.push(index as u8);
+            }
+            In::Pop => {
+                body.push(Op::Pop.into());
             }
             In::PopScope(depth) => {
                 body.push(Op::PopScope.into());
