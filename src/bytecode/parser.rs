@@ -81,6 +81,23 @@ fn function(i: &[u8]) -> IResult<Function> {
     Ok((i, Function::new(arity as usize, body)))
 }
 
+fn get_constant<'a, 'b>(
+    constants: &'a [Constant<'b>],
+    index: usize,
+) -> Result<&'a Constant<'b>, Error> {
+    constants
+        .get(index)
+        .ok_or(Error::InvalidConstantRef(index, constants.len()))
+}
+
+fn get_string_constant<'b>(constants: &[Constant<'b>], index: usize) -> Result<&'b str, Error> {
+    let constant = get_constant(constants, index)?;
+    match constant {
+        Constant::String(value) => Ok(*value),
+        _ => Err(Error::InvalidConstantRefType(index, "string")),
+    }
+}
+
 fn globals<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, HashMap<&'b str, usize>> {
     let (i, len) = be_u16(i)?;
     let (i, globals) = count(|i| global(i, constants), len as usize)(i)?;
@@ -91,19 +108,6 @@ fn global<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str, 
     let (i, name) = be_u16(i)?;
     let (i, value) = be_u16(i)?;
 
-    let index = name as usize;
-    let name = constants
-        .get(index)
-        .ok_or(nom::Err::Error(Error::InvalidConstantRef(
-            index,
-            constants.len(),
-        )))?;
-    let name = match name {
-        Constant::String(name) => *name,
-        _ => {
-            let error = Error::InvalidConstantRefType(index, "string");
-            Err(nom::Err::Error(error))?
-        }
-    };
+    let name = get_string_constant(constants, name as usize).map_err(nom::Err::Error)?;
     Ok((i, (name, value as usize)))
 }
