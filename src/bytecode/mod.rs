@@ -447,6 +447,22 @@ impl Iterator for InstructionIter<'_, '_> {
                         let constant = self.parameter(opcode)?;
                         In::StoreNamed(constant as usize)
                     }
+                    Op::LoadPositionalField => {
+                        let field = self.parameter(opcode)?;
+                        In::LoadPositionalField(field as usize)
+                    }
+                    Op::StorePositionalField => {
+                        let field = self.parameter(opcode)?;
+                        In::StorePositionalField(field as usize)
+                    }
+                    Op::LoadNamedField => {
+                        let constant = self.parameter(opcode)?;
+                        In::LoadNamedField(constant as usize)
+                    }
+                    Op::StoreNamedField => {
+                        let constant = self.parameter(opcode)?;
+                        In::StoreNamedField(constant as usize)
+                    }
                     Op::Pop => In::Pop,
                     Op::PopScope => {
                         let depth = self.parameter(opcode)?;

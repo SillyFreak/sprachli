@@ -26,6 +26,10 @@ pub enum Opcode {
     StoreLocal,
     LoadNamed,
     StoreNamed,
+    LoadPositionalField,
+    StorePositionalField,
+    LoadNamedField,
+    StoreNamedField,
 
     // stack management
     Pop,
@@ -55,6 +59,10 @@ pub enum Instruction {
     StoreLocal(usize),
     LoadNamed(usize),
     StoreNamed(usize),
+    LoadPositionalField(usize),
+    StorePositionalField(usize),
+    LoadNamedField(usize),
+    StoreNamedField(usize),
 
     // stack management
     Pop,
@@ -82,6 +90,10 @@ impl Instruction {
             StoreLocal(_) => -1,
             LoadNamed(_) => 1,
             StoreNamed(_) => -1,
+            LoadPositionalField(_) => 1,
+            StorePositionalField(_) => -1,
+            LoadNamedField(_) => 1,
+            StoreNamedField(_) => -1,
             Pop => -1,
             PopScope(_depth) => return None,
             Call(arity) => -isize::try_from(arity).expect("illegal arity"),
@@ -106,6 +118,10 @@ impl Instruction {
             StoreLocal(_) => 2,
             LoadNamed(_) => 2,
             StoreNamed(_) => 2,
+            LoadPositionalField(_) => 2,
+            StorePositionalField(_) => 2,
+            LoadNamedField(_) => 2,
+            StoreNamedField(_) => 2,
             Pop => 1,
             PopScope(_) => 2,
             Call(_) => 2,
@@ -125,7 +141,7 @@ impl Instruction {
         match self {
             Constant(index) => {
                 if let Some(module) = module {
-                    write!(f, "CONST #{index:<3} -- ")?;
+                    write!(f, "CONST #{index:<8} -- ")?;
                     f.fmt_constant(module, *index)?;
                 } else {
                     write!(f, "CONST #{index}")?;
@@ -140,7 +156,7 @@ impl Instruction {
             StoreLocal(local) => write!(f, "STORE _{local}"),
             LoadNamed(index) => {
                 if let Some(module) = module {
-                    write!(f, "LOAD #{index:<4} -- ")?;
+                    write!(f, "LOAD #{index:<9} -- ")?;
                     f.fmt_constant_ident(module, *index)?;
                 } else {
                     write!(f, "LOAD #{index}")?;
@@ -149,10 +165,30 @@ impl Instruction {
             }
             StoreNamed(index) => {
                 if let Some(module) = module {
-                    write!(f, "STORE #{index:<3} -- ")?;
+                    write!(f, "STORE #{index:<8} -- ")?;
                     f.fmt_constant_ident(module, *index)?;
                 } else {
                     write!(f, "STORE #{index}")?;
+                }
+                Ok(())
+            }
+            LoadPositionalField(index) => write!(f, "LOAD FIELD _{index}"),
+            StorePositionalField(index) => write!(f, "STORE FIELD _{index}"),
+            LoadNamedField(index) => {
+                if let Some(module) = module {
+                    write!(f, "LOAD FIELD #{index:<3} -- ")?;
+                    f.fmt_constant_ident(module, *index)?;
+                } else {
+                    write!(f, "LOAD FIELD #{index}")?;
+                }
+                Ok(())
+            }
+            StoreNamedField(index) => {
+                if let Some(module) = module {
+                    write!(f, "STORE FIELD #{index:<2} -- ")?;
+                    f.fmt_constant_ident(module, *index)?;
+                } else {
+                    write!(f, "STORE FIELD #{index}")?;
                 }
                 Ok(())
             }

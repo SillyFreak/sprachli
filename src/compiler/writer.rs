@@ -104,6 +104,22 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
                 body.push(Op::StoreNamed.into());
                 body.push(index as u8);
             }
+            In::LoadPositionalField(index) => {
+                body.push(Op::LoadPositionalField.into());
+                body.push(index as u8);
+            }
+            In::StorePositionalField(index) => {
+                body.push(Op::StorePositionalField.into());
+                body.push(index as u8);
+            }
+            In::LoadNamedField(index) => {
+                body.push(Op::LoadNamedField.into());
+                body.push(index as u8);
+            }
+            In::StoreNamedField(index) => {
+                body.push(Op::StoreNamedField.into());
+                body.push(index as u8);
+            }
             In::Pop => {
                 body.push(Op::Pop.into());
             }

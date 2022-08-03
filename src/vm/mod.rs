@@ -258,6 +258,10 @@ impl<'b> Vm<'b> {
                 StoreNamed(_index) => Err(Error::Unsupported(
                     "Tried to mutate a binding in the global scope",
                 ))?,
+                LoadPositionalField(_index) => todo!(),
+                StorePositionalField(_index) => todo!(),
+                LoadNamedField(_index) => todo!(),
+                StoreNamedField(_index) => todo!(),
                 Pop => self.stack.pop().map(|_| ())?,
                 PopScope(depth) => drop(self.stack.pop_all_under(offset + depth)?),
                 Call(arity) => self.call(arity)?,
