@@ -381,9 +381,17 @@ impl<'a, 'b> InstructionIter<'a, 'b> {
         })
     }
 
-    fn parameter(&mut self, opcode: Opcode) -> Result<u8> {
+    fn parameter_u8(&mut self, opcode: Opcode) -> Result<u8> {
         let parameter = self.advance().ok_or(Error::IncompleteInstruction(opcode))?;
         Ok(parameter)
+    }
+
+    fn instruction_u8<F>(&mut self, opcode: Opcode, f: F) -> Result<Instruction>
+    where
+        F: FnOnce(usize) -> Instruction,
+    {
+        let parameter = self.parameter_u8(opcode)?;
+        Ok(f(parameter as usize))
     }
 
     pub(crate) fn raw_jump(&mut self, offset: Offset) -> std::result::Result<(), ()> {
@@ -410,84 +418,51 @@ impl Iterator for InstructionIter<'_, '_> {
         self.opcode().map(|opcode| {
             opcode.and_then(|opcode| {
                 let ins = match opcode {
-                    Op::Constant => {
-                        let constant = self.parameter(opcode)?;
-                        In::Constant(constant as usize)
-                    }
+                    Op::Constant => self.instruction_u8(opcode, In::Constant)?,
                     Op::Unit => In::InlineConstant(Inl::Unit),
                     Op::True => In::InlineConstant(Inl::Bool(true)),
                     Op::False => In::InlineConstant(Inl::Bool(false)),
                     Op::Unary => {
-                        let op = self.parameter(opcode)?;
+                        let op = self.parameter_u8(opcode)?;
                         let op = op
                             .try_into()
                             .map_err(|_| Error::InvalidInstruction(opcode))?;
                         In::Unary(op)
                     }
                     Op::Binary => {
-                        let op = self.parameter(opcode)?;
+                        let op = self.parameter_u8(opcode)?;
                         let op = op
                             .try_into()
                             .map_err(|_| Error::InvalidInstruction(opcode))?;
                         In::Binary(op)
                     }
-                    Op::LoadLocal => {
-                        let local = self.parameter(opcode)?;
-                        In::LoadLocal(local as usize)
-                    }
-                    Op::StoreLocal => {
-                        let local = self.parameter(opcode)?;
-                        In::StoreLocal(local as usize)
-                    }
-                    Op::LoadNamed => {
-                        let constant = self.parameter(opcode)?;
-                        In::LoadNamed(constant as usize)
-                    }
-                    Op::StoreNamed => {
-                        let constant = self.parameter(opcode)?;
-                        In::StoreNamed(constant as usize)
-                    }
+                    Op::LoadLocal => self.instruction_u8(opcode, In::LoadLocal)?,
+                    Op::StoreLocal => self.instruction_u8(opcode, In::StoreLocal)?,
+                    Op::LoadNamed => self.instruction_u8(opcode, In::LoadNamed)?,
+                    Op::StoreNamed => self.instruction_u8(opcode, In::StoreNamed)?,
                     Op::LoadPositionalField => {
-                        let field = self.parameter(opcode)?;
-                        In::LoadPositionalField(field as usize)
+                        self.instruction_u8(opcode, In::LoadPositionalField)?
                     }
                     Op::StorePositionalField => {
-                        let field = self.parameter(opcode)?;
-                        In::StorePositionalField(field as usize)
+                        self.instruction_u8(opcode, In::StorePositionalField)?
                     }
-                    Op::LoadNamedField => {
-                        let constant = self.parameter(opcode)?;
-                        In::LoadNamedField(constant as usize)
-                    }
-                    Op::StoreNamedField => {
-                        let constant = self.parameter(opcode)?;
-                        In::StoreNamedField(constant as usize)
-                    }
+                    Op::LoadNamedField => self.instruction_u8(opcode, In::LoadNamedField)?,
+                    Op::StoreNamedField => self.instruction_u8(opcode, In::StoreNamedField)?,
                     Op::Pop => In::Pop,
-                    Op::PopScope => {
-                        let depth = self.parameter(opcode)?;
-                        In::PopScope(depth as usize)
-                    }
-                    Op::Call => {
-                        let arity = self.parameter(opcode)?;
-                        In::Call(arity as usize)
-                    }
+                    Op::PopScope => self.instruction_u8(opcode, In::PopScope)?,
+                    Op::Call => self.instruction_u8(opcode, In::Call)?,
                     Op::Return => In::Return,
                     Op::JumpForward => {
-                        let offset = self.parameter(opcode)?;
-                        In::Jump(Offset::Forward(offset as usize))
+                        self.instruction_u8(opcode, |off| In::Jump(Offset::Forward(off)))?
                     }
                     Op::JumpBackward => {
-                        let offset = self.parameter(opcode)?;
-                        In::Jump(Offset::Backward(offset as usize))
+                        self.instruction_u8(opcode, |off| In::Jump(Offset::Backward(off)))?
                     }
                     Op::JumpForwardIf => {
-                        let offset = self.parameter(opcode)?;
-                        In::JumpIf(Offset::Forward(offset as usize))
+                        self.instruction_u8(opcode, |off| In::JumpIf(Offset::Forward(off)))?
                     }
                     Op::JumpBackwardIf => {
-                        let offset = self.parameter(opcode)?;
-                        In::JumpIf(Offset::Backward(offset as usize))
+                        self.instruction_u8(opcode, |off| In::JumpIf(Offset::Backward(off)))?
                     }
                 };
 
