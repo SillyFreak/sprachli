@@ -24,6 +24,8 @@ pub enum Error {
     InvalidConstantRef(usize, usize),
     #[error("Constant #{0} was not a {1}")]
     InvalidConstantRefType(usize, &'static str),
+    #[error("Invalid struct: unknown type")]
+    InvalidStructType,
 }
 
 impl<I: fmt::Debug> From<nom::error::Error<I>> for Error {

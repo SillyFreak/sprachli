@@ -2,14 +2,15 @@ use std::collections::HashMap;
 use std::io::{Result, Write};
 
 use super::constant::{Constant, Function};
-use super::Module;
+use super::{Module, Struct};
 use crate::bytecode::instruction;
-use crate::bytecode::{ConstantType, Number};
+use crate::bytecode::{ConstantType, Number, StructType};
 
 pub fn write_bytecode<W: Write>(w: &mut W, module: &Module) -> Result<()> {
     header(w)?;
     constants(w, module.constants())?;
     globals(w, module.globals())?;
+    structs(w, module.structs())?;
 
     Ok(())
 }
@@ -156,4 +157,43 @@ fn globals<W: Write>(w: &mut W, globals: &HashMap<usize, usize>) -> Result<()> {
         w.write_all(&value.to_be_bytes())?;
     }
     Ok(())
+}
+
+fn structs<W: Write>(w: &mut W, structs: &HashMap<usize, Struct>) -> Result<()> {
+    let len = structs.len() as u16;
+    w.write_all(&len.to_be_bytes())?;
+    for (name, decl) in structs {
+        strucct(w, *name, decl)?;
+    }
+    Ok(())
+}
+
+fn strucct<W: Write>(w: &mut W, name: usize, decl: &Struct) -> Result<()> {
+    use Struct::*;
+
+    let name = name as u16;
+    w.write_all(&name.to_be_bytes())?;
+
+    match decl {
+        Empty => {
+            w.write_all(&[StructType::Empty.into()])?;
+            Ok(())
+        }
+        Positional(count) => {
+            let count = *count as u16;
+            w.write_all(&[StructType::Positional.into()])?;
+            w.write_all(&count.to_be_bytes())?;
+            Ok(())
+        }
+        Named(members) => {
+            let len = members.len() as u16;
+            w.write_all(&[StructType::Named.into()])?;
+            w.write_all(&len.to_be_bytes())?;
+            for member in members {
+                let member = *member as u16;
+                w.write_all(&member.to_be_bytes())?;
+            }
+            Ok(())
+        }
+    }
 }

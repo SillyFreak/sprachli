@@ -34,11 +34,20 @@ where
 pub struct Module<'b> {
     constants: Vec<Constant<'b>>,
     globals: HashMap<&'b str, usize>,
+    structs: HashMap<&'b str, Struct<'b>>,
 }
 
 impl<'b> Module<'b> {
-    pub fn new(constants: Vec<Constant<'b>>, globals: HashMap<&'b str, usize>) -> Self {
-        Self { constants, globals }
+    pub fn new(
+        constants: Vec<Constant<'b>>,
+        globals: HashMap<&'b str, usize>,
+        structs: HashMap<&'b str, Struct<'b>>,
+    ) -> Self {
+        Self {
+            constants,
+            globals,
+            structs,
+        }
     }
 
     pub fn constants(&self) -> &Vec<Constant<'b>> {
@@ -56,6 +65,14 @@ impl<'b> Module<'b> {
     pub fn global(&self, name: &str) -> Option<&Constant<'b>> {
         let index = *self.globals.get(name)?;
         self.constant(index)
+    }
+
+    pub fn structs(&self) -> &HashMap<&'b str, Struct<'b>> {
+        &self.structs
+    }
+
+    pub fn strucct(&self, name: &str) -> Option<&Struct<'b>> {
+        self.structs.get(name)
     }
 }
 
@@ -92,12 +109,22 @@ impl fmt::Debug for Module<'_> {
                 f.write_str("\n")?;
             }
             f.write_str("    },\n")?;
+            f.write_str("    structs: {\n")?;
+            for (name, decl) in &self.structs {
+                f.write_str("        ")?;
+                f.write_str(name)?;
+                f.write_str(": ")?;
+                decl.fmt(f)?;
+                f.write_str("\n")?;
+            }
+            f.write_str("    },\n")?;
             f.write_str("}")?;
             Ok(())
         } else {
             f.debug_struct("Module")
                 .field("constants", &self.constants)
                 .field("globals", &self.globals)
+                .field("structs", &self.structs)
                 .finish()
         }
     }
@@ -187,6 +214,57 @@ impl<'b> Function<'b> {
 impl fmt::Debug for Function<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.fmt_with::<Module>(f, None)
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
+pub enum StructType {
+    Empty,
+    Positional,
+    Named,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub enum Struct<'b> {
+    Empty,
+    Positional(usize),
+    Named(Vec<&'b str>),
+}
+
+impl fmt::Debug for Struct<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Struct::*;
+
+        match self {
+            Empty => f.write_str("struct;"),
+            Positional(count) => {
+                f.write_str("struct(")?;
+                for i in (0..*count).map(Some).intersperse(None) {
+                    match i {
+                        Some(i) => write!(f, "_{}", i)?,
+                        None => f.write_str(", ")?,
+                    }
+                }
+                f.write_str(");")?;
+                Ok(())
+            }
+            Named(members) => {
+                if members.is_empty() {
+                    f.write_str("struct {}")?;
+                } else {
+                    f.write_str("struct { ")?;
+                    for member in members.iter().map(Some).intersperse(None) {
+                        match member {
+                            Some(member) => f.write_str(member)?,
+                            None => f.write_str(", ")?,
+                        }
+                    }
+                    f.write_str(" }")?;
+                }
+                Ok(())
+            }
+        }
     }
 }
 
