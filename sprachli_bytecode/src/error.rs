@@ -8,8 +8,8 @@ use super::instruction::Opcode;
 pub enum Error {
     #[error("ParseError: {0}")]
     ParseError(String),
-    #[error("Invalid constant pool entry: unknown type")]
-    InvalidConstantType,
+    #[error("Invalid constant pool entry: unknown kind")]
+    InvalidConstantKind,
     #[error("Invalid constant pool entry: invalid utf8 string")]
     InvalidStringConstant,
     #[error("Invalid constant pool entry: invalid number string")]
@@ -24,8 +24,8 @@ pub enum Error {
     InvalidConstantRef(usize, usize),
     #[error("Constant #{0} was not a {1}")]
     InvalidConstantRefType(usize, &'static str),
-    #[error("Invalid struct: unknown type")]
-    InvalidStructType,
+    #[error("Invalid struct: unknown kind")]
+    InvalidStructTypeKind,
 }
 
 impl<I: fmt::Debug> From<nom::error::Error<I>> for Error {

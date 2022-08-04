@@ -34,19 +34,19 @@ where
 pub struct Module<'b> {
     constants: Vec<Constant<'b>>,
     globals: BTreeMap<&'b str, usize>,
-    structs: BTreeMap<&'b str, Struct<'b>>,
+    struct_types: BTreeMap<&'b str, StructType<'b>>,
 }
 
 impl<'b> Module<'b> {
     pub fn new(
         constants: Vec<Constant<'b>>,
         globals: BTreeMap<&'b str, usize>,
-        structs: BTreeMap<&'b str, Struct<'b>>,
+        struct_types: BTreeMap<&'b str, StructType<'b>>,
     ) -> Self {
         Self {
             constants,
             globals,
-            structs,
+            struct_types,
         }
     }
 
@@ -67,12 +67,12 @@ impl<'b> Module<'b> {
         self.constant(index)
     }
 
-    pub fn structs(&self) -> &BTreeMap<&'b str, Struct<'b>> {
-        &self.structs
+    pub fn struct_types(&self) -> &BTreeMap<&'b str, StructType<'b>> {
+        &self.struct_types
     }
 
-    pub fn strucct(&self, name: &str) -> Option<&Struct<'b>> {
-        self.structs.get(name)
+    pub fn struct_type(&self, name: &str) -> Option<&StructType<'b>> {
+        self.struct_types.get(name)
     }
 }
 
@@ -109,12 +109,12 @@ impl fmt::Debug for Module<'_> {
                 f.write_str("\n")?;
             }
             f.write_str("    },\n")?;
-            f.write_str("    structs: {\n")?;
-            for (name, decl) in &self.structs {
+            f.write_str("    struct_types: {\n")?;
+            for (name, struct_type) in &self.struct_types {
                 f.write_str("        ")?;
                 f.write_str(name)?;
                 f.write_str(": ")?;
-                decl.fmt(f)?;
+                struct_type.fmt(f)?;
                 f.write_str("\n")?;
             }
             f.write_str("    },\n")?;
@@ -124,7 +124,7 @@ impl fmt::Debug for Module<'_> {
             f.debug_struct("Module")
                 .field("constants", &self.constants)
                 .field("globals", &self.globals)
-                .field("structs", &self.structs)
+                .field("struct_types", &self.struct_types)
                 .finish()
         }
     }
@@ -132,7 +132,7 @@ impl fmt::Debug for Module<'_> {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum ConstantType {
+pub enum ConstantKind {
     Number,
     String,
     Function,
@@ -219,22 +219,22 @@ impl fmt::Debug for Function<'_> {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum StructType {
+pub enum StructTypeKind {
     Empty,
     Positional,
     Named,
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum Struct<'b> {
+pub enum StructType<'b> {
     Empty,
     Positional(usize),
     Named(Vec<&'b str>),
 }
 
-impl fmt::Debug for Struct<'_> {
+impl fmt::Debug for StructType<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Struct::*;
+        use StructType::*;
 
         match self {
             Empty => f.write_str("struct;"),

@@ -2,15 +2,15 @@ use std::collections::BTreeMap;
 use std::io::{Result, Write};
 
 use super::constant::{Constant, Function};
-use super::{Module, Struct};
+use super::{Module, StructType};
 use crate::bytecode::instruction;
-use crate::bytecode::{ConstantType, Number, StructType};
+use crate::bytecode::{ConstantKind, Number, StructTypeKind};
 
 pub fn write_bytecode<W: Write>(w: &mut W, module: &Module) -> Result<()> {
     header(w)?;
     constants(w, module.constants())?;
     globals(w, module.globals())?;
-    structs(w, module.structs())?;
+    struct_types(w, module.struct_types())?;
 
     Ok(())
 }
@@ -45,7 +45,7 @@ fn constant<W: Write>(w: &mut W, value: &Constant) -> Result<()> {
 fn number<W: Write>(w: &mut W, value: &Number) -> Result<()> {
     let value = value.to_string();
     let len = value.len() as u16;
-    w.write_all(&[ConstantType::Number.into()])?;
+    w.write_all(&[ConstantKind::Number.into()])?;
     w.write_all(&len.to_be_bytes())?;
     w.write_all(value.as_bytes())?;
     Ok(())
@@ -53,7 +53,7 @@ fn number<W: Write>(w: &mut W, value: &Number) -> Result<()> {
 
 fn string<W: Write>(w: &mut W, value: &str) -> Result<()> {
     let len = value.len() as u16;
-    w.write_all(&[ConstantType::String.into()])?;
+    w.write_all(&[ConstantKind::String.into()])?;
     w.write_all(&len.to_be_bytes())?;
     w.write_all(value.as_bytes())?;
     Ok(())
@@ -126,7 +126,7 @@ fn function<W: Write>(w: &mut W, value: &Function) -> Result<()> {
     let arity = value.arity() as u16;
     let len = body.len() as u16;
 
-    w.write_all(&[ConstantType::Function.into()])?;
+    w.write_all(&[ConstantKind::Function.into()])?;
     w.write_all(&arity.to_be_bytes())?;
     w.write_all(&len.to_be_bytes())?;
     // TODO jump offsets must be translated from instruction-wise to byte-wise
@@ -145,35 +145,35 @@ fn globals<W: Write>(w: &mut W, globals: &BTreeMap<usize, usize>) -> Result<()> 
     Ok(())
 }
 
-fn structs<W: Write>(w: &mut W, structs: &BTreeMap<usize, Struct>) -> Result<()> {
+fn struct_types<W: Write>(w: &mut W, structs: &BTreeMap<usize, StructType>) -> Result<()> {
     let len = structs.len() as u16;
     w.write_all(&len.to_be_bytes())?;
     for (name, decl) in structs {
-        strucct(w, *name, decl)?;
+        struct_type(w, *name, decl)?;
     }
     Ok(())
 }
 
-fn strucct<W: Write>(w: &mut W, name: usize, decl: &Struct) -> Result<()> {
-    use Struct::*;
+fn struct_type<W: Write>(w: &mut W, name: usize, decl: &StructType) -> Result<()> {
+    use StructType::*;
 
     let name = name as u16;
     w.write_all(&name.to_be_bytes())?;
 
     match decl {
         Empty => {
-            w.write_all(&[StructType::Empty.into()])?;
+            w.write_all(&[StructTypeKind::Empty.into()])?;
             Ok(())
         }
         Positional(count) => {
             let count = *count as u16;
-            w.write_all(&[StructType::Positional.into()])?;
+            w.write_all(&[StructTypeKind::Positional.into()])?;
             w.write_all(&count.to_be_bytes())?;
             Ok(())
         }
         Named(members) => {
             let len = members.len() as u16;
-            w.write_all(&[StructType::Named.into()])?;
+            w.write_all(&[StructTypeKind::Named.into()])?;
             w.write_all(&len.to_be_bytes())?;
             for member in members {
                 let member = *member as u16;

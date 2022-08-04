@@ -37,7 +37,7 @@ pub fn compile_ast<W: Write>(w: &mut W, ast: ast::SourceFile) -> Result<()> {
 pub struct Module {
     constants: Vec<Constant>,
     globals: BTreeMap<usize, usize>,
-    structs: BTreeMap<usize, Struct>,
+    struct_types: BTreeMap<usize, StructType>,
 }
 
 impl Module {
@@ -53,8 +53,8 @@ impl Module {
         &self.globals
     }
 
-    pub fn structs(&self) -> &BTreeMap<usize, Struct> {
-        &self.structs
+    pub fn struct_types(&self) -> &BTreeMap<usize, StructType> {
+        &self.struct_types
     }
 }
 
@@ -73,13 +73,13 @@ impl From<Compiler> for Module {
         let Compiler {
             constants,
             globals,
-            structs,
+            struct_types,
             ..
         } = compiler;
         Self {
             constants,
             globals,
-            structs,
+            struct_types,
         }
     }
 }
@@ -122,12 +122,12 @@ impl fmt::Debug for Module {
                 f.write_str("\n")?;
             }
             f.write_str("    },\n")?;
-            f.write_str("    structs: {\n")?;
-            for (name, decl) in &self.structs {
+            f.write_str("    struct_types: {\n")?;
+            for (name, struct_type) in &self.struct_types {
                 f.write_str("        ")?;
                 f.fmt_constant_ident(self, *name)?;
                 f.write_str(": ")?;
-                decl.fmt_with(f, Some(self))?;
+                struct_type.fmt_with(f, Some(self))?;
                 f.write_str("\n")?;
             }
             f.write_str("    },\n")?;
@@ -137,7 +137,7 @@ impl fmt::Debug for Module {
             f.debug_struct("Module")
                 .field("constants", &self.constants)
                 .field("globals", &self.globals)
-                .field("structs", &self.structs)
+                .field("struct_types", &self.struct_types)
                 .finish()
         }
     }
@@ -147,7 +147,7 @@ impl fmt::Debug for Module {
 struct Compiler {
     constants: Vec<Constant>,
     constants_map: HashMap<Constant, usize>,
-    structs: BTreeMap<usize, Struct>,
+    struct_types: BTreeMap<usize, StructType>,
     globals: BTreeMap<usize, usize>,
 }
 
@@ -191,7 +191,7 @@ impl Compiler {
         match declaration {
             Use(_decl) => Err(Error::Unsupported("use declaration"))?,
             Fn(decl) => self.visit_fn(decl)?,
-            Struct(decl) => self.visit_struct(decl)?,
+            Struct(decl) => self.visit_struct_type(decl)?,
             Mixin(_decl) => Err(Error::Unsupported("mixin"))?,
             Impl(_decl) => Err(Error::Unsupported("impl block"))?,
         }
@@ -206,39 +206,39 @@ impl Compiler {
         Ok(())
     }
 
-    fn visit_struct(&mut self, decl: ast::Struct) -> Result<()> {
+    fn visit_struct_type(&mut self, decl: ast::Struct) -> Result<()> {
         let ast::Struct { name, members, .. } = decl;
         let name = self.add_constant(name.to_string());
-        let members = match members {
-            ast::StructMembers::Empty => Struct::Empty,
-            ast::StructMembers::Positional(members) => Struct::Positional(members.len()),
+        let struct_type = match members {
+            ast::StructMembers::Empty => StructType::Empty,
+            ast::StructMembers::Positional(members) => StructType::Positional(members.len()),
             ast::StructMembers::Named(members) => {
                 let members = members
                     .iter()
                     .map(|member| self.add_constant(member.to_string()))
                     .collect();
-                Struct::Named(members)
+                StructType::Named(members)
             }
         };
-        self.structs.insert(name, members);
+        self.struct_types.insert(name, struct_type);
         Ok(())
     }
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum Struct {
+pub enum StructType {
     Empty,
     Positional(usize),
     Named(Vec<usize>),
 }
 
-impl Struct {
+impl StructType {
     pub(crate) fn fmt_with<M: ModuleFormat>(
         &self,
         f: &mut fmt::Formatter<'_>,
         module: Option<&M>,
     ) -> fmt::Result {
-        use Struct::*;
+        use StructType::*;
 
         match self {
             Empty => f.write_str("struct;"),
@@ -278,7 +278,7 @@ impl Struct {
     }
 }
 
-impl fmt::Debug for Struct {
+impl fmt::Debug for StructType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.fmt_with::<Module>(f, None)
     }

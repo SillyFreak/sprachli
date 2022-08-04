@@ -6,8 +6,8 @@ use nom::number::complete::{be_u16, be_u8};
 use nom::Finish;
 
 use super::{
-    Constant, ConstantType, Error, Function, InstructionSequence, Module, Number, Struct,
-    StructType,
+    Constant, ConstantKind, Error, Function, InstructionSequence, Module, Number, StructType,
+    StructTypeKind,
 };
 
 pub type Input<'a> = &'a [u8];
@@ -22,8 +22,8 @@ fn bytecode(i: &[u8]) -> IResult<Module> {
     let (i, _version) = header(i)?;
     let (i, constants) = constants(i)?;
     let (i, globals) = globals(i, &constants)?;
-    let (i, structs) = structs(i, &constants)?;
-    Ok((i, Module::new(constants, globals, structs)))
+    let (i, struct_types) = struct_types(i, &constants)?;
+    Ok((i, Module::new(constants, globals, struct_types)))
 }
 
 fn header(i: &[u8]) -> IResult<u16> {
@@ -39,12 +39,12 @@ fn constants(i: &[u8]) -> IResult<Vec<Constant>> {
 }
 
 fn constant(i: &[u8]) -> IResult<Constant> {
-    use ConstantType::*;
+    use ConstantKind::*;
 
     let (i, t) = be_u8(i)?;
-    let t = ConstantType::try_from(t).map_err(|_| nom::Err::Error(Error::InvalidConstantType))?;
+    let kind = ConstantKind::try_from(t).map_err(|_| nom::Err::Error(Error::InvalidConstantKind))?;
 
-    match t {
+    match kind {
         Number => {
             let (i, constant) = number(i)?;
             Ok((i, Constant::Number(constant)))
@@ -116,29 +116,29 @@ fn global<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str, 
     Ok((i, (name, value as usize)))
 }
 
-fn structs<'b>(
+fn struct_types<'b>(
     i: &'b [u8],
     constants: &[Constant<'b>],
-) -> IResult<'b, BTreeMap<&'b str, Struct<'b>>> {
+) -> IResult<'b, BTreeMap<&'b str, StructType<'b>>> {
     let (i, len) = be_u16(i)?;
-    let (i, structs) = count(|i| strucct(i, constants), len as usize)(i)?;
+    let (i, structs) = count(|i| struct_type(i, constants), len as usize)(i)?;
     Ok((i, BTreeMap::from_iter(structs)))
 }
 
-fn strucct<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str, Struct<'b>)> {
-    use StructType::*;
+fn struct_type<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str, StructType<'b>)> {
+    use StructTypeKind::*;
 
     let (i, name) = be_u16(i)?;
     let name = get_string_constant(constants, name as usize).map_err(nom::Err::Error)?;
 
     let (i, t) = be_u8(i)?;
-    let t = StructType::try_from(t).map_err(|_| nom::Err::Error(Error::InvalidStructType))?;
+    let kind = StructTypeKind::try_from(t).map_err(|_| nom::Err::Error(Error::InvalidStructTypeKind))?;
 
-    match t {
-        Empty => Ok((i, (name, Struct::Empty))),
+    match kind {
+        Empty => Ok((i, (name, StructType::Empty))),
         Positional => {
             let (i, count) = be_u16(i)?;
-            Ok((i, (name, Struct::Positional(count as usize))))
+            Ok((i, (name, StructType::Positional(count as usize))))
         }
         Named => {
             let (i, len) = be_u16(i)?;
@@ -151,7 +151,7 @@ fn strucct<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str,
                 },
                 len as usize,
             )(i)?;
-            Ok((i, (name, Struct::Named(members))))
+            Ok((i, (name, StructType::Named(members))))
         }
     }
 }
