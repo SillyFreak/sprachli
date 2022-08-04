@@ -42,7 +42,8 @@ fn constant(i: &[u8]) -> IResult<Constant> {
     use ConstantKind::*;
 
     let (i, t) = be_u8(i)?;
-    let kind = ConstantKind::try_from(t).map_err(|_| nom::Err::Error(Error::InvalidConstantKind))?;
+    let kind =
+        ConstantKind::try_from(t).map_err(|_| nom::Err::Error(Error::InvalidConstantKind))?;
 
     match kind {
         Number => {
@@ -125,14 +126,18 @@ fn struct_types<'b>(
     Ok((i, BTreeMap::from_iter(structs)))
 }
 
-fn struct_type<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b str, StructType<'b>)> {
+fn struct_type<'b>(
+    i: &'b [u8],
+    constants: &[Constant<'b>],
+) -> IResult<'b, (&'b str, StructType<'b>)> {
     use StructTypeKind::*;
 
     let (i, name) = be_u16(i)?;
     let name = get_string_constant(constants, name as usize).map_err(nom::Err::Error)?;
 
     let (i, t) = be_u8(i)?;
-    let kind = StructTypeKind::try_from(t).map_err(|_| nom::Err::Error(Error::InvalidStructTypeKind))?;
+    let kind =
+        StructTypeKind::try_from(t).map_err(|_| nom::Err::Error(Error::InvalidStructTypeKind))?;
 
     match kind {
         Empty => Ok((i, (name, StructType::Empty))),
