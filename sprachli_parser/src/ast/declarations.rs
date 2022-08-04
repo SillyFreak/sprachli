@@ -156,11 +156,11 @@ impl StructMembers<'_> {
         f.compact_name(name);
         match self {
             Self::Empty => {}
-            Self::Positional(members) => {
-                f.compact_names(members);
+            Self::Positional(fields) => {
+                f.compact_names(fields);
             }
-            Self::Named(members) => {
-                f.compact_names(members);
+            Self::Named(fields) => {
+                f.compact_names(fields);
             }
         }
     }

@@ -142,16 +142,16 @@ fn struct_type<'b>(i: &'b [u8], constants: &[Constant<'b>]) -> IResult<'b, (&'b 
         }
         Named => {
             let (i, len) = be_u16(i)?;
-            let (i, members) = count(
+            let (i, fields) = count(
                 |i| {
-                    let (i, member) = be_u16(i)?;
-                    let member =
-                        get_string_constant(constants, member as usize).map_err(nom::Err::Error)?;
-                    Ok((i, member))
+                    let (i, field) = be_u16(i)?;
+                    let field =
+                        get_string_constant(constants, field as usize).map_err(nom::Err::Error)?;
+                    Ok((i, field))
                 },
                 len as usize,
             )(i)?;
-            Ok((i, (name, StructType::Named(members))))
+            Ok((i, (name, StructType::Named(fields))))
         }
     }
 }

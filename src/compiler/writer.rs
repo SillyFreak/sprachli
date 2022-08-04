@@ -171,13 +171,13 @@ fn struct_type<W: Write>(w: &mut W, name: usize, decl: &StructType) -> Result<()
             w.write_all(&count.to_be_bytes())?;
             Ok(())
         }
-        Named(members) => {
-            let len = members.len() as u16;
+        Named(fields) => {
+            let len = fields.len() as u16;
             w.write_all(&[StructTypeKind::Named.into()])?;
             w.write_all(&len.to_be_bytes())?;
-            for member in members {
-                let member = *member as u16;
-                w.write_all(&member.to_be_bytes())?;
+            for field in fields {
+                let field = *field as u16;
+                w.write_all(&field.to_be_bytes())?;
             }
             Ok(())
         }

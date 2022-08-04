@@ -211,13 +211,13 @@ impl Compiler {
         let name = self.add_constant(name.to_string());
         let struct_type = match members {
             ast::StructMembers::Empty => StructType::Empty,
-            ast::StructMembers::Positional(members) => StructType::Positional(members.len()),
-            ast::StructMembers::Named(members) => {
-                let members = members
+            ast::StructMembers::Positional(fields) => StructType::Positional(fields.len()),
+            ast::StructMembers::Named(fields) => {
+                let fields = fields
                     .iter()
-                    .map(|member| self.add_constant(member.to_string()))
+                    .map(|field| self.add_constant(field.to_string()))
                     .collect();
-                StructType::Named(members)
+                StructType::Named(fields)
             }
         };
         self.struct_types.insert(name, struct_type);
@@ -253,18 +253,18 @@ impl StructType {
                 f.write_str(");")?;
                 Ok(())
             }
-            Named(members) => {
-                if members.is_empty() {
+            Named(fields) => {
+                if fields.is_empty() {
                     f.write_str("struct {}")?;
                 } else {
                     f.write_str("struct { ")?;
-                    for i in members.iter().map(Some).intersperse(None) {
-                        match i {
-                            Some(index) => {
+                    for field in fields.iter().map(Some).intersperse(None) {
+                        match field {
+                            Some(field) => {
                                 if let Some(module) = module {
-                                    f.fmt_constant_ident(module, *index)?;
+                                    f.fmt_constant_ident(module, *field)?;
                                 } else {
-                                    write!(f, "#{index}")?;
+                                    write!(f, "#{field}")?;
                                 }
                             }
                             None => f.write_str(", ")?,

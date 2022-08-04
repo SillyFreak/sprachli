@@ -249,14 +249,14 @@ impl fmt::Debug for StructType<'_> {
                 f.write_str(");")?;
                 Ok(())
             }
-            Named(members) => {
-                if members.is_empty() {
+            Named(fields) => {
+                if fields.is_empty() {
                     f.write_str("struct {}")?;
                 } else {
                     f.write_str("struct { ")?;
-                    for member in members.iter().map(Some).intersperse(None) {
-                        match member {
-                            Some(member) => f.write_str(member)?,
+                    for field in fields.iter().map(Some).intersperse(None) {
+                        match field {
+                            Some(field) => f.write_str(field)?,
                             None => f.write_str(", ")?,
                         }
                     }
