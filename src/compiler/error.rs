@@ -30,7 +30,7 @@ impl From<ParseError<'_>> for Error {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Token(pub usize, pub String);
 
 impl fmt::Display for Token {
