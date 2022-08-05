@@ -30,18 +30,20 @@ impl Expression<'_> {
 
 impl fmt::Debug for Expression<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Expression::*;
+
         match self {
-            Self::Number(value) => fmt::Display::fmt(value, f),
-            Self::Bool(value) => fmt::Display::fmt(value, f),
-            Self::String(value) => fmt::Display::fmt(value, f),
-            Self::Identifier(name) => f.write_str(name),
-            Self::Binary(expr) => expr.fmt(f),
-            Self::Unary(expr) => expr.fmt(f),
-            Self::Call(expr) => expr.fmt(f),
-            Self::Block(expr) => expr.fmt(f),
-            Self::Fn(expr) => expr.fmt(f),
-            Self::If(expr) => expr.fmt(f),
-            Self::Loop(expr) => expr.fmt(f),
+            Number(value) => fmt::Display::fmt(value, f),
+            Bool(value) => fmt::Display::fmt(value, f),
+            String(value) => fmt::Display::fmt(value, f),
+            Identifier(name) => f.write_str(name),
+            Binary(expr) => expr.fmt(f),
+            Unary(expr) => expr.fmt(f),
+            Call(expr) => expr.fmt(f),
+            Block(expr) => expr.fmt(f),
+            Fn(expr) => expr.fmt(f),
+            If(expr) => expr.fmt(f),
+            Loop(expr) => expr.fmt(f),
         }
     }
 }
