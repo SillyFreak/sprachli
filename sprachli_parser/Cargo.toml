@@ -1,0 +1,15 @@
+[package]
+name = "sprachli_parser"
+version = "0.1.0"
+edition = "2021"
+
+build = "build.rs"
+
+[dependencies]
+lalrpop-util = { version = "0.19.8", features = ["lexer"] }
+num_enum = "0.5.7"
+sprachli_fmt = { path = "../sprachli_fmt" }
+thiserror = "1.0.31"
+
+[build-dependencies]
+lalrpop = "0.19.8"

@@ -1,7 +1,8 @@
 use std::fmt;
 
+use sprachli_fmt::FormatterExt;
+
 use super::{Declaration, Expression, Variable};
-use crate::fmt::FormatterExt;
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Statement<'input> {

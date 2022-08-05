@@ -1,7 +1,8 @@
 use std::fmt;
 
+use sprachli_fmt::{DebugSexpr, FormatterExt};
+
 use super::FnTrunk;
-use crate::fmt::{DebugSexpr, FormatterExt};
 
 /// Declarations are the individual constructs that can go (among other places)
 /// directly in a sprachli file. The most typical declarations are [functions](Fn)

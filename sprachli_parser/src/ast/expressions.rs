@@ -1,9 +1,9 @@
 use std::fmt;
 
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use sprachli_fmt::FormatterExt;
 
 use super::{FnTrunk, Statement};
-use crate::fmt::FormatterExt;
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Expression<'input> {

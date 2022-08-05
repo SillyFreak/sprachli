@@ -4,7 +4,7 @@ mod statements;
 
 use std::fmt;
 
-use crate::fmt::{DebugSexpr, FormatterExt};
+use sprachli_fmt::{DebugSexpr, FormatterExt};
 
 pub use declarations::*;
 pub use expressions::*;

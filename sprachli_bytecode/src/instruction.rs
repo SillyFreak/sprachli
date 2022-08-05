@@ -1,10 +1,10 @@
 use std::fmt;
 
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use sprachli_fmt::{FormatterExt, ModuleFormat};
+use sprachli_parser::ast;
 
 use super::Module;
-use crate::ast;
-use crate::fmt::{FormatterExt, ModuleFormat};
 
 pub use ast::{BinaryOperator, UnaryOperator};
 
@@ -131,7 +131,7 @@ impl Instruction {
         }
     }
 
-    pub(crate) fn fmt_with<M: ModuleFormat>(
+    pub fn fmt_with<M: ModuleFormat>(
         &self,
         f: &mut fmt::Formatter<'_>,
         module: Option<&M>,

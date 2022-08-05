@@ -16,8 +16,8 @@ use std::collections::BTreeMap;
 use bigdecimal::BigDecimal;
 use itertools::Itertools;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use sprachli_fmt::{FormatterExt, ModuleFormat};
 
-use crate::fmt::{FormatterExt, ModuleFormat};
 use instruction::{InlineConstant, Instruction, Offset, Opcode};
 
 pub use error::*;
@@ -394,7 +394,7 @@ impl<'a, 'b> InstructionIter<'a, 'b> {
         Ok(f(parameter as usize))
     }
 
-    pub(crate) fn raw_jump(&mut self, offset: Offset) -> std::result::Result<(), ()> {
+    pub fn jump(&mut self, offset: Offset) -> std::result::Result<(), ()> {
         use Offset::*;
 
         match offset {
@@ -484,8 +484,8 @@ impl<'a, 'b> OffsetInstructionIter<'a, 'b> {
         self.0.offset()
     }
 
-    pub(crate) fn raw_jump(&mut self, offset: Offset) -> std::result::Result<(), ()> {
-        self.0.raw_jump(offset)
+    pub fn jump(&mut self, offset: Offset) -> std::result::Result<(), ()> {
+        self.0.jump(offset)
     }
 }
 

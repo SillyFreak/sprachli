@@ -2,10 +2,10 @@ use std::fmt;
 
 use bigdecimal::BigDecimal;
 use itertools::Itertools;
+use sprachli_fmt::ModuleFormat;
 
 use super::Module;
 use crate::bytecode::instruction::Instruction;
-use crate::fmt::ModuleFormat;
 
 pub type Number = BigDecimal;
 

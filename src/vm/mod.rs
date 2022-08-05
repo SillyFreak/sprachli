@@ -216,13 +216,18 @@ impl<'b> Vm<'b> {
     }
 
     fn jump(&mut self, iter: &mut InstructionIter, offset: Offset) -> Result<()> {
-        iter.jump(offset)
+        use InternalError::*;
+
+        iter.jump(offset).map_err(|_| InvalidJump)?;
+        Ok(())
     }
 
     fn jump_if(&mut self, iter: &mut InstructionIter, offset: Offset) -> Result<()> {
+        use InternalError::*;
+
         let condition = self.stack.pop()?.as_bool()?;
         if condition {
-            iter.jump(offset)?;
+            iter.jump(offset).map_err(|_| InvalidJump)?;
         }
         Ok(())
     }
@@ -282,13 +287,5 @@ impl<'b> Vm<'b> {
         drop(self.stack.pop_all_under(offset)?);
 
         Ok(())
-    }
-}
-
-impl InstructionIter<'_, '_> {
-    pub fn jump(&mut self, offset: Offset) -> Result<()> {
-        use InternalError::*;
-
-        self.raw_jump(offset).map_err(|_| InvalidJump.into())
     }
 }

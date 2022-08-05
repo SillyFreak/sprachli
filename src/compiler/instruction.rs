@@ -1,8 +1,9 @@
 use std::fmt;
 
+use sprachli_fmt::ModuleFormat;
+
 use super::Module;
 use crate::bytecode::instruction::{Instruction, Offset};
-use crate::fmt::ModuleFormat;
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub enum InstructionItem {

@@ -1,9 +1,11 @@
+[workspace]
+members = ["sprachli_*"]
+exclude = []
+
 [package]
 name = "sprachli"
 version = "0.1.0"
 edition = "2021"
-
-build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -12,10 +14,8 @@ anyhow = "1.0.58"
 bigdecimal = "0.3.0"
 itertools = "0.10.3"
 lalrpop-util = { version = "0.19.8", features = ["lexer"] }
-nom = "7.1.1"
-num_enum = "0.5.7"
 regex = "1.5.6"
+sprachli_bytecode = { path = "./sprachli_bytecode" }
+sprachli_fmt = { path = "./sprachli_fmt" }
+sprachli_parser = { path = "./sprachli_parser" }
 thiserror = "1.0.31"
-
-[build-dependencies]
-lalrpop = "0.19.8"

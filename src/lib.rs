@@ -1,9 +1,5 @@
-#[macro_use]
-extern crate lalrpop_util;
-
-pub mod ast;
-pub mod bytecode;
 pub mod compiler;
-pub mod fmt;
-pub mod parser;
 pub mod vm;
+
+pub use sprachli_bytecode as bytecode;
+pub use sprachli_parser::{ast, parser};

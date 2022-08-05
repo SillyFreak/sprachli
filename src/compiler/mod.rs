@@ -11,10 +11,10 @@ use std::slice::SliceIndex;
 use std::str::FromStr;
 
 use itertools::Itertools;
+use sprachli_fmt::{FormatterExt, ModuleFormat};
 
 use crate::ast;
 use crate::bytecode::instruction::{InlineConstant, Instruction, Offset};
-use crate::fmt::{FormatterExt, ModuleFormat};
 use crate::parser::{parse_source_file, string_from_literal};
 use constant::{Constant, Function, Number};
 use instruction::{InstructionItem, PlaceholderKind};
