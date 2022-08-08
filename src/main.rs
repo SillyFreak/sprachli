@@ -19,41 +19,35 @@ pub enum Error {
     Runtime(#[from] RuntimeError),
 }
 
-fn main() {
-    let result = || -> Result<(), Error> {
-        let args: Vec<String> = env::args().collect();
+fn main() -> Result<(), anyhow::Error> {
+    let args: Vec<String> = env::args().collect();
 
-        let filename = match &args[..] {
-            [_, filename] => filename,
-            _ => {
-                let msg = "unexpected number of command line arguments (expected one)";
-                Err(Error::Usage(msg.to_string()))?
-            }
-        };
+    let filename = match &args[..] {
+        [_, filename] => filename,
+        _ => {
+            let msg = "unexpected number of command line arguments (expected one)";
+            Err(Error::Usage(msg.to_string()))?
+        }
+    };
 
-        let source = fs::read_to_string(filename).map_err(CompilerError::from)?;
+    let source = fs::read_to_string(filename).map_err(CompilerError::from)?;
 
-        let ast = parse_source_file(&source).map_err(CompilerError::from)?;
-        println!("{ast:#?}");
+    let ast = parse_source_file(&source).map_err(CompilerError::from)?;
+    println!("{ast:#?}");
 
-        let module = Module::new(ast)?;
-        println!("{module:#?}");
+    let module = Module::new(ast)?;
+    println!("{module:#?}");
 
-        let mut bytes = Vec::new();
-        write_bytecode(&mut bytes, &module).map_err(CompilerError::from)?;
-        println!("{bytes:?}");
+    let mut bytes = Vec::new();
+    write_bytecode(&mut bytes, &module).map_err(CompilerError::from)?;
+    println!("{bytes:?}");
 
-        let module = parse_bytecode(&bytes)?;
-        println!("{module:#?}");
+    let module = parse_bytecode(&bytes)?;
+    println!("{module:#?}");
 
-        let result = Vm::new(module).run()?;
+    let result = Vm::new(module).run()?;
 
-        println!("{result:?}");
+    println!("{result:?}");
 
-        Ok(())
-    }();
-
-    if let Err(error) = result {
-        println!("{error}");
-    }
+    Ok(())
 }
