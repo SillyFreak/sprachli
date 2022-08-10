@@ -20,6 +20,12 @@ enum Args {
     },
 }
 
+#[test]
+fn verify_args() {
+    use clap::CommandFactory;
+    Args::command().debug_assert()
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Usage error: {0}")]
