@@ -11,10 +11,13 @@ use sprachli::vm::{Error as RuntimeError, Vm};
 /// Sprachli compiler and interpreter
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
-struct Args {
-   /// Name of the source file to compile and run
-   #[clap(value_parser)]
-   filename: String,
+enum Args {
+    /// Compile and run a given source file
+    Run {
+        /// Name of the source file to compile and run
+        #[clap(value_parser)]
+        filename: String,
+    },
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -30,9 +33,7 @@ pub enum Error {
 }
 
 fn main() -> Result<(), anyhow::Error> {
-    let args = Args::parse();
-
-    let filename = &args.filename;
+    let Args::Run { filename } = Args::parse();
 
     let source = fs::read_to_string(filename).map_err(CompilerError::from)?;
 
