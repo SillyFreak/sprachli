@@ -1,11 +1,21 @@
-use std::env;
 use std::fs;
+
+use clap::Parser;
 
 use sprachli::bytecode::{parser::parse_bytecode, Error as BytecodeError};
 use sprachli::compiler::write_bytecode;
 use sprachli::compiler::{Error as CompilerError, Module};
 use sprachli::parser::parse_source_file;
 use sprachli::vm::{Error as RuntimeError, Vm};
+
+/// Sprachli compiler and interpreter
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+   /// Name of the source file to compile and run
+   #[clap(value_parser)]
+   filename: String,
+}
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -20,15 +30,9 @@ pub enum Error {
 }
 
 fn main() -> Result<(), anyhow::Error> {
-    let args: Vec<String> = env::args().collect();
+    let args = Args::parse();
 
-    let filename = match &args[..] {
-        [_, filename] => filename,
-        _ => {
-            let msg = "unexpected number of command line arguments (expected one)";
-            Err(Error::Usage(msg.to_string()))?
-        }
-    };
+    let filename = &args.filename;
 
     let source = fs::read_to_string(filename).map_err(CompilerError::from)?;
 
