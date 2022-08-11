@@ -58,8 +58,6 @@ fn verify_args() {
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Usage error: {0}")]
-    Usage(String),
     #[error("Compiler Error: {0}")]
     Compiler(#[from] CompilerError),
     #[error("Bytecode Error: {0}")]
