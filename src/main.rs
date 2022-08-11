@@ -1,7 +1,8 @@
+use std::ffi::OsStr;
 use std::fs;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
-use clap::{ArgGroup, Parser};
+use clap::{ArgGroup, CommandFactory, ErrorKind, Parser};
 
 use sprachli::bytecode::{parser::parse_bytecode, Error as BytecodeError};
 use sprachli::compiler::{write_bytecode, Error as CompilerError, Module};
@@ -72,12 +73,32 @@ enum InputKind {
     Bytecode,
 }
 
-fn derive_out_filename<P: AsRef<Path>>(_path: P) -> Result<PathBuf, CompilerError> {
-    todo!();
+fn derive_out_filename<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
+    let path = path.as_ref();
+    let ext = path.extension().and_then(OsStr::to_str);
+    
+    match ext {
+        Some("spr") => Some(path.with_extension("sprb")),
+        _ => {
+            let mut filename = path.file_name()?.to_owned();
+            filename.push(".sprb");
+            let path = path.parent()?.join(filename);
+            Some(path)
+        },
+    }
 }
 
-fn derive_input_kind<P: AsRef<Path>>(_path: P) -> Option<InputKind> {
-    todo!();
+fn derive_input_kind<P: AsRef<Path>>(path: P) -> Option<InputKind> {
+    use InputKind::*;
+
+    let path = path.as_ref();
+    let ext = path.extension()?.to_str()?;
+
+    match ext {
+        "spr" => Some(Source),
+        "sprb" => Some(Bytecode),
+        _ => None,
+    }
 }
 
 fn read_source_from_file<P: AsRef<Path>>(path: P) -> Result<String, CompilerError> {
@@ -116,7 +137,16 @@ fn main() -> Result<(), anyhow::Error> {
         Compile { file, out_file } => {
             let out_file = match out_file {
                 Some(out_file) => out_file,
-                None => derive_out_filename(&file)?,
+                None => {
+                    derive_out_filename(&file).unwrap_or_else(|| {
+                        Args::command()
+                            .error(
+                                ErrorKind::ValueValidation,
+                                "output filename can't be inferred for FILE",
+                            )
+                            .exit()
+                    })
+                }
             };
 
             let source = read_source_from_file(&file)?;
@@ -136,14 +166,31 @@ fn main() -> Result<(), anyhow::Error> {
             } else if bytecode {
                 Bytecode
             } else {
-                derive_input_kind(&file).unwrap()
+                derive_input_kind(&file).unwrap_or_else(|| {
+                    Args::command()
+                        .error(
+                            ErrorKind::ValueValidation,
+                            "FILE must have `.spr` or `.sprb` extension if no --source or --bytecode is specified",
+                        )
+                        .exit()
+                })
             };
 
             let bytecode = match kind {
                 Source => {
                     let out_file = match (out_file, output) {
                         (Some(out_file), _) => Some(out_file),
-                        (None, true) => Some(derive_out_filename(&file)?),
+                        (None, true) => {
+                            let out_file = derive_out_filename(&file).unwrap_or_else(|| {
+                                Args::command()
+                                    .error(
+                                        ErrorKind::ValueValidation,
+                                        "output filename can't be inferred for FILE",
+                                    )
+                                    .exit()
+                            });
+                            Some(out_file)
+                        }
                         (None, false) => None,
                     };
 
@@ -158,9 +205,7 @@ fn main() -> Result<(), anyhow::Error> {
                     write_bytecode(&mut bytecode, &module).map_err(CompilerError::from)?;
                     bytecode
                 }
-                Bytecode => {
-                    read_bytecode_from_file(&file)?
-                }
+                Bytecode => read_bytecode_from_file(&file)?,
             };
 
             println!("{bytecode:?}");
