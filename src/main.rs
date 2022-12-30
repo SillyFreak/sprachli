@@ -112,7 +112,7 @@ fn read_bytecode_from_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, CompilerE
 }
 
 fn compile_source(source: &str) -> Result<Module, CompilerError> {
-    let ast = parse_source_file(&source).map_err(CompilerError::from)?;
+    let ast = parse_source_file(source).map_err(CompilerError::from)?;
     println!("{ast:#?}");
 
     let module = Module::new(ast)?;
@@ -146,7 +146,7 @@ fn main() -> Result<(), anyhow::Error> {
     }
 
     fn derive_input_kind_or_exit(file: &PathBuf) -> InputKind {
-        let Some(kind) = derive_input_kind(&file) else {
+        let Some(kind) = derive_input_kind(file) else {
             value_validation_exit("FILE must have `.spr` or `.sprb` extension if no --source or --bytecode is specified")
         };
         kind
@@ -159,7 +159,7 @@ fn main() -> Result<(), anyhow::Error> {
             let out_file = derive_out_filename_or_exit(out_file, &file);
             let source = read_source_from_file(&file)?;
             let module = compile_source(&source)?;
-            write_bytecode_to_file(&out_file, &module)?;
+            write_bytecode_to_file(out_file, &module)?;
             Ok(())
         }
         Run {
@@ -188,7 +188,7 @@ fn main() -> Result<(), anyhow::Error> {
                     let module = compile_source(&source)?;
 
                     if let Some(out_file) = out_file {
-                        write_bytecode_to_file(&out_file, &module)?;
+                        write_bytecode_to_file(out_file, &module)?;
                     }
 
                     let mut bytecode = Vec::new();
