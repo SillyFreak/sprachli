@@ -37,11 +37,47 @@ where
     .unwrap()
 }
 
-fn run_and_check_result_42(source: &str) {
+fn run_and_check_result_bool(source: &str, expected: bool) {
     run_and_check_result(source, |actual| {
-        assert_eq!(actual?.as_number()?, &BigDecimal::from(42));
+        assert_eq!(actual?.as_bool()?, expected);
         Ok(())
     })
+}
+
+fn run_and_check_result_decimal(source: &str, expected: impl Into<BigDecimal>) {
+    run_and_check_result(source, |actual| {
+        assert_eq!(actual?.as_number()?, &expected.into());
+        Ok(())
+    })
+}
+
+fn run_and_check_result_string(source: &str, expected: &str) {
+    run_and_check_result(source, |actual| {
+        assert_eq!(actual?.as_string()?, expected);
+        Ok(())
+    })
+}
+
+fn run_and_check_result_error<F>(source: &str, f: F)
+where
+    F: FnOnce(Error),
+{
+    run_and_check_result(source, |actual| {
+        f(actual.unwrap_err());
+        Ok(())
+    })
+}
+
+fn run_and_check_result_true(source: &str) {
+    run_and_check_result_bool(source, true)
+}
+
+fn run_and_check_result_false(source: &str) {
+    run_and_check_result_bool(source, false)
+}
+
+fn run_and_check_result_42(source: &str) {
+    run_and_check_result_decimal(source, 42)
 }
 
 mod operators {
@@ -50,16 +86,10 @@ mod operators {
     #[test]
     fn test_not() {
         let source = "fn main() { !false }";
-        run_and_check_result(source, |actual| {
-            assert!(actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_true(source);
 
         let source = "fn main() { !true }";
-        run_and_check_result(source, |actual| {
-            assert!(!actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_false(source);
     }
 
     #[test]
@@ -140,115 +170,67 @@ mod operators {
     #[test]
     fn test_eq() {
         let source = "fn main() { 42 == 42 }";
-        run_and_check_result(source, |actual| {
-            assert!(actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_true(source);
 
         let source = "fn main() { 42 == 69 }";
-        run_and_check_result(source, |actual| {
-            assert!(!actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_true(source);
     }
 
     #[test]
     fn test_neq() {
         let source = "fn main() { 42 != 42 }";
-        run_and_check_result(source, |actual| {
-            assert!(!actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_false(source);
 
         let source = "fn main() { 42 != 69 }";
-        run_and_check_result(source, |actual| {
-            assert!(actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_false(source);
     }
 
     #[test]
     fn test_gt() {
         let source = "fn main() { 42 > 69 }";
-        run_and_check_result(source, |actual| {
-            assert!(!actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_false(source);
 
         let source = "fn main() { 42 > 42 }";
-        run_and_check_result(source, |actual| {
-            assert!(!actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_false(source);
 
         let source = "fn main() { 69 > 42 }";
-        run_and_check_result(source, |actual| {
-            assert!(actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_true(source);
     }
 
     #[test]
     fn test_lt() {
         let source = "fn main() { 42 < 69 }";
-        run_and_check_result(source, |actual| {
-            assert!(actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_true(source);
 
         let source = "fn main() { 42 < 42 }";
-        run_and_check_result(source, |actual| {
-            assert!(!actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_false(source);
 
         let source = "fn main() { 69 < 42 }";
-        run_and_check_result(source, |actual| {
-            assert!(!actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_false(source);
     }
 
     #[test]
     fn test_gte() {
         let source = "fn main() { 42 >= 69 }";
-        run_and_check_result(source, |actual| {
-            assert!(!actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_false(source);
 
         let source = "fn main() { 42 >= 42 }";
-        run_and_check_result(source, |actual| {
-            assert!(actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_true(source);
 
         let source = "fn main() { 69 >= 42 }";
-        run_and_check_result(source, |actual| {
-            assert!(actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_true(source);
     }
 
     #[test]
     fn test_lte() {
         let source = "fn main() { 42 <= 69 }";
-        run_and_check_result(source, |actual| {
-            assert!(actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_true(source);
 
         let source = "fn main() { 42 <= 42 }";
-        run_and_check_result(source, |actual| {
-            assert!(actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_true(source);
 
         let source = "fn main() { 69 <= 42 }";
-        run_and_check_result(source, |actual| {
-            assert!(!actual?.as_bool()?);
-            Ok(())
-        });
+        run_and_check_result_false(source);
     }
 }
 
@@ -259,12 +241,8 @@ fn test_assign() {
 
 #[test]
 fn test_assign_immutable() {
-    run_and_check_result(include_str!("programs/assign_immutable.spr"), |actual| {
-        assert!(matches!(
-            actual,
-            Err(Error::Compiler(CompilerError::ImmutableVariable)),
-        ));
-        Ok(())
+    run_and_check_result_error(include_str!("programs/assign_immutable.spr"), |error| {
+        assert!(matches!(error, Error::Compiler(CompilerError::ImmutableVariable)));
     })
 }
 
@@ -285,18 +263,12 @@ fn test_continue() {
 
 #[test]
 fn test_escape() {
-    run_and_check_result(include_str!("programs/escape.spr"), |actual| {
-        assert_eq!(actual?.as_string()?, "a\r\nb\"c");
-        Ok(())
-    })
+    run_and_check_result_string(include_str!("programs/escape.spr"), "a\r\nb\"c")
 }
 
 #[test]
 fn test_even() {
-    run_and_check_result(include_str!("programs/even.spr"), |actual| {
-        assert!(actual?.as_bool()?);
-        Ok(())
-    })
+    run_and_check_result_true(include_str!("programs/even.spr"));
 }
 
 #[test]
