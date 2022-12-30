@@ -76,7 +76,7 @@ enum InputKind {
 fn derive_out_filename<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
     let path = path.as_ref();
     let ext = path.extension().and_then(OsStr::to_str);
-    
+
     match ext {
         Some("spr") => Some(path.with_extension("sprb")),
         _ => {
@@ -84,7 +84,7 @@ fn derive_out_filename<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
             filename.push(".sprb");
             let path = path.parent()?.join(filename);
             Some(path)
-        },
+        }
     }
 }
 
@@ -131,24 +131,32 @@ fn main() -> Result<(), anyhow::Error> {
     use Args::*;
     use InputKind::*;
 
+    fn value_validation_exit(message: impl std::fmt::Display) -> ! {
+        Args::command()
+            .error(ErrorKind::ValueValidation, message)
+            .exit()
+    }
+
+    fn derive_out_filename_or_exit(out_file: Option<PathBuf>, file: &PathBuf) -> PathBuf {
+        let out_file = out_file.or_else(|| derive_out_filename(file));
+        let Some(out_file) = out_file else {
+            value_validation_exit("output filename can't be inferred for FILE")
+        };
+        out_file
+    }
+
+    fn derive_input_kind_or_exit(file: &PathBuf) -> InputKind {
+        let Some(kind) = derive_input_kind(&file) else {
+            value_validation_exit("FILE must have `.spr` or `.sprb` extension if no --source or --bytecode is specified")
+        };
+        kind
+    }
+
     let args = Args::parse();
 
     match args {
         Compile { file, out_file } => {
-            let out_file = match out_file {
-                Some(out_file) => out_file,
-                None => {
-                    derive_out_filename(&file).unwrap_or_else(|| {
-                        Args::command()
-                            .error(
-                                ErrorKind::ValueValidation,
-                                "output filename can't be inferred for FILE",
-                            )
-                            .exit()
-                    })
-                }
-            };
-
+            let out_file = derive_out_filename_or_exit(out_file, &file);
             let source = read_source_from_file(&file)?;
             let module = compile_source(&source)?;
             write_bytecode_to_file(&out_file, &module)?;
@@ -166,32 +174,14 @@ fn main() -> Result<(), anyhow::Error> {
             } else if bytecode {
                 Bytecode
             } else {
-                derive_input_kind(&file).unwrap_or_else(|| {
-                    Args::command()
-                        .error(
-                            ErrorKind::ValueValidation,
-                            "FILE must have `.spr` or `.sprb` extension if no --source or --bytecode is specified",
-                        )
-                        .exit()
-                })
+                derive_input_kind_or_exit(&file)
             };
 
             let bytecode = match kind {
                 Source => {
                     let out_file = match (out_file, output) {
-                        (Some(out_file), _) => Some(out_file),
-                        (None, true) => {
-                            let out_file = derive_out_filename(&file).unwrap_or_else(|| {
-                                Args::command()
-                                    .error(
-                                        ErrorKind::ValueValidation,
-                                        "output filename can't be inferred for FILE",
-                                    )
-                                    .exit()
-                            });
-                            Some(out_file)
-                        }
                         (None, false) => None,
+                        (out_file, _) => Some(derive_out_filename_or_exit(out_file, &file)),
                     };
 
                     let source = read_source_from_file(&file)?;
