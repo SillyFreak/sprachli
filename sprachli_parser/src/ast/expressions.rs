@@ -24,7 +24,7 @@ impl Expression<'_> {
     pub(super) fn is_simple(&self) -> bool {
         use Expression::*;
 
-        matches!(self, Number(_) | String(_) | Identifier(_))
+        matches!(self, Number(_) | Bool(_) | String(_) | Identifier(_))
     }
 }
 
