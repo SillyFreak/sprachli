@@ -169,12 +169,11 @@ fn main() -> Result<(), anyhow::Error> {
             out_file,
             output,
         } => {
-            let kind = if source || output || out_file.is_some() {
-                Source
-            } else if bytecode {
-                Bytecode
-            } else {
-                derive_input_kind_or_exit(&file)
+            let kind = match (source || output || out_file.is_some(), bytecode) {
+                (true, false) => Source,
+                (false, true) => Bytecode,
+                (false, false) => derive_input_kind_or_exit(&file),
+                _ => unreachable!("source and bytecode are mutually exclusive due to clap's argument validation"),
             };
 
             let bytecode = match kind {
