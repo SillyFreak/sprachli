@@ -81,41 +81,37 @@ impl<'b> Value<'b> {
     pub fn as_bool(&self) -> Result<bool> {
         use Value::*;
 
-        if let Bool(value) = self {
-            Ok(*value)
-        } else {
-            Err(Error::TypeError("bool".to_string()))
-        }
+        let Bool(value) = self else {
+            return Err(Error::TypeError("bool".to_string()));
+        };
+        Ok(*value)
     }
 
     pub fn as_number(&self) -> Result<&Number> {
         use ValueRef::*;
 
-        if let Some(Number(value)) = self.get_ref() {
-            Ok(value)
-        } else {
-            Err(Error::TypeError("number".to_string()))
-        }
+        let Some(Number(value)) = self.get_ref() else {
+            return Err(Error::TypeError("number".to_string()));
+        };
+        Ok(value)
     }
 
     pub fn as_string(&self) -> Result<&str> {
         use ValueRef::*;
 
-        if let Some(String(value)) = self.get_ref() {
-            Ok(value)
-        } else {
-            Err(Error::TypeError("string".to_string()))
-        }
+        let Some(String(value)) = self.get_ref() else {
+            return Err(Error::TypeError("string".to_string()));
+        };
+        Ok(value)
     }
 
     pub fn as_function(&self) -> Result<&Function> {
         use ValueRef::*;
 
-        if let Some(Function(value)) = self.get_ref() {
-            Ok(value)
-        } else {
-            Err(Error::TypeError("function".to_string()))
-        }
+        let Some(Function(value)) = self.get_ref() else {
+            return Err(Error::TypeError("function".to_string()));
+        };
+        Ok(value)
     }
 }
 

@@ -92,10 +92,9 @@ impl<'b> Vm<'b> {
     }
 
     fn load_named(&mut self, index: usize) -> Result<()> {
-        let name = self.get_constant(index)?;
-        let name = match name {
-            Constant::String(name) => *name,
-            _ => Err(InternalError::InvalidConstantType(index, "string"))?,
+        let Constant::String(name) = self.get_constant(index)? else {
+            let error = InternalError::InvalidConstantType(index, "string");
+            return Err(error.into());
         };
 
         let value = self.get_global(name).cloned()?;

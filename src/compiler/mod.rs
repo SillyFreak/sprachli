@@ -398,9 +398,8 @@ impl<'a, 'input> InstructionCompiler<'a, 'input> {
 
         let ast::Assignment { left, right } = stmt;
 
-        let name = match left {
-            ast::Expression::Identifier(name) => name,
-            _ => Err(Error::InvalidAssignmentTarget)?,
+        let ast::Expression::Identifier(name) = left else {
+            return Err(Error::InvalidAssignmentTarget);
         };
 
         self.visit_expression(right)?;
