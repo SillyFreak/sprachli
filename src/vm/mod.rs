@@ -44,6 +44,14 @@ impl<'b> Vm<'b> {
         Ok(constant)
     }
 
+    fn get_string_constant(&self, index: usize) -> Result<&'b str> {
+        let Constant::String(value) = self.get_constant(index)? else {
+            let error = InternalError::InvalidConstantType(index, "string");
+            return Err(error.into());
+        };
+        Ok(value)
+    }
+
     fn get_global(&self, name: &str) -> Result<&Constant<'b>> {
         let value = self
             .module
@@ -92,13 +100,8 @@ impl<'b> Vm<'b> {
     }
 
     fn load_named(&mut self, index: usize) -> Result<()> {
-        let Constant::String(name) = self.get_constant(index)? else {
-            let error = InternalError::InvalidConstantType(index, "string");
-            return Err(error.into());
-        };
-
-        let value = self.get_global(name).cloned()?;
-        self.stack.push(Value::constant(value))
+        let name = self.get_string_constant(index)?;
+        self.load_named_by_name(name)
     }
 
     fn store_local(&mut self, offset: usize, index: usize) -> Result<()> {
