@@ -25,11 +25,6 @@ pub use parser::parse_bytecode;
 
 pub type Number = BigDecimal;
 
-#[derive(Debug, Clone)]
-pub struct Bytecode<B>(B)
-where
-    B: AsRef<[u8]>;
-
 #[derive(Clone)]
 pub struct Module<'b> {
     constants: Vec<Constant<'b>>,
