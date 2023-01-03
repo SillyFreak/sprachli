@@ -14,9 +14,8 @@ pub mod parser;
 use std::collections::BTreeMap;
 
 use bigdecimal::BigDecimal;
-use itertools::Itertools;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use sprachli_fmt::{FormatterExt, ModuleFormat};
+use sprachli_fmt::{FormatterExt, IteratorExt, ModuleFormat};
 
 use instruction::{InlineConstant, Instruction, Offset, Opcode};
 
@@ -188,7 +187,7 @@ impl<'b> Function<'b> {
         module: Option<&M>,
     ) -> fmt::Result {
         f.write_str("fn (")?;
-        for i in (0..self.arity).map(Some).intersperse(None) {
+        for i in (0..self.arity).intersperse_with_none() {
             match i {
                 Some(i) => write!(f, "_{}", i)?,
                 None => f.write_str(", ")?,
@@ -235,7 +234,7 @@ impl fmt::Debug for StructType<'_> {
             Empty => f.write_str("struct;"),
             Positional(count) => {
                 f.write_str("struct(")?;
-                for i in (0..*count).map(Some).intersperse(None) {
+                for i in (0..*count).intersperse_with_none() {
                     match i {
                         Some(i) => write!(f, "_{}", i)?,
                         None => f.write_str(", ")?,
@@ -249,7 +248,7 @@ impl fmt::Debug for StructType<'_> {
                     f.write_str("struct {}")?;
                 } else {
                     f.write_str("struct { ")?;
-                    for field in fields.iter().map(Some).intersperse(None) {
+                    for field in fields.iter().intersperse_with_none() {
                         match field {
                             Some(field) => f.write_str(field)?,
                             None => f.write_str(", ")?,
@@ -305,8 +304,7 @@ impl<'b> InstructionSequence<'b> {
             for ins in self
                 .iter()
                 .with_offset()
-                .map(Some)
-                .intersperse_with(|| None)
+                .intersperse_with_none()
             {
                 if let Some((offset, ins)) = ins {
                     match ins {

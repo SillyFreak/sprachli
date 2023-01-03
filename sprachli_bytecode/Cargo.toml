@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 bigdecimal = "0.3.0"
-itertools = "0.10.3"
 nom = "7.1.1"
 num_enum = "0.5.7"
 sprachli_fmt = { path = "../sprachli_fmt" }

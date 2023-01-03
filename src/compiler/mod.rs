@@ -10,8 +10,7 @@ use std::iter;
 use std::slice::SliceIndex;
 use std::str::FromStr;
 
-use itertools::Itertools;
-use sprachli_fmt::{FormatterExt, ModuleFormat};
+use sprachli_fmt::{FormatterExt, IteratorExt, ModuleFormat};
 
 use crate::ast;
 use crate::bytecode::instruction::{InlineConstant, Instruction, Offset};
@@ -244,7 +243,7 @@ impl StructType {
             Empty => f.write_str("struct;"),
             Positional(count) => {
                 f.write_str("struct(")?;
-                for i in (0..*count).map(Some).intersperse(None) {
+                for i in (0..*count).intersperse_with_none() {
                     match i {
                         Some(i) => write!(f, "_{}", i)?,
                         None => f.write_str(", ")?,
@@ -258,7 +257,7 @@ impl StructType {
                     f.write_str("struct {}")?;
                 } else {
                     f.write_str("struct { ")?;
-                    for field in fields.iter().map(Some).intersperse(None) {
+                    for field in fields.iter().intersperse_with_none() {
                         match field {
                             Some(field) => {
                                 if let Some(module) = module {

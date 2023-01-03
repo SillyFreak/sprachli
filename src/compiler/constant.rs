@@ -1,8 +1,7 @@
 use std::fmt;
 
 use bigdecimal::BigDecimal;
-use itertools::Itertools;
-use sprachli_fmt::ModuleFormat;
+use sprachli_fmt::{IteratorExt, ModuleFormat};
 
 use super::Module;
 use crate::bytecode::instruction::Instruction;
@@ -82,7 +81,7 @@ impl Function {
         module: Option<&M>,
     ) -> fmt::Result {
         f.write_str("fn (")?;
-        for i in (0..self.arity).map(Some).intersperse(None) {
+        for i in (0..self.arity).intersperse_with_none() {
             match i {
                 Some(i) => write!(f, "_{}", i)?,
                 None => f.write_str(", ")?,
@@ -108,7 +107,7 @@ impl Function {
 
         let mut offset = 0;
         if f.alternate() {
-            for ins in self.body.iter().map(Some).intersperse_with(|| None) {
+            for ins in self.body.iter().intersperse_with_none() {
                 if let Some(ins) = ins {
                     write!(f, "           {offset:5}  ")?;
                     ins.fmt_with(f, module)?;

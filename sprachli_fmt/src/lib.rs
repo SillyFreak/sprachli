@@ -1,4 +1,6 @@
-use std::fmt::{self, Write};
+use std::{fmt::{self, Write}, iter::Map};
+
+use itertools::{IntersperseWith, Itertools};
 
 pub trait ModuleFormat {
     type Constant: fmt::Debug;
@@ -214,3 +216,16 @@ impl fmt::Write for SexprPad<'_, '_> {
         Ok(())
     }
 }
+
+type MapToOption<I> = Map<I, fn(<I as Iterator>::Item) -> Option<<I as Iterator>::Item>>;
+type IntersperseWithNone<I> = IntersperseWith<MapToOption<I>, fn() -> Option<<I as Iterator>::Item>>;
+
+pub trait IteratorExt : Iterator {
+    fn intersperse_with_none(self) -> IntersperseWithNone<Self>
+        where Self: Sized
+    {
+        Itertools::intersperse_with(self.map(Some), || None)
+    }
+}
+
+impl<T: ?Sized> IteratorExt for T where T: Iterator { }
